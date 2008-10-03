@@ -37,3 +37,7 @@ Picid.show(a:self ref Picid) : string
 }
     }}}
   * 'eq' for build-in types (as well as for arrays and tuples) to allow them be used in functions like lists->ismember() where template parameter require 'eq'
+    {{{
+wetest : list of int = nil;
+sys->print("%d\n", lists->ismember(666,wetest));
+}}}
