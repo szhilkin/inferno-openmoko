@@ -35,9 +35,22 @@ Picid.show(a:self ref Picid) : string
 {
 	return "{x="+string a.x+",y="+string a.y+"}";
 }
-    }}}
+}}}
   * 'eq' for build-in types (as well as for arrays and tuples) to allow them be used in functions like lists->ismember() where template parameter require 'eq'
     {{{
 wetest : list of int = nil;
 sys->print("%d\n", lists->ismember(666,wetest));
+}}}
+
+  * this works:
+{{{
+wetest : list of ref Picid = nil;
+picid := ref Picid(x, y);
+sys->print("%d\n", lists->ismember(picid,wetest));
+}}}
+  but this does not work:
+{{{
+wetest : list of Picid = nil;
+picid := Picid(x, y);
+sys->print("%d\n", lists->ismember(picid,wetest));
 }}}
