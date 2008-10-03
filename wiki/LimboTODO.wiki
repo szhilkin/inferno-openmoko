@@ -1,0 +1,39 @@
+#summary Limbo TODO
+
+= Limbo TODO =
+
+  * + to concat arrays
+
+  * [] for tuples
+
+  * arbitrary precision integers arithmetics (using libmp, already part of Inferno)
+
+  * multiline comments `/* */` or other ?
+
+  * possibility to declare array of int16 and float32 (Dis supports conversion to/from the types)
+
+  * 'deriving' from Haskell
+    {{{
+Picid : adt deriving (eq, show)
+{
+	x, y : int; 
+}
+}}}
+  will produce:
+{{{
+Picid : adt
+{
+	x, y : int;
+	eq : fn(a:self ref Picid, b:ref Picid) : int;
+	show : fn(a:self ref Picid) : string;
+};
+Picid.eq(a:self ref Picid, b:ref Picid) : int 
+{
+	return a.x==b.x && a.y==b.y; 
+}
+Picid.show(a:self ref Picid) : string
+{
+	return "{x="+string a.x+",y="+string a.y+"}";
+}
+    }}}
+  * 'eq' for build-in types (as well as for arrays and tuples) to allow them be used in functions like lists->ismember() where template parameter require 'eq'
