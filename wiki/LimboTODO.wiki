@@ -12,6 +12,8 @@
 
   * possibility to declare array of int16 and float32 (Dis supports conversion to/from the types)
 
+  * nested functions, closures
+
   * 'deriving' from Haskell
     {{{
 Picid : adt deriving (eq, show)
