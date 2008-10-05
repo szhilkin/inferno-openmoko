@@ -10,6 +10,10 @@
 
   * multiline comments `/* */` or other ?
 
+  * FFI to hosts .dll/.so (via driver?)
+
+  * PCRE module
+
   * possibility to declare array of int16 and float32 (Dis supports conversion to/from the types)
 
   * nested functions, closures
