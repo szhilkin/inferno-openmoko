@@ -16,7 +16,7 @@
 
   * possibility to declare array of int16 and float32 (Dis supports conversion to/from the types)
 
-  * library of collection (SortedArray, SortedMap, SortedSet, HashMap, HashSet, SkipList, Judy, ...) and useful types (Complex, Rational, Matrix, ...)
+  * library of collection `(SortedArray, SortedMap, SortedSet, HashMap, HashSet, SkipList, Judy, ...)` and useful types `(Complex, Rational, Matrix, ...)`
 
   * nested functions, closures
 
