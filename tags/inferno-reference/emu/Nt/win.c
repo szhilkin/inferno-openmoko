@@ -43,7 +43,7 @@ static	DWORD WINAPI	winproc(LPVOID);
 
 static	HINSTANCE	inst;
 static	HINSTANCE	previnst;
-static	int		cmdshow;
+static	int		cmdshow = SW_SHOW;
 static	HWND		window;
 static	HDC		screen;
 static	HPALETTE	palette;
@@ -58,7 +58,7 @@ static	ulong	*data;
 
 extern	DWORD	PlatformId;
 char*	gkscanid = "emu_win32vk";
-
+#ifndef __TINYC__
 int WINAPI
 WinMain(HINSTANCE winst, HINSTANCE wprevinst, LPSTR cmdline, int wcmdshow)
 {
@@ -72,7 +72,7 @@ WinMain(HINSTANCE winst, HINSTANCE wprevinst, LPSTR cmdline, int wcmdshow)
 	main(__argc, __argv);
 	return 0;
 }
-
+#endif
 static void
 dprint(char *fmt, ...)
 {
@@ -82,8 +82,8 @@ dprint(char *fmt, ...)
 	va_start(arg, fmt);
 	vseprint(buf, buf+sizeof(buf), fmt, (LPSTR)arg);
 	va_end(arg);
-	OutputDebugString("inferno: ");
-	OutputDebugString(buf);
+	OutputDebugStringA("inferno: ");
+	OutputDebugStringA(buf);
 }
 
 static void

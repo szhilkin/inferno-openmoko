@@ -18,13 +18,13 @@ static char* tktmarkunset(Tk*, char*, char**);
 TkCmdtab
 tktmarkcmd[] =
 {
-	"gravity",		tktmarkgravity,
-	"names",		tktmarknames,
-	"next",		tktmarknext,
-	"previous",	tktmarkprevious,
-	"set",		tktmarkset,
-	"unset",		tktmarkunset,
-	nil
+	{"gravity",	tktmarkgravity},
+	{"names",	tktmarknames},
+	{"next",	tktmarknext},
+	{"previous",	tktmarkprevious},
+	{"set",		tktmarkset},
+	{"unset",	tktmarkunset},
+	{nil}
 };
 
 char*

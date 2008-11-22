@@ -142,7 +142,7 @@ static void
 eiainit(void)
 {
 	int     i,x;
-	byte    ports;   //bitmask of active host ports
+	int     ports;   //bitmask of active host ports
 	int     nports;  //number of active host ports
 	int     max;     //number of highest port
 	Dirtab *dp;
@@ -158,7 +158,7 @@ eiainit(void)
 	// keep results in a bitmask
 	ports = nports = max = 0;
 	for(i=0; (sysdev[i] != NULL) && (i<8); i++) {
-		HANDLE comfh = CreateFile(sysdev[i], 0, 0, NULL,	/* no security attrs */
+		HANDLE comfh = CreateFileA(sysdev[i], 0, 0, NULL,	/* no security attrs */
 			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 		if(comfh != INVALID_HANDLE_VALUE) {
@@ -409,7 +409,7 @@ openport(int port)
 	Eia* p = &eia[port];
 
 	// open the port
-	p->comfh = CreateFile(sysdev[p->id], 
+	p->comfh = CreateFileA(sysdev[p->id],
 		GENERIC_READ|GENERIC_WRITE,     //open underlying port for rd/wr
 		0,	                            //comm port can't be shared
 		NULL,	                        //no security attrs

@@ -206,7 +206,7 @@ xscan(Memimage *dst, Seg **seg, Seg *segtab, int nseg, int wind, Memimage *src, 
 	if(n == 0)
 		return;
 	*p = 0;
-	qsort(seg, p-seg , sizeof(Seg*), ycompare);
+	qsort(seg, p-seg , sizeof(Seg*), (int(*)(const void*,const void*))ycompare);
 
 	onehalf = 0;
 	if(fixshift)
@@ -336,7 +336,7 @@ yscan(Memimage *dst, Seg **seg, Seg *segtab, int nseg, int wind, Memimage *src, 
 	if(n == 0)
 		return;
 	*p = 0;
-	qsort(seg, n , sizeof(Seg*), xcompare);
+	qsort(seg, n , sizeof(Seg*), (int(*)(const void*,const void*))xcompare);
 
 	onehalf = 0;
 	if(fixshift)
@@ -460,7 +460,7 @@ zsort(Seg **seg, Seg **ep)
 		q = ep-1;
 		for(p = seg; p < q; p++) {
 			if(p[0]->z > p[1]->z) {
-				qsort(seg, ep-seg, sizeof(Seg*), zcompare);
+				qsort(seg, ep-seg, sizeof(Seg*), (int(*)(const void*,const void*))zcompare);
 				break;
 			}
 		}

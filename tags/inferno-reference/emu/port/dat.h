@@ -17,7 +17,6 @@ typedef struct Mnt	Mnt;
 typedef struct Mhead	Mhead;
 typedef struct Osenv	Osenv;
 typedef struct Pgrp	Pgrp;
-typedef struct Proc	Proc;
 typedef struct Queue	Queue;
 typedef struct Ref	Ref;
 typedef struct Rendez	Rendez;

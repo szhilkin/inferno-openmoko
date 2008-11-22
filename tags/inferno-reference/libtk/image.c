@@ -20,8 +20,8 @@ struct TkImgtype
 	void	(*destroy)(TkImg*);
 } tkimgopts[] = 
 {
-	"bitmap",	tkimgbmcreate,		tkimgbmdel, 	tkimgbmfree,
-	nil,
+	{"bitmap",	tkimgbmcreate,		tkimgbmdel, 	tkimgbmfree},
+	{nil},
 };
 
 typedef struct Imgargs Imgargs;
@@ -45,9 +45,9 @@ tkname2img(TkTop *t, char *name)
 TkOption
 bitopt[] =
 {
-	"file",		OPTbmap,	O(Imgargs, fgimg),	nil,
-	"maskfile",	OPTbmap,	O(Imgargs, maskimg),	nil,
-	nil
+	{"file",		OPTbmap,	O(Imgargs, fgimg),	nil},
+	{"maskfile",	OPTbmap,	O(Imgargs, maskimg),	nil},
+	{nil}
 };
 
 void

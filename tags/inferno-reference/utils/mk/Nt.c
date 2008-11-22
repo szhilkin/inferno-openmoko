@@ -63,7 +63,7 @@ exportenv(Envy *e)
 		else
 			v = "";
 		buf = Realloc(buf, n+strlen(e->name)+1+strlen(v)+1);
-		
+
 		n += sprint(buf+n, "%s=%s", e->name, v);
 		n++;	/* skip over null */
 		if(e->values)
@@ -151,7 +151,7 @@ void
 childadd(HANDLE h, int pid)
 {
 	int i;
-	
+
 	for(i=0; i<Nchild; i++) {
 		if(child[i].handle == 0) {
 			child[i].handle = h;
@@ -167,7 +167,7 @@ static DWORD WINAPI
 spinoff(HANDLE in, HANDLE out, char *args, char *cmd, Envy *e)
 {
 	char args2[4096], path[MAX_PATH], *s, *eb;
-	STARTUPINFO si;
+	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;
 	Symtab *sym;
 
@@ -208,7 +208,7 @@ spinoff(HANDLE in, HANDLE out, char *args, char *cmd, Envy *e)
 	si.hStdInput = duphandle(in);
 	si.hStdOutput = duphandle(out);
 	si.hStdError = duphandle(GetStdHandle(STD_ERROR_HANDLE));
-	if(CreateProcess(path, args2, 0, 0, 1, 0, eb, 0, &si, &pi) == FALSE) {
+	if(CreateProcessA(path, args2, 0, 0, 1, 0, eb, 0, &si, &pi) == FALSE) {
 		perror("can't find shell");
 		Exit();
 	}
@@ -290,7 +290,7 @@ writecmd(LPVOID a)
 		if(WriteFile(arg->handle, cmd, p-cmd, &n, 0) == FALSE)
 			break;
 		cmd += n;
-	}	
+	}
 
 	free(arg->cmd);
 	CloseHandle(arg->handle);
@@ -310,7 +310,7 @@ pipecmd(char *cmd, Envy *e, int *fd)
 			perror("pipe");
 			Exit();
 		}
-	} else 
+	} else
 		pipeout = GetStdHandle(STD_OUTPUT_HANDLE);
 
 

@@ -26,18 +26,18 @@ struct TkCoval
 static
 TkOption ovalopts[] =
 {
-	"width",	OPTnnfrac,	O(TkCoval, width),	nil,			/* XXX should be nnfrac */
-	"stipple",	OPTbmap,	O(TkCoval, stipple),	nil,
-	nil
+	{"width",	OPTnnfrac,	O(TkCoval, width),	nil},			/* XXX should be nnfrac */
+	{"stipple",	OPTbmap,	O(TkCoval, stipple),	nil},
+	{nil}
 };
 
 static
 TkOption itemopts[] =
 {
-	"tags",		OPTctag,	O(TkCitem, tags),	nil,
-	"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill),
-	"outline",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd),
-	nil
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill)},
+	{"outline",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
+	{nil}
 };
 
 void

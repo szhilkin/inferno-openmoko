@@ -35,29 +35,29 @@ struct TkBeamparam{
 static
 TkOption opts[] =
 {
-	"padx",		OPTnndist,	O(TkGridparam, pad.x),	nil,
-	"pady",		OPTnndist,	O(TkGridparam, pad.y),	nil,
-	"ipadx",	OPTnndist,	O(TkGridparam, ipad.x),	nil,
-	"ipady",	OPTnndist,	O(TkGridparam, ipad.y),	nil,
-	"in",		OPTwinp,		O(TkGridparam, in),		nil,
-	"row",	OPTtext,		O(TkGridparam, row), nil,
-	"column",	OPTtext,		O(TkGridparam, col), nil,
-	"rowspan",	OPTnndist,	O(TkGridparam, span.y), nil,
-	"columnspan",	OPTnndist,	O(TkGridparam, span.x), nil,
-	"sticky",	OPTsticky,		O(TkGridparam, sticky), nil,
-	nil
+	{"padx",		OPTnndist,	O(TkGridparam, pad.x),	nil},
+	{"pady",		OPTnndist,	O(TkGridparam, pad.y),	nil},
+	{"ipadx",	OPTnndist,	O(TkGridparam, ipad.x),	nil},
+	{"ipady",	OPTnndist,	O(TkGridparam, ipad.y),	nil},
+	{"in",		OPTwinp,		O(TkGridparam, in),		nil},
+	{"row",	OPTtext,		O(TkGridparam, row), nil},
+	{"column",	OPTtext,		O(TkGridparam, col), nil},
+	{"rowspan",	OPTnndist,	O(TkGridparam, span.y), nil},
+	{"columnspan",	OPTnndist,	O(TkGridparam, span.x), nil},
+	{"sticky",	OPTsticky,		O(TkGridparam, sticky), nil},
+	{nil}
 };
 
 static
 TkOption beamopts[] =
 {
-	"minsize",		OPTnndist,	O(TkBeamparam, minsize),	nil,
-	"maxsize",	OPTnndist,	O(TkBeamparam, maxsize),	nil,
-	"weight",		OPTnndist,	O(TkBeamparam, weight),	nil,
-	"pad",		OPTnndist,	O(TkBeamparam, pad),		nil,
-	"name",		OPTtext,		O(TkBeamparam, name),		nil,
-	"equalise",	OPTstab,		O(TkBeamparam, equalise),	tkbool,
-	nil
+	{"minsize",		OPTnndist,	O(TkBeamparam, minsize),	nil},
+	{"maxsize",	OPTnndist,	O(TkBeamparam, maxsize),	nil},
+	{"weight",		OPTnndist,	O(TkBeamparam, weight),	nil},
+	{"pad",		OPTnndist,	O(TkBeamparam, pad),		nil},
+	{"name",		OPTtext,		O(TkBeamparam, name),		nil},
+	{"equalise",	OPTstab,		O(TkBeamparam, equalise),	tkbool},
+	{nil}
 };
 
 void

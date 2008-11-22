@@ -43,38 +43,38 @@ TkParam defparam = {
 static
 TkStab tkside[] =
 {
-	"top",		Tktop,
-	"bottom",	Tkbottom,
-	"left",		Tkleft,
-	"right",	Tkright,
-	nil
+	{"top",		Tktop},
+	{"bottom",	Tkbottom},
+	{"left",	Tkleft},
+	{"right",	Tkright},
+	{nil}
 };
 
 static
 TkStab tkfill[] =
 {
-	"none",		0,
-	"x",		Tkfillx,
-	"y",		Tkfilly,
-	"both",		Tkfillx|Tkfilly,
-	nil
+	{"none",	0},
+	{"x",		Tkfillx},
+	{"y",		Tkfilly},
+	{"both",	Tkfillx|Tkfilly},
+	{nil}
 };
 
 static
 TkOption opts[] =
 {
-	"padx",		OPTnndist,	O(TkParam, pad.x),	nil,
-	"pady",		OPTnndist,	O(TkParam, pad.y),	nil,
-	"ipadx",	OPTnndist,	O(TkParam, ipad.x),	nil,
-	"ipady",	OPTnndist,	O(TkParam, ipad.y),	nil,
-	"side",		OPTstab,	O(TkParam, side),	tkside,
-	"anchor",	OPTstab,	O(TkParam, anchor),	tkanchor,
-	"fill",		OPTstab,	O(TkParam, fill),	tkfill,
-	"in",		OPTwinp,	O(TkParam, in),		nil,
-	"before",	OPTwinp,	O(TkParam, before),	nil,
-	"after",	OPTwinp,	O(TkParam, after),	nil,
-	"expand",	OPTstab,	O(TkParam, expand),	tkbool,
-	nil
+	{"padx",		OPTnndist,	O(TkParam, pad.x),	nil},
+	{"pady",		OPTnndist,	O(TkParam, pad.y),	nil},
+	{"ipadx",	OPTnndist,	O(TkParam, ipad.x),	nil},
+	{"ipady",	OPTnndist,	O(TkParam, ipad.y),	nil},
+	{"side",		OPTstab,	O(TkParam, side),	tkside},
+	{"anchor",	OPTstab,	O(TkParam, anchor),	tkanchor},
+	{"fill",		OPTstab,	O(TkParam, fill),	tkfill},
+	{"in",		OPTwinp,	O(TkParam, in),		nil},
+	{"before",	OPTwinp,	O(TkParam, before),	nil},
+	{"after",	OPTwinp,	O(TkParam, after),	nil},
+	{"expand",	OPTstab,	O(TkParam, expand),	tkbool},
+	{nil}
 };
 
 void

@@ -48,21 +48,21 @@ struct TkCtext
 static
 TkOption textopts[] =
 {
-	"anchor",	OPTstab,	O(TkCtext, anchor),	tkanchor,
-	"justify",	OPTstab,	O(TkCtext, justify),	tktabjust,
-	"width",	OPTdist,	O(TkCtext, width),	IAUX(O(TkCtext, env)),
-	"stipple",	OPTbmap,	O(TkCtext, stipple),	nil,
-	"text",		OPTtext,	O(TkCtext, text),	nil,
-	nil
+	{"anchor",	OPTstab,	O(TkCtext, anchor),	tkanchor},
+	{"justify",	OPTstab,	O(TkCtext, justify),	tktabjust},
+	{"width",	OPTdist,	O(TkCtext, width),	IAUX(O(TkCtext, env))},
+	{"stipple",	OPTbmap,	O(TkCtext, stipple),	nil},
+	{"text",		OPTtext,	O(TkCtext, text),	nil},
+	{nil}
 };
 
 static
 TkOption itemopts[] =
 {
-	"tags",		OPTctag,	O(TkCitem, tags),	nil,
-	"font",		OPTfont,	O(TkCitem, env),	nil,
-	"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill),
-	nil
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"font",		OPTfont,	O(TkCitem, env),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill)},
+	{nil}
 };
 
 static char*

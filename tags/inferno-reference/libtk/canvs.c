@@ -40,19 +40,19 @@
 
 static
 TkStab tkbuffer[] = {
-	"visible",	TkCbufvisible,
-	"all",		TkCbufall,
-	"none",	TkCbufnone,
-	"auto",	TkCbufauto,
+	{"visible",	TkCbufvisible},
+	{"all",		TkCbufall},
+	{"none",	TkCbufnone},
+	{"auto",	TkCbufauto},
 
 	/* backwards compatibility */
-	"1",		TkCbufall,
-	"yes",	TkCbufall,
-	"off",		TkCbufall,
-	"0",		TkCbufauto,
-	"no",		TkCbufauto,
-	"off",		TkCbufauto,
-	nil
+	{"1",		TkCbufall},
+	{"yes",	TkCbufall},
+	{"off",		TkCbufall},
+	{"0",		TkCbufauto},
+	{"no",		TkCbufauto},
+	{"off",		TkCbufauto},
+	{nil}
 };
 	
 #define	O(t, e)		((long)(&((t*)0)->e))
@@ -61,19 +61,19 @@ TkStab tkbuffer[] = {
 static
 TkOption opts[] =
 {
-	"closeenough",		OPTfrac,	O(TkCanvas, close),	nil,
-	"confine",		OPTfrac,	O(TkCanvas, confine),	nil,
-	"scrollregion",		OPTfrac,	OA(TkCanvas, scrollr),	IAUX(4),
-	"xscrollincrement",	OPTfrac,	O(TkCanvas, xscrolli),	nil,
-	"yscrollincrement",	OPTfrac,	O(TkCanvas, yscrolli),	nil,
-	"xscrollcommand",	OPTtext,	O(TkCanvas, xscroll),	nil,
-	"yscrollcommand",	OPTtext,	O(TkCanvas, yscroll),	nil,
-	"width",		OPTnnfrac,	O(TkCanvas, width),	nil,
-	"height",		OPTnnfrac,	O(TkCanvas, height),	nil,
-	"buffer",		OPTstab,	O(TkCanvas, buffer),		tkbuffer,
-	"buffered",		OPTstab,	O(TkCanvas, buffer),	tkbool,	/* backwards compatibility */
-	"selectborderwidth",	OPTnndist, O(TkCanvas, sborderwidth), nil,
-	nil
+	{"closeenough",		OPTfrac,	O(TkCanvas, close),	nil},
+	{"confine",		OPTfrac,	O(TkCanvas, confine),	nil},
+	{"scrollregion",	OPTfrac,	OA(TkCanvas, scrollr),	IAUX(4)},
+	{"xscrollincrement",	OPTfrac,	O(TkCanvas, xscrolli),	nil},
+	{"yscrollincrement",	OPTfrac,	O(TkCanvas, yscrolli),	nil},
+	{"xscrollcommand",	OPTtext,	O(TkCanvas, xscroll),	nil},
+	{"yscrollcommand",	OPTtext,	O(TkCanvas, yscroll),	nil},
+	{"width",		OPTnnfrac,	O(TkCanvas, width),	nil},
+	{"height",		OPTnnfrac,	O(TkCanvas, height),	nil},
+	{"buffer",		OPTstab,	O(TkCanvas, buffer),	tkbuffer},
+	{"buffered",		OPTstab,	O(TkCanvas, buffer),	tkbool},	/* backwards compatibility */
+	{"selectborderwidth",	OPTnndist, O(TkCanvas, sborderwidth), nil},
+	{nil}
 };
 
 int cvslshape[] = { TKI2F(8), TKI2F(10), TKI2F(3) };
@@ -2092,116 +2092,116 @@ tkcvsgetimgs(Tk* tk, Image **image, Image **mask)
 
 TkCimeth tkcimethod[] =
 {
-	"line",		tkcvslinecreat,
+	{"line",		tkcvslinecreat,
 			tkcvslinedraw,
 			tkcvslinefree,
 			tkcvslinecoord,
 			tkcvslinecget,
 			tkcvslineconf,
-			tkcvslinehit,
+			tkcvslinehit},
 
-	"text",		tkcvstextcreat,	
+	{"text",		tkcvstextcreat,
 			tkcvstextdraw,
 			tkcvstextfree,
 			tkcvstextcoord,
 			tkcvstextcget,
 			tkcvstextconf,
-			nil,
+			nil},
 
-	"rectangle",	tkcvsrectcreat,	
+	{"rectangle",	tkcvsrectcreat,
 			tkcvsrectdraw,
 			tkcvsrectfree,
 			tkcvsrectcoord,
 			tkcvsrectcget,
 			tkcvsrectconf,
-			nil,
+			nil},
 
-	"oval",		tkcvsovalcreat,	
+	{"oval",		tkcvsovalcreat,
 			tkcvsovaldraw,
 			tkcvsovalfree,
 			tkcvsovalcoord,
 			tkcvsovalcget,
 			tkcvsovalconf,
-			tkcvsovalhit,
+			tkcvsovalhit},
 
-	"bitmap",	tkcvsbitcreat,	
+	{"bitmap",	tkcvsbitcreat,
 			tkcvsbitdraw,
 			tkcvsbitfree,
 			tkcvsbitcoord,
 			tkcvsbitcget,
 			tkcvsbitconf,
-			nil,
+			nil},
 
-	"polygon",	tkcvspolycreat,	
+	{"polygon",	tkcvspolycreat,
 			tkcvspolydraw,
 			tkcvspolyfree,
 			tkcvspolycoord,
 			tkcvspolycget,
 			tkcvspolyconf,
-			tkcvspolyhit,
+			tkcvspolyhit},
 
-	"window",	tkcvswindcreat,	
+	{"window",	tkcvswindcreat,
 			tkcvswinddraw,
 			tkcvswindfree,
 			tkcvswindcoord,
 			tkcvswindcget,
 			tkcvswindconf,
-			nil,
+			nil},
 
-	"image",	tkcvsimgcreat,	
+	{"image",	tkcvsimgcreat,
 			tkcvsimgdraw,
 			tkcvsimgfree,
 			tkcvsimgcoord,
 			tkcvsimgcget,
 			tkcvsimgconf,
-			nil,
+			nil},
 
-	"arc",		tkcvsarccreat,	
+	{"arc",		tkcvsarccreat,
 			tkcvsarcdraw,
 			tkcvsarcfree,
 			tkcvsarccoord,
 			tkcvsarccget,
 			tkcvsarcconf,
-			nil,
-	nil
+			nil},
+	{nil}
 };
 
 static
 TkCmdtab tkcanvcmd[] =
 {
-	"addtag",		tkcvsaddtag,
-	"bbox",			tkcvsbbox,
-	"bind",			tkcvsbind,
-	"cget",			tkcvscget,
-	"configure",		tkcvsconf,
-	"create",		tkcvscreate,
-	"canvasx",		tkcvscanvx,
-	"canvasy",		tkcvscanvy,
-	"coords",		tkcvscoords,
-	"dchars",		tkcvsdchars,
-	"delete",		tkcvsdelete,
-	"dtag",			tkcvsdtag,
-	"find",			tkcvsfind,
-	"focus",		tkcvsfocus,
-	"gettags",		tkcvsgettags,
-	"grab",		tkcvsgrab,
-	"icursor",		tkcvsicursor,
-	"insert",		tkcvsinsert,
-	"index",		tkcvsindex,
-	"itemcget",		tkcvsitemcget,
-	"itemconfigure",	tkcvsitemconf,
-	"lower",		tkcvslower,
-	"move",			tkcvsmove,
-	"raise",		tkcvsraise,
-	"screenx",		tkcvsscreenx,
-	"screeny",		tkcvsscreeny,
-	"see",		tkcvssee,
-	"select",		tkcvsselect,
-	"scale",		tkcvsscale,
-	"type",			tkcvstype,
-	"yview",		tkcvsyview,
-	"xview",		tkcvsxview,
-	nil
+	{"addtag",		tkcvsaddtag},
+	{"bbox",			tkcvsbbox},
+	{"bind",			tkcvsbind},
+	{"cget",			tkcvscget},
+	{"configure",		tkcvsconf},
+	{"create",		tkcvscreate},
+	{"canvasx",		tkcvscanvx},
+	{"canvasy",		tkcvscanvy},
+	{"coords",		tkcvscoords},
+	{"dchars",		tkcvsdchars},
+	{"delete",		tkcvsdelete},
+	{"dtag",			tkcvsdtag},
+	{"find",			tkcvsfind},
+	{"focus",		tkcvsfocus},
+	{"gettags",		tkcvsgettags},
+	{"grab",		tkcvsgrab},
+	{"icursor",		tkcvsicursor},
+	{"insert",		tkcvsinsert},
+	{"index",		tkcvsindex},
+	{"itemcget",		tkcvsitemcget},
+	{"itemconfigure",	tkcvsitemconf},
+	{"lower",		tkcvslower},
+	{"move",			tkcvsmove},
+	{"raise",		tkcvsraise},
+	{"screenx",		tkcvsscreenx},
+	{"screeny",		tkcvsscreeny},
+	{"see",		tkcvssee},
+	{"select",		tkcvsselect},
+	{"scale",		tkcvsscale},
+	{"type",			tkcvstype},
+	{"yview",		tkcvsyview},
+	{"xview",		tkcvsxview},
+	{nil}
 };
 
 TkMethod canvasmethod = {

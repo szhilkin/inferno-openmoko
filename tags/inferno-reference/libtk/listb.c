@@ -39,21 +39,21 @@ struct TkListbox
 
 TkStab tkselmode[] =
 {
-	"single",	TKsingle,
-	"browse",	TKbrowse,
-	"multiple",	TKmultiple,
-	"extended",	TKextended,
-	nil
+	{"single",	TKsingle},
+	{"browse",	TKbrowse},
+	{"multiple",	TKmultiple},
+	{"extended",	TKextended},
+	{nil}
 };
 
 static
 TkOption opts[] =
 {
-	"xscrollcommand",	OPTtext,	O(TkListbox, xscroll),	nil,
-	"yscrollcommand",	OPTtext,	O(TkListbox, yscroll),	nil,
-	"selectmode",		OPTstab,	O(TkListbox, selmode),	tkselmode,
-	"selectborderwidth",	OPTnndist,	O(TkListbox, sborderwidth),	nil,
-	nil
+	{"xscrollcommand",	OPTtext,	O(TkListbox, xscroll),	nil},
+	{"yscrollcommand",	OPTtext,	O(TkListbox, yscroll),	nil},
+	{"selectmode",		OPTstab,	O(TkListbox, selmode),	tkselmode},
+	{"selectborderwidth",	OPTnndist,	O(TkListbox, sborderwidth),	nil},
+	{nil}
 };
 
 static
@@ -1035,25 +1035,25 @@ tklistbkey(Tk *tk, char *arg, char **val)
 static
 TkCmdtab tklistcmd[] =
 {
-	"activate",		tklistbactivate,
-	"cget",			tklistbcget,
-	"configure",		tklistbconf,
-	"curselection",		tklistbcursel,
-	"delete",		tklistbdelete,
-	"get",			tklistbget,
-	"index",		tklistbindex,
-	"insert",		tklistbinsert,
-	"nearest",		tklistbnearest,
-	"selection",		tklistbselection, 
-	"see",			tklistbsee,
-	"size",			tklistbsize,
-	"xview",		tklistbxview,
-	"yview",		tklistbyview,
-	"tkListbButton1P",	tklistbbutton1p,
-	"tkListbButton1R",	tklistbbutton1r,
-	"tkListbButton1MP",	tklistbbutton1m,
-	"tkListbKey",	tklistbkey,
-	nil
+	{"activate",		tklistbactivate},
+	{"cget",		tklistbcget},
+	{"configure",		tklistbconf},
+	{"curselection",	tklistbcursel},
+	{"delete",		tklistbdelete},
+	{"get",			tklistbget},
+	{"index",		tklistbindex},
+	{"insert",		tklistbinsert},
+	{"nearest",		tklistbnearest},
+	{"selection",		tklistbselection},
+	{"see",			tklistbsee},
+	{"size",		tklistbsize},
+	{"xview",		tklistbxview},
+	{"yview",		tklistbyview},
+	{"tkListbButton1P",	tklistbbutton1p},
+	{"tkListbButton1R",	tklistbbutton1r},
+	{"tkListbButton1MP",	tklistbbutton1m},
+	{"tkListbKey",		tklistbkey},
+	{nil}
 };
 
 TkMethod listboxmethod = {

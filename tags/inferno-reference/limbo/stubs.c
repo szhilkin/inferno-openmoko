@@ -25,12 +25,12 @@ emit(Decl *globals)
 		}
 	}
 	if(emitstub){
-		print("#pragma hjdicks x4\n");
-		print("#pragma pack x4\n");
+		//print("#pragma hjdicks x4\n");
+		print("#pragma pack(4)\n");
 		adtstub(globals);
 		modstub(globals);
-		print("#pragma pack off\n");
-		print("#pragma hjdicks off\n");
+		print("#pragma pack()\n");
+		//print("#pragma hjdicks off\n");
 	}
 	if(emittab != nil)
 		modtab(globals);
@@ -74,7 +74,7 @@ modcode(Decl *globals)
 
 	if(d == nil)
 		return;
-	
+
 	/*
 	 * stub types
 	 */
@@ -94,7 +94,7 @@ modcode(Decl *globals)
 				print("uchar %s_map[] = %s_%s_map;\n",
 					id->sym->name, emitcode, id->sym->name);
 	}
-	
+
 	/*
 	  * heap allocation and garbage collection for a type
 	 */

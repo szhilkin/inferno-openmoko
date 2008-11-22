@@ -19,34 +19,34 @@ static int winowned(Tk *tk, Tk *sub);
 static
 TkStab tkalign[] =
 {
-	"top",		Tktop,
-	"bottom",	Tkbottom,
-	"center",	Tkcenter,
-	"baseline",	Tkbaseline,
-	nil
+	{"top",		Tktop},
+	{"bottom",	Tkbottom},
+	{"center",	Tkcenter},
+	{"baseline",	Tkbaseline},
+	{nil}
 };
 
 static
 TkOption twinopts[] =
 {
-	"align",	OPTstab,	O(TkTwind, align),	tkalign,
-	"create",	OPTtext,	O(TkTwind, create),	nil,
-	"padx",		OPTnndist,	O(TkTwind, padx),	nil,
-	"pady",		OPTnndist,	O(TkTwind, pady),	nil,
-	"stretch",	OPTstab,	O(TkTwind, stretch),	tkbool,
-	"window",	OPTwinp,	O(TkTwind, sub),	nil,
-	"ascent",	OPTdist,	O(TkTwind, ascent), nil,
-	nil
+	{"align",	OPTstab,	O(TkTwind, align),	tkalign},
+	{"create",	OPTtext,	O(TkTwind, create),	nil},
+	{"padx",		OPTnndist,	O(TkTwind, padx),	nil},
+	{"pady",		OPTnndist,	O(TkTwind, pady),	nil},
+	{"stretch",	OPTstab,	O(TkTwind, stretch),	tkbool},
+	{"window",	OPTwinp,	O(TkTwind, sub),	nil},
+	{"ascent",	OPTdist,	O(TkTwind, ascent), nil},
+	{nil}
 };
 
 TkCmdtab
 tktwincmd[] =
 {
-	"cget",		tktwincget,
-	"configure",	tktwinconfigure,
-	"create",	tktwincreate,
-	"names",	tktwinnames,
-	nil
+	{"cget",	tktwincget},
+	{"configure",	tktwinconfigure},
+	{"create",	tktwincreate},
+	{"names",	tktwinnames},
+	{nil}
 };
 
 int

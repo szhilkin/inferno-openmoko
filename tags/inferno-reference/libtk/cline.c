@@ -21,41 +21,41 @@
 static
 TkStab tklines[] =
 {
-	"none",		0,
-	"first",	TkCarrowf,
-	"last",		TkCarrowl,
-	"both",		TkCarrowf|TkCarrowl,
-	nil
+	{"none",	0},
+	{"first",	TkCarrowf},
+	{"last",	TkCarrowl},
+	{"both",	TkCarrowf|TkCarrowl},
+	{nil}
 };
 
 static
 TkStab tkcapstyle[] =
 {
-	"butt",	Endsquare,
-	"projecting",	Endsquare,
-	"round",	Enddisc,
-	nil
+	{"butt",	Endsquare},
+	{"projecting",	Endsquare},
+	{"round",	Enddisc},
+	{nil}
 };
 
 static
 TkOption lineopts[] =
 {
-	"arrow",	OPTstab,	O(TkCline, arrow),	tklines,
-	"arrowshape",	OPTfrac,	O(TkCline, shape[0]),	IAUX(3),
-	"width",	OPTnnfrac,	O(TkCline, width),	nil,
-	"stipple",	OPTbmap,	O(TkCline, stipple),	nil,
-	"smooth",	OPTstab,	O(TkCline, smooth),	tkbool,
-	"splinesteps",	OPTdist,	O(TkCline, steps),	nil,
-	"capstyle",	OPTstab,	O(TkCline, capstyle),	tkcapstyle,
-	nil
+	{"arrow",	OPTstab,	O(TkCline, arrow),	tklines},
+	{"arrowshape",	OPTfrac,	O(TkCline, shape[0]),	IAUX(3)},
+	{"width",	OPTnnfrac,	O(TkCline, width),	nil},
+	{"stipple",	OPTbmap,	O(TkCline, stipple),	nil},
+	{"smooth",	OPTstab,	O(TkCline, smooth),	tkbool},
+	{"splinesteps",	OPTdist,	O(TkCline, steps),	nil},
+	{"capstyle",	OPTstab,	O(TkCline, capstyle),	tkcapstyle},
+	{nil}
 };
 
 static
 TkOption itemopts[] =
 {
-	"tags",		OPTctag,	O(TkCitem, tags),	nil,
-	"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd),
-	nil
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
+	{nil}
 };
 
 void

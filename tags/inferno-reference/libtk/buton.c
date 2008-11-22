@@ -21,32 +21,32 @@ enum {
 
 TkOption tkbutopts[] =
 {
-	"text",		OPTtext,	O(TkLabel, text),	nil,
-	"label",	OPTtext,	O(TkLabel, text),	nil,
-	"underline",	OPTdist,	O(TkLabel, ul),		nil,
-	"justify",	OPTstab,	O(TkLabel, justify),	tkjustify,
-	"anchor",	OPTflag,	O(TkLabel, anchor),	tkanchor,
-	"command",	OPTtext,	O(TkLabel, command),	nil,
-	"bitmap",	OPTbmap,	O(TkLabel, bitmap),	nil,
-	"image",	OPTimag,	O(TkLabel, img),	nil,
-	nil
+	{"text",		OPTtext,	O(TkLabel, text),	nil},
+	{"label",	OPTtext,	O(TkLabel, text),	nil},
+	{"underline",	OPTdist,	O(TkLabel, ul),		nil},
+	{"justify",	OPTstab,	O(TkLabel, justify),	tkjustify},
+	{"anchor",	OPTflag,	O(TkLabel, anchor),	tkanchor},
+	{"command",	OPTtext,	O(TkLabel, command),	nil},
+	{"bitmap",	OPTbmap,	O(TkLabel, bitmap),	nil},
+	{"image",	OPTimag,	O(TkLabel, img),	nil},
+	{nil}
 };
 
 TkOption tkcbopts[] =
 {
-	"variable",	OPTtext,	O(TkLabel, variable),	nil,
-	"indicatoron",	OPTstab,	O(TkLabel, indicator),	tkbool,
-	"onvalue",	OPTtext,	O(TkLabel, value),	nil,
-	"offvalue",	OPTtext,	O(TkLabel, offvalue), nil,
-	nil,
+	{"variable",	OPTtext,	O(TkLabel, variable),	nil},
+	{"indicatoron",	OPTstab,	O(TkLabel, indicator),	tkbool},
+	{"onvalue",	OPTtext,	O(TkLabel, value),	nil},
+	{"offvalue",	OPTtext,	O(TkLabel, offvalue), nil},
+	{nil},
 };
 
 TkOption tkradopts[] =
 {
-	"variable",	OPTtext,	O(TkLabel, variable),	nil,
-	"value",	OPTtext,	O(TkLabel, value), nil,
-	"indicatoron",	OPTstab,	O(TkLabel, indicator),	tkbool,
-	nil,
+	{"variable",	OPTtext,	O(TkLabel, variable),	nil},
+	{"value",	OPTtext,	O(TkLabel, value), nil},
+	{"indicatoron",	OPTstab,	O(TkLabel, indicator),	tkbool},
+	{nil},
 };
 
 static
@@ -533,38 +533,38 @@ tkbuttondeselect(Tk *tk, char *arg, char **val)
 static
 TkCmdtab tkbuttoncmd[] =
 {
-	"cget",			tkbuttoncget,
-	"configure",		tkbuttonconf,
-	"invoke",		tkbuttoninvoke,
-	"tkButton1P",		tkbutton1p,
-	"tkButton1R",		tkbutton1r,
-	"tkButtonKey",		tkbuttonkey,
-	nil
+	{"cget",			tkbuttoncget},
+	{"configure",		tkbuttonconf},
+	{"invoke",		tkbuttoninvoke},
+	{"tkButton1P",		tkbutton1p},
+	{"tkButton1R",		tkbutton1r},
+	{"tkButtonKey",		tkbuttonkey},
+	{nil}
 };
 
 static
 TkCmdtab tkchkbuttoncmd[] =
 {
-	"cget",			tkbuttoncget,
-	"configure",		tkbuttonconf,
-	"invoke",		tkbuttoninvoke,
-	"select",		tkbuttonselect,
-	"deselect",		tkbuttondeselect,
-	"toggle",		tkbuttontoggle,
-	"tkButtonKey",		tkbuttonkey,
-	nil
+	{"cget",			tkbuttoncget},
+	{"configure",		tkbuttonconf},
+	{"invoke",		tkbuttoninvoke},
+	{"select",		tkbuttonselect},
+	{"deselect",		tkbuttondeselect},
+	{"toggle",		tkbuttontoggle},
+	{"tkButtonKey",		tkbuttonkey},
+	{nil}
 };
 
 static
 TkCmdtab tkradbuttoncmd[] =
 {
-	"cget",			tkbuttoncget,
-	"configure",		tkbuttonconf,
-	"invoke",		tkbuttoninvoke,
-	"select",		tkbuttonselect,
-	"deselect",		tkbuttondeselect,
-	"tkButtonKey",		tkbuttonkey,
-	nil
+	{"cget",		tkbuttoncget},
+	{"configure",		tkbuttonconf},
+	{"invoke",		tkbuttoninvoke},
+	{"select",		tkbuttonselect},
+	{"deselect",		tkbuttondeselect},
+	{"tkButtonKey",		tkbuttonkey},
+	{nil}
 };
 
 TkMethod buttonmethod = {

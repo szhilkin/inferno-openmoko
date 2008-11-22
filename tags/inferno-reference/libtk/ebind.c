@@ -20,39 +20,39 @@ struct
 	int	action;
 } etab[] =
 {
-	"Motion",		TkMotion,	Cmask,
-	"Double",		TkDouble,	Cmask,	
-	"Map",			TkMap,		Cmask,
-	"Unmap",		TkUnmap,	Cmask,
-	"Destroy",		TkDestroy, Cmask,
-	"Enter",		TkEnter,	Cmask,
-	"Leave",		TkLeave,	Cmask,
-	"FocusIn",		TkFocusin,	Cmask,
-	"FocusOut",		TkFocusout,	Cmask,
-	"Configure",		TkConfigure,	Cmask,
-	"Control",		0,		Cctl,
-	"Key",			0,		Ckey,
-	"KeyPress",		0,		Ckey,
-	"Button",		0,		Cbp,
-	"ButtonPress",		0,		Cbp,
-	"ButtonRelease",	0,		Cbr,
+	{"Motion",		TkMotion,	Cmask},
+	{"Double",		TkDouble,	Cmask},
+	{"Map",			TkMap,		Cmask},
+	{"Unmap",		TkUnmap,	Cmask},
+	{"Destroy",		TkDestroy,	Cmask},
+	{"Enter",		TkEnter,	Cmask},
+	{"Leave",		TkLeave,	Cmask},
+	{"FocusIn",		TkFocusin,	Cmask},
+	{"FocusOut",		TkFocusout,	Cmask},
+	{"Configure",		TkConfigure,	Cmask},
+	{"Control",		0,		Cctl},
+	{"Key",			0,		Ckey},
+	{"KeyPress",		0,		Ckey},
+	{"Button",		0,		Cbp},
+	{"ButtonPress",		0,		Cbp},
+	{"ButtonRelease",	0,		Cbr},
 };
 
 static
 TkOption tkcurop[] =
 {
-	"x",		OPTdist,	O(TkCursor, p.x),	nil,
-	"y",		OPTdist,	O(TkCursor, p.y),	nil,
-	"bitmap",	OPTbmap,	O(TkCursor, bit),	nil,
-	"image",	OPTimag,	O(TkCursor, img),	nil,
-	"default",	OPTbool,	O(TkCursor, def),	nil,
-	nil
+	{"x",		OPTdist,	O(TkCursor, p.x),	nil},
+	{"y",		OPTdist,	O(TkCursor, p.y),	nil},
+	{"bitmap",	OPTbmap,	O(TkCursor, bit),	nil},
+	{"image",	OPTimag,	O(TkCursor, img),	nil},
+	{"default",	OPTbool,	O(TkCursor, def),	nil},
+	{nil}
 };
 
 static
 TkOption focusopts[] = {
-	"global",			OPTbool,	0,	nil,
-	nil
+	{"global",			OPTbool,	0,	nil},
+	{nil}
 };
 
 static char*

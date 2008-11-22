@@ -32,7 +32,20 @@ static	int sleepers = 0;
 	char*	runestoutf(char*, Rune*, int);
 	int		runescmp(Rune*, Rune*);
 
+#ifdef _MSC_VER_TLS
 __declspec(thread)       Proc    *up;
+#define setup(p) up=(p);
+#else
+static DWORD tlsi_up;
+Proc* getup()
+{
+	return (Proc*)TlsGetValue(tlsi_up);
+}
+static void setup(Proc*v)
+{
+	TlsSetValue(tlsi_up, v);
+}
+#endif
 
 HANDLE	ntfd2h(int);
 int	nth2fd(HANDLE);
@@ -91,33 +104,16 @@ pexit(char *msg, int t)
 	ExitThread(0);
 }
 
-LONG TrapHandler(LPEXCEPTION_POINTERS ureg);
-
-__cdecl
-Exhandler(EXCEPTION_RECORD *rec, void *frame, CONTEXT *context, void *dcon)
-{
-	EXCEPTION_POINTERS ep;
-	ep.ExceptionRecord = rec;
-	ep.ContextRecord = context;
-	TrapHandler(&ep);
-	return ExceptionContinueExecution;
-}
+LONG WINAPI TrapHandler(LPEXCEPTION_POINTERS ureg);
 
 DWORD WINAPI
 tramp(LPVOID p)
 {
-	// install our own exception handler
-	// replacing all others installed on this thread
-	DWORD handler = (DWORD)Exhandler;
-	_asm {
-		mov eax,handler
-		push eax
-		mov eax,-1
-		push eax
-		mov fs:[0],esp
-	}
-		
-	up = p;
+#if(_WIN32_WINNT >= 0x0400)
+	if(sflag == 0)
+		SetUnhandledExceptionFilter(&TrapHandler); /* Win2000+, does not work on NT4 and Win95 */
+#endif
+	setup((Proc*)p);
 	up->func(up->arg);
 	pexit("", 0);
 	/* not reached */
@@ -280,40 +276,18 @@ dodisfault(void)
 	disfault(nil, up->env->errstr);
 }
 
-typedef struct Ereg Ereg;
-struct Ereg {
-	Ereg *prev;
-	FARPROC handler;
-};
-
-void
-dumpex()
-{
-	Ereg *er;
-	int i;
-	_asm { mov eax,fs:[0] };
-	_asm { mov [er],eax };
-
-	i = 0;
-	while ((unsigned)er != ~0) {
-		print("handler %ux\n", er->handler);
-		i++;
-	er = er->prev;
-	}
-	print("EXCEPTION CHAIN LENGTH = %d\n", i);
-}
-
-LONG
+LONG WINAPI
 TrapHandler(LPEXCEPTION_POINTERS ureg)
 {
 	int i;
 	char *name;
 	DWORD code;
-	// WORD pc;
+	DWORD pc;
 	char buf[ERRMAX];
 
 	code = ureg->ExceptionRecord->ExceptionCode;
-	// pc = ureg->ContextRecord->Eip;
+	pc = ureg->ContextRecord->Eip;
+	print("TrapHandler code=%08uX pc=%08uX\n", code, pc);
 
 	name = nil;
 	for(i = 0; i < nelem(ecodes); i++) {
@@ -327,12 +301,12 @@ TrapHandler(LPEXCEPTION_POINTERS ureg)
 		snprint(buf, sizeof(buf), "Unrecognized Machine Trap (%.8lux)\n", code);
 		name = buf;
 	}
-/*
+
 	if(pc != 0) {
 		snprint(buf, sizeof(buf), "%s: pc=0x%lux", name, pc);
 		name = buf;
 	}
-*/
+
 	/* YUCK! */
 	strncpy(up->env->errstr, name, ERRMAX);
 	switch (code) {
@@ -344,7 +318,11 @@ TrapHandler(LPEXCEPTION_POINTERS ureg)
 	case EXCEPTION_FLT_STACK_CHECK:
 	case EXCEPTION_FLT_UNDERFLOW:
 		/* clear exception flags and register stack */
+#ifdef _MSC_VER
 		_asm { fnclex };
+#else
+		__asm__ ("fnclex"); // TODO ; fwait ?
+#endif
 		ureg->ContextRecord->FloatSave.StatusWord = 0x0000;
 		ureg->ContextRecord->FloatSave.TagWord = 0xffff;
 	}
@@ -429,7 +407,7 @@ libinit(char *imod)
 	if(path == nil)
 		path = ".";
 
-	up = newproc();
+	setup(newproc()); /* create Proc for main thread */
 	if(up == nil)
 		panic("cannot create kernel process");
 
@@ -452,35 +430,27 @@ libinit(char *imod)
 void
 FPsave(void *fptr)
 {
+#ifdef _MSC_VER
 	_asm {
 		mov	eax, fptr
 		fstenv	[eax]
 	}
+#else
+	__asm__ ("fstenv %0" : : "m" (*fptr));
+#endif
 }
 
 void
 FPrestore(void *fptr)
 {
+#ifdef _MSC_VER
 	_asm {
 		mov	eax, fptr
 		fldenv	[eax]
 	}
-}
-
-ulong
-umult(ulong a, ulong b, ulong *high)
-{
-	ulong lo, hi;
-
-	_asm {
-		mov	eax, a
-		mov	ecx, b
-		MUL	ecx
-		mov	lo, eax
-		mov	hi, edx
-	}
-	*high = hi;
-	return lo;
+#else
+	__asm__ ("fldenv %0" : : "m" (*fptr));
+#endif
 }
 
 int
@@ -570,13 +540,7 @@ sbrk(int size)
 ulong
 getcallerpc(void *arg)
 {
-	ulong cpc;
-	_asm {
-		mov eax, dword ptr [ebp]
-		mov eax, dword ptr [eax+4]
-		mov dword ptr cpc, eax
-	}
-	return cpc;
+	return 0;
 }
 
 /*

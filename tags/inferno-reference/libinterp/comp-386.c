@@ -142,14 +142,14 @@ struct
 	void	(*gen)(void);
 } mactab[] =
 {
-	MacFRP,		macfrp,		/* decrement and free pointer */
-	MacRET,		macret,		/* return instruction */
-	MacCASE,	maccase,	/* case instruction */
-	MacCOLR,	maccolr,	/* increment and color pointer */
-	MacMCAL,	macmcal,	/* mcall bottom half */
-	MacFRAM,	macfram,	/* frame instruction */
-	MacMFRA,	macmfra,	/* punt mframe because t->initialize==0 */
-	MacRELQ,		macrelq,	/* reschedule */
+	{MacFRP,	macfrp},	/* decrement and free pointer */
+	{MacRET,	macret},	/* return instruction */
+	{MacCASE,	maccase},	/* case instruction */
+	{MacCOLR,	maccolr},	/* increment and color pointer */
+	{MacMCAL,	macmcal},	/* mcall bottom half */
+	{MacFRAM,	macfram},	/* frame instruction */
+	{MacMFRA,	macmfra},	/* punt mframe because t->initialize==0 */
+	{MacRELQ,	macrelq},	/* reschedule */
 };
 
 static void

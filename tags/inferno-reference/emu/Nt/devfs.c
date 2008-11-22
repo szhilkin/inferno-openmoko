@@ -10,6 +10,9 @@
 #include	<lm.h>
 
 /* TODO: try using / in place of \ in path names */
+#ifndef SID_MAX_SUB_AUTHORITIES
+#define SID_MAX_SUB_AUTHORITIES 15
+#endif
 
 enum
 {
@@ -1651,7 +1654,7 @@ secinit(void)
 		priv = (TOKEN_PRIVILEGES*)privrock;
 		priv->PrivilegeCount = 1;
 		priv->Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-		if(LookupPrivilegeValue(NULL, SE_RESTORE_NAME, &priv->Privileges[0].Luid)
+		if(LookupPrivilegeValue(NULL, /*SE_RESTORE_NAME*/ L"SeRestorePrivilege", &priv->Privileges[0].Luid)
 		&& AdjustTokenPrivileges(token, 0, priv, 0, NULL, NULL))
 			isserver = 1;
 		CloseHandle(token);
@@ -2316,7 +2319,7 @@ filesrv(char *file)
 		if(GetDriveType(vol) != DRIVE_REMOTE)
 			return 0;
 		n = sizeof(uni);
-		if(WNetGetUniversalName(vol, UNIVERSAL_NAME_INFO_LEVEL, uni, &n) != NO_ERROR)
+		if(WNetGetUniversalNameW(vol, UNIVERSAL_NAME_INFO_LEVEL, uni, &n) != NO_ERROR)
 			return nil;
 		runestoutf(mfile, ((UNIVERSAL_NAME_INFO*)uni)->lpUniversalName, MAX_PATH);
 		file = mfile;

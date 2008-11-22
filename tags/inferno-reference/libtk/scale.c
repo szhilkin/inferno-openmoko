@@ -43,23 +43,23 @@ enum {
 static
 TkOption opts[] =
 {
-	"bigincrement",		OPTnnfrac,	O(TkScale, bigi),	nil,
-	"digits",		OPTdist,	O(TkScale, digits),	nil,
-	"from",			OPTfrac,	O(TkScale, from),	nil,
-	"to",			OPTfrac,	O(TkScale, to),		nil,
-	"length",		OPTdist,	O(TkScale, len),	nil,
-	"resolution",		OPTnnfrac,	O(TkScale, res),	nil,
-	"showrange",	OPTignore,	0,	nil,
-	"showvalue",		OPTstab,	O(TkScale, sv),		tkbool,
-	"jump",		OPTstab, O(TkScale, jump),	tkbool,
-	"sliderlength",		OPTdist,	O(TkScale, sl),		nil,
-	"sliderrelief",		OPTstab,	O(TkScale, relief),	tkrelief,
-	"tickinterval",		OPTfrac,	O(TkScale, tick),	nil,
-	"tick",		OPTfrac,	O(TkScale, tick),	nil,
-	"label",		OPTtext,	O(TkScale, label),	nil,
-	"command",		OPTtext,	O(TkScale, command),	nil,
-	"orient",		OPTstab,	O(TkScale, orient),	tkorient,
-	nil
+	{"bigincrement",		OPTnnfrac,	O(TkScale, bigi),	nil},
+	{"digits",		OPTdist,	O(TkScale, digits),	nil},
+	{"from",			OPTfrac,	O(TkScale, from),	nil},
+	{"to",			OPTfrac,	O(TkScale, to),		nil},
+	{"length",		OPTdist,	O(TkScale, len),	nil},
+	{"resolution",		OPTnnfrac,	O(TkScale, res),	nil},
+	{"showrange",	OPTignore,	0,	nil},
+	{"showvalue",		OPTstab,	O(TkScale, sv),		tkbool},
+	{"jump",		OPTstab, O(TkScale, jump),	tkbool},
+	{"sliderlength",		OPTdist,	O(TkScale, sl),		nil},
+	{"sliderrelief",		OPTstab,	O(TkScale, relief),	tkrelief},
+	{"tickinterval",		OPTfrac,	O(TkScale, tick),	nil},
+	{"tick",		OPTfrac,	O(TkScale, tick),	nil},
+	{"label",		OPTtext,	O(TkScale, label),	nil},
+	{"command",		OPTtext,	O(TkScale, command),	nil},
+	{"orient",		OPTstab,	O(TkScale, orient),	tkorient},
+	{nil}
 };
 
 static char trough1[] = "trough1";
@@ -936,18 +936,18 @@ tkscalekey(Tk *tk, char *arg, char **val)
 
 TkCmdtab tkscalecmd[] =
 {
-	"cget",			tkscalecget,
-	"configure",		tkscaleconf,
-	"set",			tkscaleset,
-	"identify",		tkscaleident,
-	"get",			tkscaleget,
-	"coords",		tkscalecoords,
-	"tkScaleMotion",	tkscalemotion,
-	"tkScaleDrag",		tkscaledrag,
-	"tkScaleBut1P",		tkscalebut1p,
-	"tkScaleBut1R",		tkscalebut1r,
-	"tkScaleKey",		tkscalekey,
-	nil
+	{"cget",		tkscalecget},
+	{"configure",		tkscaleconf},
+	{"set",			tkscaleset},
+	{"identify",		tkscaleident},
+	{"get",			tkscaleget},
+	{"coords",		tkscalecoords},
+	{"tkScaleMotion",	tkscalemotion},
+	{"tkScaleDrag",		tkscaledrag},
+	{"tkScaleBut1P",	tkscalebut1p},
+	{"tkScaleBut1R",	tkscalebut1r},
+	{"tkScaleKey",		tkscalekey},
+	{nil}
 };
 
 TkMethod scalemethod = {

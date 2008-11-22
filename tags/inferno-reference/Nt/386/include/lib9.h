@@ -3,7 +3,6 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <string.h>
-#include "math.h"
 #include <fcntl.h>
 #include <setjmp.h>
 #include <float.h>
@@ -12,11 +11,12 @@
 #include <io.h>
 #include <direct.h>
 
+#ifdef __GNUC__
+#define pow10 _pow10
+#endif
 #define	getwd	infgetwd
 
-#ifndef EMU
 typedef struct Proc Proc;
-#endif
 
 /*
  * math module dtoa
@@ -479,10 +479,20 @@ struct FPU
 extern	void		sleep(int);
 
 /* Set up private thread space */
+#ifdef _MSC_VER_TLS
+/* Set up private thread space */
 extern	__declspec(thread) Proc*	up;
+#else
+Proc*   getup();
+#define up (getup())
+#endif
+
 #define Sleep	NTsleep
 
 typedef jmp_buf osjmpbuf;
 #define	ossetjmp(buf)	setjmp(buf)
+
+#undef environ
+#undef isnan
 
 #endif

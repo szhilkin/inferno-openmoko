@@ -11,10 +11,10 @@ enum
 static void
 winerror(int e, char *buf, uint nerr)
 {
-	int r;
+	DWORD r;
 	char buf2[ERRMAX], *p, *q;
-	
-	r = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+
+	r = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM,
 		0, e, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		buf2, sizeof(buf2), 0);
 

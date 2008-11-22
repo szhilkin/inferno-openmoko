@@ -1102,7 +1102,7 @@ disinit(void *a)
 
 	root = load(initmod);
 	if(root == 0) {
-		kgerrstr(up->genbuf, sizeof up->genbuf);
+		kgerrstr(up->genbuf, sizeof (up->genbuf));
 		panic("loading \"%s\": %s", initmod, up->genbuf);
 	}
 

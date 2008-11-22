@@ -48,38 +48,38 @@ struct TkDump
 static
 TkOption dumpopts[] =
 {
-	"sgml",		OPTbool,	O(TkDump, sgml),	nil,
-	"metrics",	OPTbool,	O(TkDump, metrics),	nil,
-	nil
+	{"sgml",		OPTbool,	O(TkDump, sgml),	nil},
+	{"metrics",	OPTbool,	O(TkDump, metrics),	nil},
+	{nil}
 };
 
 static
 TkStab tkcompare[] =
 {
-	"<",		TkLt,
-	"<=",		TkLte,
-	"==",		TkEq,
-	">=",		TkGte,
-	">",		TkGt,
-	"!=",		TkNeq,
-	nil
+	{"<",		TkLt},
+	{"<=",		TkLte},
+	{"==",		TkEq},
+	{">=",		TkGte},
+	{">",		TkGt},
+	{"!=",		TkNeq},
+	{nil}
 };
 
 static
 TkOption textopts[] =
 {
-	"wrap",			OPTstab, O(TkText, opts[TkTwrap]),	tkwrap,
-	"spacing1",		OPTnndist, O(TkText, opts[TkTspacing1]),	(void *)O(Tk, env),
-	"spacing2",		OPTnndist, O(TkText, opts[TkTspacing2]),	(void *)O(Tk, env),
-	"spacing3",		OPTnndist, O(TkText, opts[TkTspacing3]),	(void *)O(Tk, env),
-	"tabs",			OPTtabs, O(TkText, tabs), 		(void *)O(Tk, env),
-	"xscrollcommand",	OPTtext, O(TkText, xscroll),		nil,
-	"yscrollcommand",	OPTtext, O(TkText, yscroll),		nil,
-	"insertwidth",		OPTnndist, O(TkText, inswidth),		nil,
-	"tagshare",		OPTwinp, O(TkText, tagshare),		nil,
-	"propagate",		OPTstab, O(TkText, propagate),	tkbool,
-	"selectborderwidth",	OPTnndist, O(TkText, sborderwidth), nil,
-	nil
+	{"wrap",			OPTstab, O(TkText, opts[TkTwrap]),	tkwrap},
+	{"spacing1",		OPTnndist, O(TkText, opts[TkTspacing1]),	(void *)O(Tk, env)},
+	{"spacing2",		OPTnndist, O(TkText, opts[TkTspacing2]),	(void *)O(Tk, env)},
+	{"spacing3",		OPTnndist, O(TkText, opts[TkTspacing3]),	(void *)O(Tk, env)},
+	{"tabs",			OPTtabs, O(TkText, tabs), 		(void *)O(Tk, env)},
+	{"xscrollcommand",	OPTtext, O(TkText, xscroll),		nil},
+	{"yscrollcommand",	OPTtext, O(TkText, yscroll),		nil},
+	{"insertwidth",		OPTnndist, O(TkText, inswidth),		nil},
+	{"tagshare",		OPTwinp, O(TkText, tagshare),		nil},
+	{"propagate",		OPTstab, O(TkText, propagate),	tkbool},
+	{"selectborderwidth",	OPTnndist, O(TkText, sborderwidth), nil},
+	{nil}
 };
 
 #define CNTL(c) ((c)&0x1f)
@@ -3648,35 +3648,35 @@ tktextfocusorder(Tk *tk)
 
 TkCmdtab tktextcmd[] =
 {
-	"bbox",			tktextbbox,
-	"cget",			tktextcget,
-	"compare",		tktextcompare,
-	"configure",		tktextconfigure,
-	"debug",		tktextdebug,
-	"delete",		tktextdelete,
-	"dlineinfo",		tktextdlineinfo,
-	"dump",			tktextdump,
-	"get",			tktextget,
-	"index",		tktextindex,
-	"insert",		tktextinsert,
-	"mark",			tktextmark,
-	"scan",			tktextscan,
-	"search",		tktextsearch,
-	"see",			tktextsee,
-	"selection",		tktextselection,
-	"tag",			tktexttag,
-	"window",		tktextwindow,
-	"xview",		tktextxview,
-	"yview",		tktextyview,
-	"tkTextButton1",	tktextbutton1,
-	"tkTextButton1R",	tktextbutton1r,
-	"tkTextDelIns",		tktextdelins,
-	"tkTextInsert",		tktextinserti,
-	"tkTextSelectTo",	tktextselectto,
-	"tkTextSetCursor",	tktextsetcursor,
-	"tkTextScrollPages",	tktextscrollpages,
-	"tkTextCursor",		tktextcursor,
-	nil
+	{"bbox",		tktextbbox},
+	{"cget",		tktextcget},
+	{"compare",		tktextcompare},
+	{"configure",		tktextconfigure},
+	{"debug",		tktextdebug},
+	{"delete",		tktextdelete},
+	{"dlineinfo",		tktextdlineinfo},
+	{"dump",		tktextdump},
+	{"get",			tktextget},
+	{"index",		tktextindex},
+	{"insert",		tktextinsert},
+	{"mark",		tktextmark},
+	{"scan",		tktextscan},
+	{"search",		tktextsearch},
+	{"see",			tktextsee},
+	{"selection",		tktextselection},
+	{"tag",			tktexttag},
+	{"window",		tktextwindow},
+	{"xview",		tktextxview},
+	{"yview",		tktextyview},
+	{"tkTextButton1",	tktextbutton1},
+	{"tkTextButton1R",	tktextbutton1r},
+	{"tkTextDelIns",	tktextdelins},
+	{"tkTextInsert",	tktextinserti},
+	{"tkTextSelectTo",	tktextselectto},
+	{"tkTextSetCursor",	tktextsetcursor},
+	{"tkTextScrollPages",	tktextscrollpages},
+	{"tkTextCursor",	tktextcursor},
+	{nil}
 };
 
 TkMethod textmethod = {

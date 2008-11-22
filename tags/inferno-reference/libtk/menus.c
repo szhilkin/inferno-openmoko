@@ -57,23 +57,23 @@ enum {
 static
 TkOption mbopts[] =
 {
-	"text",		OPTtext,	O(TkLabel, text),		nil,
-	"anchor",	OPTflag,	O(TkLabel, anchor),	tkanchor,
-	"underline",	OPTdist,	O(TkLabel, ul),		nil,
-	"justify",	OPTstab,	O(TkLabel, justify),	tkjustify,
-	"menu",		OPTtext,	O(TkLabel, menu),		nil,
-	"bitmap",	OPTbmap,	O(TkLabel, bitmap),		nil,
-	"image",	OPTimag,	O(TkLabel, img),		nil,
-	nil
+	{"text",		OPTtext,	O(TkLabel, text),		nil},
+	{"anchor",	OPTflag,	O(TkLabel, anchor),	tkanchor},
+	{"underline",	OPTdist,	O(TkLabel, ul),		nil},
+	{"justify",	OPTstab,	O(TkLabel, justify),	tkjustify},
+	{"menu",		OPTtext,	O(TkLabel, menu),		nil},
+	{"bitmap",	OPTbmap,	O(TkLabel, bitmap),		nil},
+	{"image",	OPTimag,	O(TkLabel, img),		nil},
+	{nil}
 };
 
 static
 TkOption choiceopts[] =
 {
-	"variable",	OPTtext,	O(TkLabel, variable),	nil,
-	"values",	OPTlist,	O(TkLabel, values), nil,
-	"command", OPTtext, O(TkLabel, command), nil,
-	nil
+	{"variable",	OPTtext,	O(TkLabel, variable),	nil},
+	{"values",	OPTlist,	O(TkLabel, values), nil},
+	{"command", OPTtext, O(TkLabel, command), nil},
+	{nil}
 };
 
 static
@@ -641,8 +641,8 @@ tkfindchoicemenu(Tk *tkb)
 static
 TkOption menuopt[] =
 {
-	"postcommand",	OPTtext,	O(TkWin, postcmd),		nil,
-	nil,
+	{"postcommand",	OPTtext,	O(TkWin, postcmd),		nil},
+	{nil},
 };
 
 char*
@@ -717,8 +717,8 @@ freemenu(Tk *top)
 static
 TkOption mopt[] =
 {
-	"menu",		OPTtext,	O(TkLabel, menu),		nil,
-	nil,
+	{"menu",		OPTtext,	O(TkLabel, menu),		nil},
+	{nil},
 };
 
 static void
@@ -1739,54 +1739,54 @@ menuevent(Tk *tk, int event, void *a)
 static
 TkCmdtab menucmd[] =
 {
-	"activate",		tkmenuactivate,
-	"add",			tkmenuadd,
-	"cget",			tkmenucget,
-	"configure",		tkmenuconf,
-	"delete",		tkmenudelete,
-	"entryconfigure",	tkmenuentryconfig,
-	"entrycget",		tkmenuentrycget,
-	"index",		tkmenuindex,
-	"insert",		tkmenuinsert,
-	"invoke",		tkmenuinvoke,
-	"post",			tkmenupost,
-	"postcascade",		tkmenupostcascade,
-	"type",			tkmenutype,
-	"unpost",		tkmenuunpost,
-	"yposition",		tkmenuyposn,
-	"suspend",		tkmenususpend,
-	nil
+	{"activate",		tkmenuactivate},
+	{"add",			tkmenuadd},
+	{"cget",		tkmenucget},
+	{"configure",		tkmenuconf},
+	{"delete",		tkmenudelete},
+	{"entryconfigure",	tkmenuentryconfig},
+	{"entrycget",		tkmenuentrycget},
+	{"index",		tkmenuindex},
+	{"insert",		tkmenuinsert},
+	{"invoke",		tkmenuinvoke},
+	{"post",		tkmenupost},
+	{"postcascade",		tkmenupostcascade},
+	{"type",		tkmenutype},
+	{"unpost",		tkmenuunpost},
+	{"yposition",		tkmenuyposn},
+	{"suspend",		tkmenususpend},
+	{nil}
 };
 
 static
 TkCmdtab menubutcmd[] =
 {
-	"cget",			tkmenubutcget,
-	"configure",		tkmenubutconf,
-	"tkMBenter",		tkMBenter,
-	"tkMBleave",		tkMBleave,
-	"tkMBpress",		tkMBpress,
-	"tkMBkey",		tkMBkey,
-	nil
+	{"cget",		tkmenubutcget},
+	{"configure",		tkmenubutconf},
+	{"tkMBenter",		tkMBenter},
+	{"tkMBleave",		tkMBleave},
+	{"tkMBpress",		tkMBpress},
+	{"tkMBkey",		tkMBkey},
+	{nil}
 };
 
 static
 TkCmdtab choicebutcmd[] =
 {
-	"cget",			tkmenubutcget,
-	"configure",		tkmenubutconf,
-	"set",			tkchoicebutset,
-	"get",			tkchoicebutget,
-	"setvalue",		tkchoicebutsetvalue,
-	"getvalue",		tkchoicebutgetvalue,
-	"invoke",			tkchoicebutinvoke,
-	"valuecount",		tkchoicebutvaluecount,
-	"tkMBenter",		tkMBenter,
-	"tkMBleave",		tkMBleave,
-	"tkMBpress",		tkMBpress,
-	"tkMBkey",		tkMBkey,
-	"suspend",		tkmenususpend,
-	nil
+	{"cget",		tkmenubutcget},
+	{"configure",		tkmenubutconf},
+	{"set",			tkchoicebutset},
+	{"get",			tkchoicebutget},
+	{"setvalue",		tkchoicebutsetvalue},
+	{"getvalue",		tkchoicebutgetvalue},
+	{"invoke",		tkchoicebutinvoke},
+	{"valuecount",		tkchoicebutvaluecount},
+	{"tkMBenter",		tkMBenter},
+	{"tkMBleave",		tkMBleave},
+	{"tkMBpress",		tkMBpress},
+	{"tkMBkey",		tkMBkey},
+	{"suspend",		tkmenususpend},
+	{nil}
 };
 
 TkMethod menumethod = {

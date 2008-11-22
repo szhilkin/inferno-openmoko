@@ -21,18 +21,18 @@ struct TkCbits
 static
 TkOption bitopts[] =
 {
-	"anchor",	OPTstab,	O(TkCbits, anchor),	tkanchor,
-	"bitmap",	OPTbmap,	O(TkCbits, bitmap),	nil,
-	nil
+	{"anchor",	OPTstab,	O(TkCbits, anchor),	tkanchor},
+	{"bitmap",	OPTbmap,	O(TkCbits, bitmap),	nil},
+	{nil}
 };
 
 static
 TkOption itemopts[] =
 {
-	"tags",		OPTctag,	O(TkCitem, tags),	nil,
-	"background",	OPTcolr,	O(TkCitem, env),	IAUX(TkCbackgnd),
-	"foreground",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd),
-	nil
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"background",	OPTcolr,	O(TkCitem, env),	IAUX(TkCbackgnd)},
+	{"foreground",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
+	{nil}
 };
 
 void

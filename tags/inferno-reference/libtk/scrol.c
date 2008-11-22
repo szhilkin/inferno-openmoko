@@ -42,12 +42,12 @@ enum {
 static
 TkOption opts[] =
 {
-	"activerelief",	OPTstab,	O(TkScroll, activer),	tkrelief,
-	"command",	OPTtext,	O(TkScroll, cmd),	nil,
-	"elementborderwidth",	OPTignore,	0,	nil,	/* deprecated */
-	"jump",	OPTstab,	O(TkScroll, jump),	tkbool,
-	"orient",	OPTstab,	O(TkScroll, orient),	tkorient,
-	nil
+	{"activerelief",	OPTstab,	O(TkScroll, activer),	tkrelief},
+	{"command",	OPTtext,	O(TkScroll, cmd),	nil},
+	{"elementborderwidth",	OPTignore,	0,	nil},	/* deprecated */
+	{"jump",	OPTstab,	O(TkScroll, jump),	tkbool},
+	{"orient",	OPTstab,	O(TkScroll, orient),	tkorient},
+	{nil}
 };
 
 static
@@ -758,19 +758,19 @@ tkScrollDrag(Tk *tk, char *arg, char **val)
 
 TkCmdtab tkscrlbcmd[] =
 {
-	"activate",		tkscrollactivate,
-	"cget",			tkscrollcget,
-	"configure",		tkscrollconf,
-	"delta",		tkscrolldelta,
-	"fraction",		tkscrollfraction,
-	"get",			tkscrollget,
-	"identify",		tkscrollidentify,
-	"set",			tkscrollset,
-	"tkScrollDrag",		tkScrollDrag,
-	"tkScrolBut1P",		tkScrolBut1P,
-	"tkScrolBut1R",		tkScrolBut1R,
-	"tkScrolBut2P",		tkScrolBut2P,
-	nil
+	{"activate",		tkscrollactivate},
+	{"cget",		tkscrollcget},
+	{"configure",		tkscrollconf},
+	{"delta",		tkscrolldelta},
+	{"fraction",		tkscrollfraction},
+	{"get",			tkscrollget},
+	{"identify",		tkscrollidentify},
+	{"set",			tkscrollset},
+	{"tkScrollDrag",	tkScrollDrag},
+	{"tkScrolBut1P",	tkScrolBut1P},
+	{"tkScrolBut1R",	tkScrolBut1R},
+	{"tkScrolBut2P",	tkScrolBut2P},
+	{nil}
 };
 
 TkMethod scrollbarmethod = {

@@ -40,10 +40,10 @@ enum {
 
 static TkStab tkjust[] =
 {
-	"left",	Eleft,
-	"right",	Eright,
-	"center",	Ecenter,
-	nil
+	{"left",	Eleft},
+	{"right",	Eright},
+	{"center",	Ecenter},
+	{nil}
 };
 
 static
@@ -109,10 +109,10 @@ static void blinkreset(Tk*);
 static
 TkOption opts[] =
 {
-	"xscrollcommand",	OPTtext,	O(TkEntry, xscroll),	nil,
-	"justify",		OPTstab,	O(TkEntry, flag),	tkjust,
-	"show",			OPTtext,	O(TkEntry, show),	nil,
-	nil
+	{"xscrollcommand",	OPTtext,	O(TkEntry, xscroll),	nil},
+	{"justify",		OPTstab,	O(TkEntry, flag),	tkjust},
+	{"show",			OPTtext,	O(TkEntry, show),	nil},
+	{nil}
 };
 
 static int
@@ -1349,25 +1349,25 @@ tkentryfocus(Tk *tk, char* arg, char **ret)
 static
 TkCmdtab tkentrycmd[] =
 {
-	"cget",			tkentrycget,
-	"configure",		tkentryconf,
-	"delete",		tkentrydelete,
-	"get",			tkentryget,
-	"icursor",		tkentryicursor,
-	"index",		tkentryindex,
-	"insert",		tkentryinsert,
-	"selection",		tkentryselect,
-	"xview",		tkentryxview,
-	"tkEntryBS",		tkentrybs,
-	"tkEntryBW",		tkentrybw,
-	"tkEntryB1P",		tkentryb1p,
-	"tkEntryB1M",		tkentryb1m,
-	"tkEntryB1R",		tkentryb1r,
-	"tkEntryB2P",		tkentryb2p,
-	"tkEntryFocus",		tkentryfocus,
-	"bbox",			tkentrybboxcmd,
-	"see",		tkentryseecmd,
-	nil
+	{"cget",		tkentrycget},
+	{"configure",		tkentryconf},
+	{"delete",		tkentrydelete},
+	{"get",			tkentryget},
+	{"icursor",		tkentryicursor},
+	{"index",		tkentryindex},
+	{"insert",		tkentryinsert},
+	{"selection",		tkentryselect},
+	{"xview",		tkentryxview},
+	{"tkEntryBS",		tkentrybs},
+	{"tkEntryBW",		tkentrybw},
+	{"tkEntryB1P",		tkentryb1p},
+	{"tkEntryB1M",		tkentryb1m},
+	{"tkEntryB1R",		tkentryb1r},
+	{"tkEntryB2P",		tkentryb2p},
+	{"tkEntryFocus",	tkentryfocus},
+	{"bbox",		tkentrybboxcmd},
+	{"see",			tkentryseecmd},
+	{nil}
 };
 
 TkMethod entrymethod = {
