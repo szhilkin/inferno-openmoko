@@ -25,7 +25,7 @@ extern	int	mflag;
 	int	qflag;
 	int	xtblbit;
 	ulong	displaychan;
-char *cputype;
+extern char *cputype;
 
 static void
 usage(void)
