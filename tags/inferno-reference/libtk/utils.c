@@ -46,7 +46,7 @@ static struct Cmd cmdmain[] =
 	"winfo",	tkwinfo,
 };
 
-char*	tkfont;
+extern char*	tkfont;
 
 /* auto-repeating support
  * should perhaps be one rptproc per TkCtxt
