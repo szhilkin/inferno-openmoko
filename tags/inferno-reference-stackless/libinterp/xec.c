@@ -4,7 +4,8 @@
 #include "raise.h"
 #include "pool.h"
 
-#define DEBUGVM
+//#define DEBUGVM
+int gframes;
 
 REG     R;                      /* Virtual Machine registers */
 String  snil;                   /* String known to be zero length */
@@ -340,6 +341,9 @@ OP(frame)
         uchar *nsp;
 
         t = R.M->type[W(s)];
+#if STACK
+//        printf("+gframes=%d\n", ++gframes);
+
         nsp = R.SP + t->size;
         if(nsp >= R.TS) {
                 R.s = t;
@@ -350,9 +354,22 @@ OP(frame)
         f = (Frame*)R.SP;
         R.SP  = nsp;
         f->t  = t;
-        f->mr = nil;
+        f->mr = H;
         if (t->np)
                 initmem(t, f);
+        f->parent = H; //?
+#else
+        assert(t->np>=1 && (t->map[0] & 0xF0)==0x60);
+
+        f = H2D(Frame*, heapz(t));
+//        printf("+gframes=%d %p\n", ++gframes, f);
+        assert(f->lr == nil);
+        //assert(f->t == nil);
+#endif
+        assert(f->mr == H);
+        assert(f->parent == H);
+
+
         T(d) = f;
 }
 OP(mframe)
@@ -375,19 +392,36 @@ OP(mframe)
         }
         else
                 t = ml->m->ext[-o-1].frame;
+#if STACK
+//        printf("+gframes=%d\n", ++gframes);
+
         nsp = R.SP + t->size;
         if(nsp >= R.TS) {
                 R.s = t;
                 extend();
                 T(d) = R.s;
+                ((Frame*)(T(d)))->parent = H; //?
+                assert(((Frame*)(T(d)))->mr == H);
+                //assert(((Frame*)(T(d)))->parent == H);
                 return;
         }
         f = (Frame*)R.SP;
         R.SP = nsp;
         f->t = t;
-        f->mr = nil;
+        f->mr = H;
         if (t->np)
                 initmem(t, f);
+        f->parent = H; //?
+#else
+        assert(t->np>=1 && (t->map[0] & 0xF0)==0x60);
+
+        f = H2D(Frame*,heapz(t));
+//        printf("+gframes=%d %p mframe\n", ++gframes, f);
+        assert(f->lr == nil);
+        //assert(f->t == nil);
+#endif
+        assert(f->mr == H);
+        assert(f->parent == H);
         T(d) = f;
 }
 void
@@ -655,9 +689,13 @@ OP(call)
         Frame *f;
 
         f = T(s);
+        assert(f->mr == H);
         f->lr = R.PC;
-        f->fp = R.FP;
+        f->parent = R.FP;
         R.FP = (uchar*)f;
+#if !STACK
+//        D2H(f->parent)->ref++;  /* protect parent frame from being destroyed in ret */
+#endif
         JMP(d);
 }
 OP(spawn)
@@ -666,8 +704,12 @@ OP(spawn)
 
         p = newprog(currun(), R.M);
         p->R.PC = *(Inst**)R.d;
+#if STACK
         newstack(p);
         unframe();
+#else
+        p->R.FP = T(s);
+#endif
 }
 OP(mspawn)
 {
@@ -686,8 +728,12 @@ OP(mspawn)
                 p->R.PC = ml->links[o].u.pc;
         else
                 p->R.PC = ml->m->ext[-o-1].u.pc;
+#if STACK
         newstack(p);
         unframe();
+#else
+        p->R.FP = T(s);
+#endif
 }
 OP(ret)
 {
@@ -695,11 +741,15 @@ OP(ret)
         Modlink *m;
 
         f = (Frame*)R.FP;
-        R.FP = f->fp;
-        if(R.FP == nil) {
+        R.FP = f->parent;
+        assert(f->parent != nil);
+        if(R.FP == H) {
                 R.FP = (uchar*)f;
                 error("");
         }
+        assert(R.FP != 0);
+#if STACK
+//        printf("-gframes=%d\n", --gframes);
         R.SP = (uchar*)f;
         R.PC = f->lr;
         m = f->mr;
@@ -708,8 +758,8 @@ OP(ret)
                 unextend(f);
         else if (f->t->np)
                 freeptrs(f, f->t);
-
-        if(m != nil) {
+        assert(m != nil);
+        if(m != H) {
                 if(R.M->compiled != m->compiled) {
                         R.IC = 1;
                         R.t = 1;
@@ -718,6 +768,23 @@ OP(ret)
                 R.M = m;
                 R.MP = m->MP;
         }
+#else
+        R.PC = f->lr;
+        m = f->mr;
+        if(m != H) {
+                if(R.M->compiled != m->compiled) {
+                        R.IC = 1;
+                        R.t = 1;
+                }
+                destroy(R.M);
+                R.M = m;
+                R.MP = m->MP;
+                D2H(f->mr)->ref ++; /* protect module from destroy frame in ret */
+        }
+
+        D2H(f->parent)->ref++;  /* protect parent frame from being destroyed in ret */
+        destroy(f);
+#endif
 }
 OP(iload)
 {
@@ -767,9 +834,17 @@ OP(mcall)
                 error(exModule);
         f = T(s);
         f->lr = R.PC;
-        f->fp = R.FP;
+        assert(f->parent == H); //?
+        f->parent = R.FP;
+        assert(f->parent != H); //?
         f->mr = R.M;
+        assert(f->mr != nil);
+        assert(f->mr != H);
 
+#if !STACK
+//        D2H(f->parent)->ref++;  /* protect parent frame from being destroyed in ret */
+//        D2H(f->mr)->ref ++; /* protect module from destroy frame in ret */
+#endif
         R.FP = (uchar*)f;
         R.M = ml;
         h = D2H(ml);
@@ -782,24 +857,38 @@ OP(mcall)
                 l = &ml->m->ext[-o-1].u;
         if(ml->prog == nil) {
                 l->runt(f);
+
                 h->ref--;
                 R.M = f->mr;
+#if STACK
                 R.SP = R.FP;
-                R.FP = f->fp;
+#endif
+                assert(f->parent!=nil);
+
+                R.FP = f->parent;
+#if STACK
+//                printf("-gframes=%d\n", --gframes);
                 if(f->t == nil)
                         unextend(f);
                 else if (f->t->np)
                         freeptrs(f, f->t);
+#else
+                D2H(f->parent)->ref++;  /* protect parent frame from being destroyed in ret */
+                D2H(f->mr)->ref ++; /* protect module from destroy frame in ret */
+                destroy(f);
+#endif
                 p = currun();
                 if(p->kill != nil)
                         error(p->kill);
                 R.t = 0;
                 return;
         }
+
+        assert(f->mr != H);
+
         R.MP = R.M->MP;
         R.PC = l->pc;
         R.t = 1;
-
         if(f->mr->compiled != R.M->compiled)
                 R.IC = 1;
 }
@@ -1571,13 +1660,13 @@ OP(self)
         *mp = ml;
         destroy(t);
 }
-
 void
 destroystack(REG *reg)
 {
         Type *t;
         Frame *f, *fp;
         Modlink *m;
+#if STACK
         Stkext *sx;
         uchar *ex;
 
@@ -1588,16 +1677,19 @@ destroystack(REG *reg)
                 fp = sx->reg.tos.fr;
                 do {
                         f = (Frame*)reg->FP;
-                        if(f == nil)
+                        assert(f != nil);
+                        if(f == H)
                                 break;
-                        reg->FP = f->fp;
+                        assert(f->parent != nil);
+                        reg->FP = f->parent;
                         t = f->t;
                         if(t == nil)
                                 t = sx->reg.TR;
                         m = f->mr;
+                        assert(m != nil);
                         if (t->np)
                                 freeptrs(f, t);
-                        if(m != nil) {
+                        if(m != H) {
                                 destroy(reg->M);
                                 reg->M = m;
                         }
@@ -1607,8 +1699,13 @@ destroystack(REG *reg)
         }
         destroy(reg->M);
         reg->M = H;     /* for devprof */
+#else
+        destroy(reg->FP);
+        reg->FP = H;
+        destroy(reg->M);
+        reg->M = H;     /* for devprof */
+#endif
 }
-
 Prog*
 isave(void)
 {
@@ -1911,7 +2008,11 @@ void stateafter(char* o, int n, uchar op)
         case IINDL:     snprint(o,n," => 0x%llx", V(m)); break;
         case IINDX:     snprint(o,n," => %p", T(m)); break;
         case ILOAD:     // module
-        case ISELF:     snprint(o,n," => Module(%s)", T(d)==H?"nil":((Modlink*)T(d))->m->name); break;
+        case ISELF:     snprint(o,n," => Module(%s) ml=%p m=%p",
+                                T(d)==H?"nil":((Modlink*)T(d))->m->name,
+                                              T(d),
+                                T(d)==H?"nil":((Modlink*)T(d))->m);
+                        break;
         case INEW:      // pointer
         case INEWZ:
         case IMNEWZ:
@@ -2052,8 +2153,13 @@ xec(Prog *p)
 // print("%lux %lux %lux %lux %lux\n", (ulong)&R, R.xpc, R.FP, R.MP, R.PC);
 
         if(R.M->compiled)
+        {
+#if JIT
                 comvec();
-        else do {
+#else
+        panic("todo: comvec()");
+#endif
+        } else do {
                 dec[R.PC->add]();
                 op = R.PC->op;
 #ifdef DEBUGVM
@@ -2061,7 +2167,10 @@ xec(Prog *p)
                 char szinst[100];
                 char sz[100], sz2[200], szdest[200];
 
-                snprint(sz, sizeof(sz), "%s_%uX:", CURM, R.PC - R.M->m->prog );
+                snprint(sz, sizeof(sz), "%s_%X:", CURM, R.PC - R.M->m->prog );
+                printf("%-16s", sz);
+                printf(" %02x %02x %04x %08x", R.PC->op, R.PC->add, R.PC->reg, R.PC->s.imm);
+
                 statebefore(sz2, szdest, op, R.M->m->prog);
                 sprint(szinst, "%D", R.PC);
                 if(szdest[0])
@@ -2071,20 +2180,18 @@ xec(Prog *p)
                         strcpy(p, szdest);
                 }
 
-                print("%-16s", sz);
-                print(" %02ux %02ux %04ux %08ux", R.PC->op, R.PC->add, R.PC->reg, R.PC->s.imm);
                 if(szdest[0])
-                        print(" ________");
+                        printf(" ________");
                 else
-                        print(" %08ux", R.PC->d.imm);
-                print(" %-40s\t%s", szinst, sz2);
+                        printf(" %08x", R.PC->d.imm);
+                printf(" %-40s\t%s", szinst, sz2);
 
 #endif
                 R.PC++;
                 optab[op]();
 #ifdef DEBUGVM
                 stateafter(sz2, sizeof(sz2), op);
-                print("%s\n", sz2);
+                printf("%s\n", sz2);
                 }
 #endif
         } while(--R.IC != 0);

@@ -8,7 +8,7 @@ OUT="emut-ref.exe"
 LIBS+=r"""
 winmm ws2_32 advapi32 mpr user32 gdi32
 """
-DEFINES+=r' -D_NO_OLDNAMES=1 -DEMU=1 -DSTACK=0 -DKERNDATE=%d' % int(time.time())
+DEFINES+=r' -D_NO_OLDNAMES=1 -DEMU=1 -DSTACK=0 -DJIT=0 -DKERNDATE=%d' % int(time.time())
 INCLUDES+=r"""
 emu\port
 libinterp
@@ -229,18 +229,18 @@ libmemlayer\layerop.c
 libmemlayer\draw.c
 
 libsec\port\genrandom.c
-libsec\port\des.c	libsec\port\desmodes.c
+libsec\port\des.c   libsec\port\desmodes.c
 libsec\port\idea.c
 libsec\port\rc4.c
 libsec\port\md4.c
-libsec\port\md5.c	libsec\port\md5block.c
+libsec\port\md5.c   libsec\port\md5block.c
 libsec\port\sha1.c      libsec\port\sha1block.c
 libsec\port\hmac.c
-libsec\port\rsagen.c	libsec\port\rsaalloc.c
+libsec\port\rsagen.c    libsec\port\rsaalloc.c
 libsec\port\rsafill.c
 libsec\port\rsaencrypt.c
 libsec\port\rsadecrypt.c
-libsec\port\dsagen.c	libsec\port\dsaalloc.c	libsec\port\dsasign.c	libsec\port\dsaverify.c
+libsec\port\dsagen.c    libsec\port\dsaalloc.c  libsec\port\dsasign.c   libsec\port\dsaverify.c
 libsec\port\eggen.c     libsec\port\egalloc.c   libsec\port\egsign.c    libsec\port\egverify.c
 libsec\port\genprime.c
 libsec\port\gensafeprime.c
