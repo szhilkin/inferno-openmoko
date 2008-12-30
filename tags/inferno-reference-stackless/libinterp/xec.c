@@ -694,6 +694,7 @@ OP(call)
         f->parent = R.FP;
         R.FP = (uchar*)f;
 #if !STACK
+//        Setmark(D2H(R.FP));
 //        D2H(f->parent)->ref++;  /* protect parent frame from being destroyed in ret */
 #endif
         JMP(d);
@@ -780,9 +781,11 @@ OP(ret)
                 R.M = m;
                 R.MP = m->MP;
                 D2H(f->mr)->ref ++; /* protect module from destroy frame in ret */
+                Setmark(D2H(R.M ));
         }
 
         D2H(f->parent)->ref++;  /* protect parent frame from being destroyed in ret */
+        Setmark(D2H(R.FP));
         destroy(f);
 #endif
 }
@@ -875,6 +878,10 @@ OP(mcall)
 #else
                 D2H(f->parent)->ref++;  /* protect parent frame from being destroyed in ret */
                 D2H(f->mr)->ref ++; /* protect module from destroy frame in ret */
+                assert(R.FP==f->parent);
+                assert(R.M==f->mr);
+                Setmark(D2H(R.FP));
+                Setmark(D2H(R.M ));
                 destroy(f);
 #endif
                 p = currun();
@@ -883,6 +890,8 @@ OP(mcall)
                 R.t = 0;
                 return;
         }
+//        Setmark(D2H(R.FP));
+//        Setmark(D2H(R.M ));
 
         assert(f->mr != H);
 

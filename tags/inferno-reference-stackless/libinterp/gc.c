@@ -4,11 +4,7 @@
 
 enum
 {
-#if STACK
         Quanta          = 50,           /* Allocated blocks to sweep each time slice usually */
-#else
-        Quanta          = 500000,       /* FIXME */
-#endif
         MaxQuanta       = 15*Quanta,
         PTRHASH         = (1<<5)
 };
@@ -99,8 +95,6 @@ ptrmark(void)
 void
 noptrs(Type *t, void *vw)
 {
-//print("marknoptrs(%p)\t", vw); PRINT_TYPE(1,t); print("\n");
-
         USED(t);
         USED(vw);
 }
@@ -117,7 +111,6 @@ markheap(Type *t, void *vw)
         WORD **w, **q;
         Type *t1;
 
-//print("markheap(%p)\t", vw); if(t){PRINT_TYPE(1,t);}else{print("NOTYPE!");} print("\n");
         if(t == nil || t->np == 0)
                 return;
 
@@ -130,14 +123,6 @@ markheap(Type *t, void *vw)
                         q = w;
                         for(m = 0x80; m != 0; m >>= 1) {
                                 if((c & m) && *q != H) {
-if(*q==nil)
-{
-print("markheap(%p)\t", vw);
-if(t){PRINT_TYPE(1,t);}else{print("NOTYPE!");}
-print("\n");
-print("i=%x\n", i);
-print("m=%x\n", m);
-}
                                         assert(*q!=nil);
                                         h = D2H(*q);
                                         Setmark(h);
@@ -167,7 +152,6 @@ markarray(Type *t, void *vw)
         uchar *v;
         Array *a;
 
-//print("markarray(%p)\t", vw); PRINT_TYPE(1,t); print("\n");
         USED(t);
 
         a = vw;
@@ -194,7 +178,6 @@ marklist(Type *t, void *vw)
         List *l;
         Heap *h;
 
-//print("marklist(%p)\t", vw); PRINT_TYPE(1,t); print("\n");
         USED(t);
         l = vw;
         markheap(l->t, l->data);
@@ -230,7 +213,6 @@ rootset(Prog *root)
         mutator = gccolor % 3;
         marker = (gccolor-1)%3;
         sweeper = (gccolor-2)%3;
-
 
         while(root != nil) {
                 ml = root->R.M;
@@ -269,35 +251,12 @@ rootset(Prog *root)
                         }
                         ex = sx->reg.EX;
                         sp = sx->reg.SP;
-
                 }
 #else
-                //Setmark(D2H(root->R.FP));
-//                markheap(D2H(root->R.FP)->t, root->R.FP);
                 f = root->R.FP;
                 t = D2H(f)->t;
-//printf("\nroot->R.FP=%p %p\n", f, D2H(f));
                 Setmark(D2H(f));
                 t->mark(t, f);
-/*
-                for(f = root->R.FP; f != H; f = f->parent) {
-                        t = D2H(f)->t;
-                        Setmark(D2H(f));
-                        t->mark(t, f);
-
-                                ml = f->mr;
-                                assert(ml != nil);
-                                if(ml != H) {
-                                        h = D2H(ml);
-                                        Setmark(h);
-                                        mp = ml->MP;
-                                        if(mp != H) {
-                                                h = D2H(mp);
-                                                Setmark(h);
-                                        }
-                                }
-                }
-/**/
 #endif
                 root = root->next;
         }
@@ -334,29 +293,26 @@ domflag(Heap *h)
         Module *m;
 
         print("sweep h=0x%lux t=0x%lux c=%d", (ulong)h, (ulong)h->t, h->color);
-//        for(m = modules; m != nil; m = m->link) {
-//                for(i = 0; i < m->ntype; i++) {
-//                        if(m->type[i] == h->t) {
-//                                print(" module %s desc %d", m->name, i);
-//                                break;
-//                        }
-//                }
-//        }
-        print("\t");
-        PRINT_TYPE(1,h->t);
+	for(m = modules; m != nil; m = m->link) {
+		for(i = 0; i < m->ntype; i++) {
+			if(m->type[i] == h->t) {
+				print(" module %s desc %d", m->name, i);
+				break;
+			}
+		}
+	}
         print("\n");
         if(mflag > 1)
                 abort();
 }
 
-int gframes;
 void
 rungc(Prog *p)
 {
         Type *t;
         Heap *h;
         Bhdr *b;
-//return;
+
         gcnruns++;
         if(gchalt) {
                 gchalted++;
@@ -372,8 +328,7 @@ rungc(Prog *p)
 
         /* Chain broken ? */
         if(!okbhdr(ptr)) {
-//printf("chain broken\n");
-//__asm__("int3");
+print("chain broken\n");
                 base = nil;
                 gcbroken++;
                 return;
@@ -395,21 +350,12 @@ rungc(Prog *p)
                         else
                         if(h->color == sweeper) {
                                 gce++;
-                                //if(0 && mflag)
+                                if(0 && mflag)
                                         domflag(h);
                                 if(heapmonitor != nil)
                                         heapmonitor(2, h, 0);
                                 if(t != nil) {
                                         gclock();
-
-//printf("SWEEP %p\n", h);
-//                domflag(h);
-//                if( 0==strncmp(t->comment,"Frame(", 6) )
-//                {
-//__asm__("int3");
-//                        printf("$gframes=%d\n", --gframes);
-//                }
-
                                         t->free(h, 1);
                                         gcunlock();
                                         freetype(t);
@@ -437,7 +383,6 @@ rungc(Prog *p)
         if(base != nil)         /* Completed this iteration ? */
                 return;
         if(nprop == 0) {        /* Completed the epoch ? */
-                printf("===EPOCH_%d\n", gcepochs+1);
                 gcepochs++;
                 gccolor++;
                 rootset(p);
