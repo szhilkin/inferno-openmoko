@@ -21,9 +21,7 @@
 
 #include "pfrtypes.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_LOCAL( void )
@@ -42,9 +40,7 @@ extern "C" {
                   FT_ULong   size );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __PFRGLOAD_H__ */

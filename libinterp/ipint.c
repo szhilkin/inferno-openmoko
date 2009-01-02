@@ -1,13 +1,13 @@
-#include <lib9.h>
-#include <kernel.h>
+#include "lib9.h"
+#include "kernel.h"
 #include <isa.h>
-#include <interp.h>
-#include <runt.h>
+#include "interp.h"
+#include "runt.h"
 #include <mp.h>
 #include <libsec.h>
-#include <pool.h>
-#include <keys.h>
-#include <raise.h>
+#include "pool.h"
+#include "../libkeyring/keys.h"
+#include "raise.h"
 
 extern Type	*TIPint;
 #define	MP(x)	checkIPint((x))
@@ -51,22 +51,29 @@ freeIPint(Heap *h, int swept)
 	freeheap(h, 0);
 }
 
-DISAPI(IPint_iptob64z)
+void
+IPint_iptob64z(void *fp)
 {
+	F_IPint_iptob64 *f;
 	mpint *b;
 	char buf[MaxBigBytes];	/* TO DO: should allocate these */
 	uchar *p;
 	int n, o;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	b = MP(f->i);
 	n = (b->top+1)*Dbytes;
-	p = (uchar*)malloc(n+1);
+	p = malloc(n+1);
 	if(p == nil)
 		error(exHeap);
 	n = mptobe(b, p+1, n, nil);
 	if(n < 0){
 		free(p);
-		ASSIGN(*f->ret, (String*)H);
 		return;
 	}
 	p[0] = 0;
@@ -81,36 +88,64 @@ DISAPI(IPint_iptob64z)
 	free(p);
 }
 
-DISAPI(IPint_iptob64)
+void
+IPint_iptob64(void *fp)
 {
+	F_IPint_iptob64 *f;
 	char buf[MaxBigBytes];
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	mptoa(MP(f->i), 64, buf, sizeof(buf));
 	retstr(buf, f->ret);
 }
 
-DISAPI(IPint_iptobytes)
+void
+IPint_iptobytes(void *fp)
 {
+	F_IPint_iptobytes *f;
 	uchar buf[MaxBigBytes];
+	void *v;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	/* TO DO: two's complement or have ipmagtobe? */
 	*f->ret = mem2array(buf, mptobe(MP(f->i), buf, sizeof(buf), nil));	/* for now we'll ignore sign */
 }
 
-DISAPI(IPint_iptobebytes)
+void
+IPint_iptobebytes(void *fp)
 {
+	F_IPint_iptobebytes *f;
 	uchar buf[MaxBigBytes];
+	void *v;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	*f->ret = mem2array(buf, mptobe(MP(f->i), buf, sizeof(buf), nil));
 }
 
-DISAPI(IPint_iptostr)
+void
+IPint_iptostr(void *fp)
 {
+	F_IPint_iptostr *f;
 	char buf[MaxBigBytes];
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	mptoa(MP(f->i), f->base, buf, sizeof(buf));
 	retstr(buf, f->ret);
@@ -125,62 +160,94 @@ strtoipint(String *s, int base)
 	p = string2c(s);
 	b = strtomp(p, &q, base, nil);
 	if(b == nil)
-		return (Keyring_IPint*)H;
+		return H;
 	while(*q == '=')
 		q++;
 	if(q == p || *q != 0){
 		mpfree(b);
-		return (Keyring_IPint*)H;
+		return H;
 	}
 	return newIPint(b);
 }
 
-DISAPI(IPint_b64toip)
+void
+IPint_b64toip(void *fp)
 {
-	ASSIGN(*f->ret, H);
+	F_IPint_b64toip *f;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	*f->ret = strtoipint(f->str, 64);
 }
 
-DISAPI(IPint_bytestoip)
+void
+IPint_bytestoip(void *fp)
 {
+	F_IPint_bytestoip *f;
 	mpint *b;
+	void *v;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	if(f->buf == H)
 		error(exNilref);
 
-	b = betomp((const uchar *)f->buf->data, f->buf->len, nil);	/* for now we'll ignore sign */ /*XXX*/
+	b = betomp(f->buf->data, f->buf->len, nil);	/* for now we'll ignore sign */
 	*f->ret = newIPint(b);
 }
 
-DISAPI(IPint_bebytestoip)
+void
+IPint_bebytestoip(void *fp)
 {
+	F_IPint_bebytestoip *f;
 	mpint *b;
+	void *v;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	if(f->mag == H)
 		error(exNilref);
 
-	b = betomp((const uchar *)f->mag->data, f->mag->len, nil); /*XXX*/
+	b = betomp(f->mag->data, f->mag->len, nil);
 	*f->ret = newIPint(b);
 }
 
-DISAPI(IPint_strtoip)
+void
+IPint_strtoip(void *fp)
 {
-	ASSIGN(*f->ret, H);
+	F_IPint_strtoip *f;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	*f->ret = strtoipint(f->str, f->base);
 }
 
 /* create a random integer */
-DISAPI(IPint_random)
+void
+IPint_random(void *fp)
 {
+	F_IPint_random *f;
 	mpint *b;
+	void *v;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	release();
 	b = mprand(f->maxbits, genrandom, nil);
@@ -189,10 +256,13 @@ DISAPI(IPint_random)
 }
 
 /* number of bits in number */
-DISAPI(IPint_bits)
+void
+IPint_bits(void *fp)
 {
+	F_IPint_bits *f;
 	int n;
 
+	f = fp;
 	*f->ret = 0;
 	if(f->i == H)
 		return;
@@ -204,15 +274,26 @@ DISAPI(IPint_bits)
 }
 
 /* create a new IP from an int */
-DISAPI(IPint_inttoip)
+void
+IPint_inttoip(void *fp)
 {
-	ASSIGN(*f->ret, H);
+	F_IPint_inttoip *f;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	*f->ret = newIPint(itomp(f->i, nil));
 }
 
-DISAPI(IPint_iptoint)
+void
+IPint_iptoint(void *fp)
 {
+	F_IPint_iptoint *f;
+
+	f = fp;
 	*f->ret = 0;
 	if(f->i == H)
 		return;
@@ -220,11 +301,17 @@ DISAPI(IPint_iptoint)
 }
 
 /* modular exponentiation */
-DISAPI(IPint_expmod)
+void
+IPint_expmod(void *fp)
 {
+	F_IPint_expmod *f;
 	mpint *ret, *mod, *base, *exp;
+	void *v;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	base = MP(f->base);
 	exp = MP(f->exp);
@@ -239,11 +326,17 @@ DISAPI(IPint_expmod)
 }
 
 /* multiplicative inverse */
-DISAPI(IPint_invert)
+void
+IPint_invert(void *fp)
 {
+	F_IPint_invert *f;
 	mpint *ret;
+	void *v;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	ret = mpnew(0);
 	if(ret != nil)
@@ -252,9 +345,17 @@ DISAPI(IPint_invert)
 }
 
 /* basic math */
-DISAPI(IPint_add)
+void
+IPint_add(void *fp)
 {
+	F_IPint_add *f;
 	mpint *i1, *i2, *ret;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
@@ -262,12 +363,19 @@ DISAPI(IPint_add)
 	if(ret != nil)
 		mpadd(i1, i2, ret);
 
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
-
-DISAPI(IPint_sub)
+void
+IPint_sub(void *fp)
 {
+	F_IPint_sub *f;
 	mpint *i1, *i2, *ret;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
@@ -275,12 +383,19 @@ DISAPI(IPint_sub)
 	if(ret != nil)
 		mpsub(i1, i2, ret);
 
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
-
-DISAPI(IPint_mul)
+void
+IPint_mul(void *fp)
 {
+	F_IPint_mul *f;
 	mpint *i1, *i2, *ret;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
@@ -288,12 +403,22 @@ DISAPI(IPint_mul)
 	if(ret != nil)
 		mpmul(i1, i2, ret);
 
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
-
-DISAPI(IPint_div)
+void
+IPint_div(void *fp)
 {
+	F_IPint_div *f;
 	mpint *i1, *i2, *quo, *rem;
+	void *v;
+
+	f = fp;
+	v = f->ret->t0;
+	f->ret->t0 = H;
+	destroy(v);
+	v = f->ret->t1;
+	f->ret->t1 = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
@@ -307,13 +432,20 @@ DISAPI(IPint_div)
 	}
 	mpdiv(i1, i2, quo, rem);
 
-	ASSIGN(f->ret->t0, newIPint(quo));
-	ASSIGN(f->ret->t1, newIPint(rem));
+	f->ret->t0 = newIPint(quo);
+	f->ret->t1 = newIPint(rem);
 }
-
-DISAPI(IPint_mod)
+void
+IPint_mod(void *fp)
 {
+	F_IPint_mod *f;
 	mpint *i1, *i2, *ret;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
@@ -321,61 +453,100 @@ DISAPI(IPint_mod)
 	if(ret != nil)
 		mpmod(i1, i2, ret);
 
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
-
-DISAPI(IPint_neg)
+void
+IPint_neg(void *fp)
 {
+	F_IPint_neg *f;
 	mpint *ret;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	ret = mpcopy(MP(f->i));
 	if(ret == nil)
 		error(exHeap);
 	ret->sign = -ret->sign;
 
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
 
 /* copy */
-DISAPI(IPint_copy)
+void
+IPint_copy(void *fp)
 {
-	ASSIGN(*f->ret, newIPint(mpcopy(MP(f->i))));
+	F_IPint_copy *f;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
+
+	*f->ret = newIPint(mpcopy(MP(f->i)));
 }
 
 
 /* equality */
-DISAPI(IPint_eq)
+void
+IPint_eq(void *fp)
 {
+	F_IPint_eq *f;
+
+	f = fp;
 	*f->ret = mpcmp(MP(f->i1), MP(f->i2)) == 0;
 }
 
 /* compare */
-DISAPI(IPint_cmp)
+void
+IPint_cmp(void *fp)
 {
+	F_IPint_eq *f;
+
+	f = fp;
 	*f->ret = mpcmp(MP(f->i1), MP(f->i2));
 }
 
 /* shifts */
-DISAPI(IPint_shl)
+void
+IPint_shl(void *fp)
 {
+	F_IPint_shl *f;
 	mpint *ret, *i;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i = MP(f->i);
 	ret = mpnew(0);
 	if(ret != nil)
 		mpleft(i, f->n, ret);
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
-
-DISAPI(IPint_shr)
+void
+IPint_shr(void *fp)
 {
+	F_IPint_shr *f;
 	mpint *ret, *i;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i = MP(f->i);
 	ret = mpnew(0);
 	if(ret != nil)
 		mpright(i, f->n, ret);
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
 
 static void
@@ -463,49 +634,81 @@ mpnot(mpint *b1, mpint *res)
 }
 
 /* bits */
-DISAPI(IPint_and)
+void
+IPint_and(void *fp)
 {
+	F_IPint_and *f;
 	mpint *ret, *i1, *i2;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
 	ret = mpnew(0);
 	if(ret != nil)
 		mpand(i1, i2, ret);
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
 
-DISAPI(IPint_ori)
+void
+IPint_ori(void *fp)
 {
+	F_IPint_ori *f;
 	mpint *ret, *i1, *i2;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
 	ret = mpnew(0);
 	if(ret != nil)
 		mpor(i1, i2, ret);
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
 
-DISAPI(IPint_xor)
+void
+IPint_xor(void *fp)
 {
+	F_IPint_xor *f;
 	mpint *ret, *i1, *i2;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	i2 = MP(f->i2);
 	ret = mpnew(0);
 	if(ret != nil)
 		mpxor(i1, i2, ret);
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }
 
-DISAPI(IPint_not)
+void
+IPint_not(void *fp)
 {
+	F_IPint_not *f;
 	mpint *ret, *i1;
+	void *v;
+
+	f = fp;
+	v = *f->ret;
+	*f->ret = H;
+	destroy(v);
 
 	i1 = MP(f->i1);
 	ret = mpnew(0);
 	if(ret != nil)
 		mpnot(i1, ret);
-	ASSIGN(*f->ret, newIPint(ret));
+	*f->ret = newIPint(ret);
 }

@@ -20,13 +20,11 @@
 #define __TTSBIT_H__
 
 
-
+#include <ft2build.h>
 #include "ttload.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_LOCAL( FT_Error )
@@ -53,9 +51,7 @@ extern "C" {
                            TT_SBit_MetricsRec  *metrics );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __TTSBIT_H__ */
 

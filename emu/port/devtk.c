@@ -1,21 +1,22 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+
 #include <interp.h>
-#include <image.h>
-#include <memimage.h>
-#include <memlayer.h>
-#include <cursor.h>
+
+#include	"image.h"
+#include	<memimage.h>
+#include	<memlayer.h>
+#include	<cursor.h>
 
 enum{
-	Qtk_dir,
-	Qtk_tkevents
+	Qdir,
+	Qtkevents
 };
 
 static
 Dirtab tkdirtab[]={
-	"tkevents",		{Qtk_tkevents, 0},		0,	0600,
+	"tkevents",		{Qtkevents, 0},		0,	0600,
 };
 
 static struct {
@@ -130,7 +131,7 @@ tkclose(Chan* c)
 }
 
 static long
-tkread(Chan* c, char* a, long n, vlong offset)
+tkread(Chan* c, void* a, long n, vlong offset)
 {
 	USED(offset);
 	switch(c->qid.path & ~CHDIR){
@@ -146,7 +147,7 @@ tkread(Chan* c, char* a, long n, vlong offset)
 }
 
 static long
-tkwrite(Chan *c, const char* a, long n, vlong offset)
+tkwrite(Chan *c, void* a, long n, vlong offset)
 {
 	USED(c); USED(a); USED(n); USED(offset);
 	error(Ebadusefd);

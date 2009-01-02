@@ -1,13 +1,11 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 typedef struct Pack Pack;
-struct Pack
+struct Pack 
 {
 	Tk*	t;
 	Pack*	next;
@@ -63,19 +61,19 @@ TkStab tkfill[] =
 };
 
 static
-TkOption opts_packr[] =
+TkOption opts[] =
 {
-	{"padx",	OPTnndist,	offsetof(TkParam, pad.x)	},
-	{"pady",	OPTnndist,	offsetof(TkParam, pad.y)	},
-	{"ipadx",	OPTnndist,	offsetof(TkParam, ipad.x)	},
-	{"ipady",	OPTnndist,	offsetof(TkParam, ipad.y)	},
-	{"side",	OPTstab,	offsetof(TkParam, side),	{tkside}},
-	{"anchor",	OPTstab,	offsetof(TkParam, anchor),	{tkanchor}},
-	{"fill",	OPTstab,	offsetof(TkParam, fill),	{tkfill}},
-	{"in",		OPTwinp,	offsetof(TkParam, in)		},
-	{"before",	OPTwinp,	offsetof(TkParam, before)	},
-	{"after",	OPTwinp,	offsetof(TkParam, after)	},
-	{"expand",	OPTstab,	offsetof(TkParam, expand),	{tkbool}},
+	{"padx",		OPTnndist,	O(TkParam, pad.x),	nil},
+	{"pady",		OPTnndist,	O(TkParam, pad.y),	nil},
+	{"ipadx",	OPTnndist,	O(TkParam, ipad.x),	nil},
+	{"ipady",	OPTnndist,	O(TkParam, ipad.y),	nil},
+	{"side",		OPTstab,	O(TkParam, side),	tkside},
+	{"anchor",	OPTstab,	O(TkParam, anchor),	tkanchor},
+	{"fill",		OPTstab,	O(TkParam, fill),	tkfill},
+	{"in",		OPTwinp,	O(TkParam, in),		nil},
+	{"before",	OPTwinp,	O(TkParam, before),	nil},
+	{"after",	OPTwinp,	O(TkParam, after),	nil},
+	{"expand",	OPTstab,	O(TkParam, expand),	tkbool},
 	{nil}
 };
 
@@ -149,7 +147,7 @@ tkpackqit(Tk *t)
 		return;
 
 	tkpackqrm(t);
-	f = (Pack*)malloc(sizeof(Pack));
+	f = malloc(sizeof(Pack));
 	if(f == nil) {
 		print("tkpackqit: malloc failed\n");
 		return;
@@ -217,7 +215,7 @@ tkforget(TkTop *t, char *arg)
 	Tk *tk;
 	char *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	for(;;) {
@@ -246,7 +244,7 @@ tkpropagate(TkTop *t, char *arg)
 	TkStab *s;
 	char *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	arg = tkword(t, arg, buf, buf+Tkmaxitem, nil);
@@ -280,7 +278,7 @@ tkslaves(TkTop *t, char *arg, char **val)
 	Tk *tk;
 	char *fmt, *e, *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	tkword(t, arg, buf, buf+Tkmaxitem, nil);
@@ -301,7 +299,7 @@ tkslaves(TkTop *t, char *arg, char **val)
 			fmt = " %s";
 		}
 	}
-
+	
 	return nil;
 }
 
@@ -342,7 +340,7 @@ tkpack(TkTop *t, char *arg, char **val)
 	TkName *names, *n;
 	char *e, *w, *buf;
 
-	buf = (char*)mallocz(Tkminitem, 0);
+	buf = mallocz(Tkminitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -365,7 +363,7 @@ tkpack(TkTop *t, char *arg, char **val)
 	free(buf);
 
 	tko[0].ptr = p;
-	tko[0].optab = opts_packr;
+	tko[0].optab = opts;
 	tko[1].ptr = nil;
 
 	names = nil;
@@ -399,7 +397,7 @@ tkpack(TkTop *t, char *arg, char **val)
 
 	e = nil;
 	for(n = names; n; n = n->link) {
-		tk = (Tk*)n->obj;
+		tk = n->obj;
 		if(tk->master == nil) {
 			tk->pad = ZP;
 			tk->ipad = ZP;
@@ -623,7 +621,7 @@ tkpacker(Tk *master)
 	if(maxwidth != master->req.width || maxheight != master->req.height)
 	if((master->flag & Tknoprop) == 0) {
 		if(master->geom != nil) {
-			master->geom(master, master->act.x, master->act.y,
+			master->geom(master, master->act.x, master->act.y, 
 					maxwidth, maxheight);
 		} else {
 			master->req.width = maxwidth;
@@ -663,7 +661,7 @@ tkpacker(Tk *master)
 		}
 		else {
 	    		frame.height = cavity.height;
-	    		frame.width = slave->req.width + slave2BW +
+	    		frame.width = slave->req.width + slave2BW + 
 					slave->pad.x + slave->ipad.x;
 	    		if(slave->flag & Tkexpand)
 				frame.width += tkexpandx(slave, cavity.width);
@@ -688,3 +686,4 @@ tkpacker(Tk *master)
 	tkdirty(master);
 	return 1;
 }
+

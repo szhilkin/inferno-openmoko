@@ -1,9 +1,12 @@
-CC=r'C:\bin\tcc\tcc.exe -bench'
-#CC=r'C:\MinGW\bin\gcc.exe'
+import os
+
+#CC=r'C:\bin\tcc\tcc.exe -bench'
+CC=r'gcc.exe'
 #CC=r'C:\Program Files\Microsoft Visual Studio 8\VC\BIN\cl.exe'
-ROOT=r'/inferno'
+#ROOT=r'/inferno'
+ROOT=os.path.dirname(os.getcwd()).replace('\\','/')
 #
-DEFINES=r'-DUNICODE -DROOT="""%s"""' % ROOT
+DEFINES=r'-D__NO_ISOCEXT -DUNICODE= -DOBJTYPE=386 -DROOT="""%s"""' % ROOT
 INCLUDES=r"""
 Nt\386\include
 include

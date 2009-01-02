@@ -1,22 +1,22 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
 #include <kernel.h>
 
 #define	A(r)	*((Array**)(r))
 
-Module*	modules = 0;
-int	dontcompile = 0;
+Module*	modules;
+int	dontcompile;
 
 static int
-operand(const char **p)
+operand(uchar **p)
 {
 	int c;
-	const char *cp;
+	uchar *cp;
 
 	cp = *p;
-	c = GBIT8I(cp,0);
+	c = cp[0];
 	switch(c & 0xC0) {
 	case 0x00:
 		*p = cp+1;
@@ -30,23 +30,29 @@ operand(const char **p)
 			c |= ~0x3F;
 		else
 			c &= 0x3F;
-		return (c<<8) | GBIT8I(cp,1);
+		return (c<<8)|cp[1];		
 	case 0xC0:
 		*p = cp+4;
 		if(c & 0x20)
 			c |= ~0x3F;
 		else
 			c &= 0x3F;
-		return (c<<24) | (GBIT8I(cp,1)<<16) | (GBIT8I(cp,2)<<8) | GBIT8I(cp,3);
+		return (c<<24)|(cp[1]<<16)|(cp[2]<<8)|cp[3];		
 	}
-	return 0;
+	return 0;	
 }
 
 static ulong
-disw(const char **p)
+disw(uchar **p)
 {
-	const char *c = *p;
-	ulong v = GBIT32BE(c);
+	ulong v;
+	uchar *c;
+
+	c = *p;
+	v  = c[0] << 24;
+	v |= c[1] << 16;
+	v |= c[2] << 8;
+	v |= c[3];
 	*p = c + 4;
 	return v;
 }
@@ -73,23 +79,19 @@ load(char *path)
 	return readmod(path, nil, 0);
 }
 
-/**
- * Type constructor
- */
 Type*
-dtype(void (*destructor)(Heap*, int), int size, const char *map, int mapsize, const char*comment)
+dtype(void (*destroy)(Heap*, int), int size, uchar *map, int mapsize)
 {
 	Type *t;
 
-	t = (Type *)malloc(sizeof(Type)+mapsize);
+	t = malloc(sizeof(Type)+mapsize);
 	if(t != nil) {
 		t->ref = 1;
-		t->destructor = destructor;
-		t->fnmark = markheap;
+		t->free = destroy;
+		t->mark = markheap;
 		t->size = size;
 		t->np = mapsize;
-		t->comment = comment;
-		memcpy(t->map, map, mapsize);
+		memmove(t->map, map, mapsize);
 	}
 	return t;
 }
@@ -133,14 +135,14 @@ brpatch(Inst *ip, Module *m)
 	case ISPAWN:
 		if(ip->d.imm < 0 || ip->d.imm >= m->nprog)
 			return 0;
-		ip->d.imm = (DISINT)&m->prog[ip->d.imm]; /* DIXME: int/ptr cast */
+		ip->d.imm = (WORD)&m->prog[ip->d.imm];
 		break;
 	}
 	return 1;
 }
 
 Module*
-parsemod(const char *path, const char *code, ulong length, const Dir *dir)
+parsemod(char *path, uchar *code, ulong length, Dir *dir)
 {
 	Heap *h;
 	Inst *ip;
@@ -149,17 +151,16 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 	Module *m;
 	Array *ary;
 	ulong ul[2];
-	DISINT lo, hi;
+	WORD lo, hi;
 	int lsize, id, v, entry, entryt, tnp, tsz, siglen;
 	int de, pc, i, n, isize, dsize, hsize, dasp;
-	const char *mod, *istream, **isp;
-	char sm, *si, *addr, *dastack[DADEPTH];
+	uchar *mod, sm, *istream, **isp, *si, *addr, *dastack[DADEPTH];
 	Link *l;
 
 	istream = code;
 	isp = &istream;
 
-	m = (Module*)malloc(sizeof(Module));
+	m = malloc(sizeof(Module));
 	if(m == nil)
 		return nil;
 
@@ -167,7 +168,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 	m->dtype = dir->type;
 	m->qid = dir->qid;
 	m->mtime = dir->mtime;
-	m->origmp = (char*)H;
+	m->origmp = H;
 	m->pctab = nil;
 
 	switch(operand(isp)) {
@@ -186,7 +187,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			goto bad;
 		}
 		*isp += siglen;
-		break;
+		break;		
 	case XMAGIC:
 		if(mustbesigned(path, code, length, dir)){
 			kwerrstr("security violation: not signed");
@@ -195,8 +196,8 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 		break;
 	}
 
-	m->rt = (enum ModRtFlags)operand(isp);
-	/*m->ss =*/ operand(isp);
+	m->rt = operand(isp);
+	m->ss = operand(isp);
 	isize = operand(isp);
 	dsize = operand(isp);
 	hsize = operand(isp);
@@ -210,7 +211,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 	}
 
 	m->nprog = isize;
-	m->prog = (Inst*)mallocz(isize*sizeof(Inst), 0);
+	m->prog = mallocz(isize*sizeof(Inst), 0);
 	if(m->prog == nil) {
 		kwerrstr(exNomem);
 		goto bad;
@@ -234,7 +235,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 		}
 		switch(UXSRC(ip->add)) {
 		case SRC(AFP):
-		case SRC(AMP):
+		case SRC(AMP):	
 		case SRC(AIMM):
 			ip->s.ind = operand(isp);
 			break;
@@ -246,7 +247,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 		}
 		switch(UXDST(ip->add)) {
 		case DST(AFP):
-		case DST(AMP):
+		case DST(AMP):	
 			ip->d.ind = operand(isp);
 			break;
 		case DST(AIMM):
@@ -262,18 +263,16 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			ip->d.i.s = operand(isp);
 			break;
 		}
-		ip++;
+		ip++;		
 	}
 
 	m->ntype = hsize;
-	m->type = (Type**)malloc(hsize*sizeof(Type*));
+	m->type = malloc(hsize*sizeof(Type*));
 	if(m->type == nil) {
 		kwerrstr(exNomem);
 		goto bad;
 	}
 	for(i = 0; i < hsize; i++) {
-		char *comment = (char *)malloc(256); /* TODO: debug, remove later */
-		sprint(comment, "%s.%d", path, i);
 		id = operand(isp);
 		if(id > hsize) {
 			kwerrstr("heap id range");
@@ -285,7 +284,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			kwerrstr("implausible Dis file");
 			goto bad;
 		}
-		pt = dtype(freeheap, tsz, istream, tnp, comment);
+		pt = dtype(freeheap, tsz, istream, tnp);
 		if(pt == nil) {
 			kwerrstr(exNomem);
 			goto bad;
@@ -301,7 +300,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			goto bad;
 		}
 		h = heapz(pt);
-		m->origmp = H2D(char*, h);
+		m->origmp = H2D(uchar*, h);
 	}
 	addr = m->origmp;
 	dasp = 0;
@@ -319,7 +318,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			kwerrstr("bad data item");
 			goto bad;
 		case DEFS:
-			s = c2string(istream, n);
+			s = c2string((char*)istream, n);
 			istream += n;
 			*(String**)si = s;
 			break;
@@ -329,24 +328,24 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			break;
 		case DEFW:
 			for(i = 0; i < n; i++) {
-				*(DISINT*)si = disw(isp);
-				si += sizeof(DISINT);
+				*(WORD*)si = disw(isp);
+				si += sizeof(WORD);
 			}
 			break;
 		case DEFL:
 			for(i = 0; i < n; i++) {
 				hi = disw(isp);
 				lo = disw(isp);
-				*(DISBIG*)si = (DISBIG)hi << 32 | (DISBIG)(ulong)lo;
-				si += sizeof(DISBIG);
+				*(LONG*)si = (LONG)hi << 32 | (LONG)(ulong)lo;
+				si += sizeof(LONG);
 			}
 			break;
 		case DEFF:
 			for(i = 0; i < n; i++) {
 				ul[0] = disw(isp);
 				ul[1] = disw(isp);
-				*(DISREAL*)si = canontod(ul);
-				si += sizeof(DISREAL);
+				*(REAL*)si = canontod(ul);
+				si += sizeof(REAL);
 			}
 			break;
 		case DEFA:			/* Array */
@@ -363,12 +362,12 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			ary = H2D(Array*, h);
 			ary->t = pt;
 			ary->len = v;
-			ary->root = (Array*)H;
-			ary->data = (char*)ary+sizeof(Array);
-			memset(ary->data, 0, pt->size*v);
+			ary->root = H;
+			ary->data = (uchar*)ary+sizeof(Array);
+			memset((void*)ary->data, 0, pt->size*v);
 			initarray(pt, ary);
 			A(si) = ary;
-			break;
+			break;			
 		case DIND:			/* Set index */
 			ary = A(si);
 			if(ary == H || D2H(ary)->t != &Tarray) {
@@ -397,7 +396,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 		kwerrstr("bad module name");
 		goto bad;
 	}
-	m->name = strdup(mod);
+	m->name = strdup((char*)mod);
 	if(m->name == nil) {
 		kwerrstr(exNomem);
 		goto bad;
@@ -406,7 +405,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 		;
 
 	l = m->ext = (Link*)malloc((lsize+1)*sizeof(Link));
-	if (l == nil) {
+	if(l == nil){
 		kwerrstr(exNomem);
 		goto bad;
 	}
@@ -465,7 +464,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 		Except *e;
 
 		nh = operand(isp);
-		m->htab = (Handler*)malloc((nh+1)*sizeof(Handler));
+		m->htab = malloc((nh+1)*sizeof(Handler));
 		if(m->htab == nil){
 			kwerrstr(exNomem);
 			goto bad;
@@ -481,7 +480,7 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 			n = operand(isp);
 			h->ne = n>>16;
 			n &= 0xffff;
-			h->etab = (Except*)malloc((n+1)*sizeof(Except));
+			h->etab = malloc((n+1)*sizeof(Except));
 			if(h->etab == nil){
 				kwerrstr(exNomem);
 				goto bad;
@@ -510,13 +509,13 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 		m->entryt = m->type[entryt];
 	}
 
-	if (cflag) {
+	if(cflag) {
 		if((m->rt&DONTCOMPILE) == 0 && !dontcompile)
 			compile(m, isize, nil);
 	}
 	else
 	if(m->rt & MUSTCOMPILE && !dontcompile) {
-		if (compile(m, isize, nil) == 0) {
+		if(compile(m, isize, nil) == 0) {
 			kwerrstr("compiler required");
 			goto bad;
 		}
@@ -532,22 +531,22 @@ parsemod(const char *path, const char *code, ulong length, const Dir *dir)
 
 	return m;
 bad:
-	ASSIGN(m->origmp, H);
+	destroy(m->origmp);
 	freemod(m);
 	return nil;
 }
 
 Module*
-newmod(const char *s)
+newmod(char *s)
 {
 	Module *m;
 
-	m = (Module *)malloc(sizeof(Module));
+	m = malloc(sizeof(Module));
 	if(m == nil)
 		error(exNomem);
 	m->ref = 1;
 	m->path = s;
-	m->origmp = (char*)H;
+	m->origmp = H;
 	m->name = strdup(s);
 	if(m->name == nil) {
 		free(m);
@@ -559,9 +558,6 @@ newmod(const char *s)
 	return m;
 }
 
-/**
- * Find module by path, increment ref if found
- */
 Module*
 lookmod(char *s)
 {
@@ -588,9 +584,9 @@ freemod(Module *m)
 			freetype(m->type[i]);
 		free(m->type);
 	}
-	free(m->name); /* XXX: unconst */
+	free(m->name);
 	free(m->prog);
-	free(m->path); /* XXX: unconst */
+	free(m->path);
 	free(m->pctab);
 	if(m->ldt != nil){
 		for(i2 = m->ldt; *i2 != nil; i2++){
@@ -634,7 +630,7 @@ unload(Module *m)
 	if(m->rt == DYNMOD)
 		freedyncode(m);
 	else
-		ASSIGN(m->origmp, H);
+		destroy(m->origmp);
 
 	destroylinks(m);
 

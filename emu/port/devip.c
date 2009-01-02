@@ -1,30 +1,30 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <ip.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	"ip.h"
 
 enum
 {
-	Qip_topdir		= 1,	/* top level directory */
-	Qip_topbase,
-	Qip_arp=Qip_topbase,
-/*	Qip_iproute, */
-/*	Qip_ipselftab,	*/
-	Qip_ndb,
+	Qtopdir		= 1,	/* top level directory */
+	Qtopbase,
+	Qarp=	Qtopbase,
+/*	Qiproute, */
+/*	Qipselftab,	*/
+	Qndb,
 
-	Qip_protodir,		/* directory for a protocol */
-	Qip_protobase,
-	Qip_clone=Qip_protobase,
-	Qip_stats,
+	Qprotodir,		/* directory for a protocol */
+	Qprotobase,
+	Qclone=	Qprotobase,
+	Qstats,
 
-	Qip_convdir,		/* directory for a conversation */
-	Qip_convbase,
-	Qip_ctl=Qip_convbase,
-	Qip_data,
-	Qip_listen,
-	Qip_local,
-	Qip_remote,
-	Qip_status,
+	Qconvdir,		/* directory for a conversation */
+	Qconvbase,
+	Qctl=	Qconvbase,
+	Qdata,
+	Qlisten,
+	Qlocal,
+	Qremote,
+	Qstatus,
 
 	Logtype=	5,
 	Masktype=	(1<<Logtype)-1,
@@ -42,10 +42,10 @@ enum
 	Maxproto	= 4,
 	MAXCONV		= 4096
 };
-#define DEVIPTYPE(x) 	( ((ulong)(x).path) & Masktype )
-#define DEVIPCONV(x) 	( (((ulong)(x).path) >> Shiftconv) & Maskconv )
-#define DEVIPPROTO(x) 	( (((ulong)(x).path) >> Shiftproto) & Maskproto )
-#define DEVIPQID(p, c, y) 	( ((p)<<(Shiftproto)) | ((c)<<Shiftconv) | (y) )
+#define TYPE(x) 	( ((ulong)(x).path) & Masktype )
+#define CONV(x) 	( (((ulong)(x).path) >> Shiftconv) & Maskconv )
+#define PROTO(x) 	( (((ulong)(x).path) >> Shiftproto) & Maskproto )
+#define QID(p, c, y) 	( ((p)<<(Shiftproto)) | ((c)<<Shiftconv) | (y) )
 
 enum
 {
@@ -57,8 +57,7 @@ enum
 	Hungup=	5,
 };
 
-typedef struct IpConv IpConv;
-struct IpConv
+struct Conv
 {
 	QLock	l;
 
@@ -98,7 +97,7 @@ struct Proto
 	char*	name;
 	int	maxconv;
 	Fs*	f;	/* file system this proto is part of */
-	IpConv**	conv;	/* array of conversations */
+	Conv**	conv;	/* array of conversations */
 	int	pctlsize;	/* size of per protocol ctl block */
 	int	nc;	/* number of conversations */
 	int	ac;
@@ -136,9 +135,9 @@ static	char* ipstates[] = {
 	"Closed",	/* Hungup */
 };
 
-static	IpConv*	protoclone(Proto*, char*, int);
-static	IpConv*	newconv(Proto*, IpConv **);
-static	void	setladdr(IpConv*);
+static	Conv*	protoclone(Proto*, char*, int);
+static	Conv*	newconv(Proto*, Conv **);
+static	void	setladdr(Conv*);
 static	ulong	ip6w(uchar*);
 static	void	ipw6(uchar*, ulong);
 
@@ -146,33 +145,33 @@ static int
 ip3gen(Chan *c, int i, Dir *dp)
 {
 	Qid q;
-	IpConv *cv;
+	Conv *cv;
 	char *p;
 
-	cv = ipfs[c->dev]->p[DEVIPPROTO(c->qid)]->conv[DEVIPCONV(c->qid)];
+	cv = ipfs[c->dev]->p[PROTO(c->qid)]->conv[CONV(c->qid)];
 	if(cv->owner == nil)
 		kstrdup(&cv->owner, eve);
-	mkqid(&q, DEVIPQID(DEVIPPROTO(c->qid), DEVIPCONV(c->qid), i), 0, QTFILE);
+	mkqid(&q, QID(PROTO(c->qid), CONV(c->qid), i), 0, QTFILE);
 
 	switch(i) {
 	default:
 		return -1;
-	case Qip_ctl:
+	case Qctl:
 		devdir(c, q, "ctl", 0, cv->owner, cv->perm, dp);
 		return 1;
-	case Qip_data:
+	case Qdata:
 		devdir(c, q, "data", 0, cv->owner, cv->perm, dp);
 		return 1;
-	case Qip_listen:
+	case Qlisten:
 		devdir(c, q, "listen", 0, cv->owner, cv->perm, dp);
 		return 1;
-	case Qip_local:
+	case Qlocal:
 		p = "local";
 		break;
-	case Qip_remote:
+	case Qremote:
 		p = "remote";
 		break;
-	case Qip_status:
+	case Qstatus:
 		p = "status";
 		break;
 	}
@@ -186,15 +185,15 @@ ip2gen(Chan *c, int i, Dir *dp)
 	Qid q;
 
 	switch(i) {
-	case Qip_clone:
-		mkqid(&q, DEVIPQID(DEVIPPROTO(c->qid), 0, Qip_clone), 0, QTFILE);
+	case Qclone:
+		mkqid(&q, QID(PROTO(c->qid), 0, Qclone), 0, QTFILE);
 		devdir(c, q, "clone", 0, network, 0666, dp);
 		return 1;
-	case Qip_stats:
-		mkqid(&q, DEVIPQID(DEVIPPROTO(c->qid), 0, Qip_stats), 0, QTFILE);
+	case Qstats:
+		mkqid(&q, QID(PROTO(c->qid), 0, Qstats), 0, QTFILE);
 		devdir(c, q, "stats", 0, network, 0444, dp);
 		return 1;
-	}
+	}	
 	return -1;
 }
 
@@ -211,43 +210,43 @@ ip1gen(Chan *c, int i, Dir *dp)
 	f = ipfs[c->dev];
 
 	prot = 0664;
-	mkqid(&q, DEVIPQID(0, 0, i), 0, QTFILE);
+	mkqid(&q, QID(0, 0, i), 0, QTFILE);
 	switch(i) {
 	default:
 		return -1;
-	case Qip_arp:
+	case Qarp:
 		p = "arp";
 		break;
-	case Qip_ndb:
+	case Qndb:
 		p = "ndb";
 		len = strlen(ipfs[c->dev]->ndb);
 		break;
-/*	case Qip_iproute:
+/*	case Qiproute:
 		p = "iproute";
 		break;
-	case Qip_ipselftab:
+	case Qipselftab:
 		p = "ipselftab";
 		prot = 0444;
 		break;
-	case Qip_iprouter:
+	case Qiprouter:
 		p = "iprouter";
 		break;
-	case Qip_log:
+	case Qlog:
 		p = "log";
 		break;
 */
 	}
 	devdir(c, q, p, len, network, prot, dp);
-	if(i == Qip_ndb && f->ndbmtime > kerndate)
+	if(i == Qndb && f->ndbmtime > kerndate)
 		dp->mtime = f->ndbmtime;
 	return 1;
 }
 
 static int
-ipgen(Chan *c, const char *name, Dirtab *tab, int x, int s, Dir *dp)
+ipgen(Chan *c, char *name, Dirtab *tab, int x, int s, Dir *dp)
 {
 	Qid q;
-	IpConv *cv;
+	Conv *cv;
 	Fs *f;
 
 	USED(name);
@@ -255,10 +254,10 @@ ipgen(Chan *c, const char *name, Dirtab *tab, int x, int s, Dir *dp)
 	USED(x);
 	f = ipfs[c->dev];
 
-	switch(DEVIPTYPE(c->qid)) {
-	case Qip_topdir:
+	switch(TYPE(c->qid)) {
+	case Qtopdir:
 		if(s == DEVDOTDOT){
-			mkqid(&q, DEVIPQID(0, 0, Qip_topdir), 0, QTDIR);
+			mkqid(&q, QID(0, 0, Qtopdir), 0, QTDIR);
 			sprint(up->genbuf, "#I%lud", c->dev);
 			devdir(c, q, up->genbuf, 0, network, 0555, dp);
 			return 1;
@@ -266,52 +265,52 @@ ipgen(Chan *c, const char *name, Dirtab *tab, int x, int s, Dir *dp)
 		if(s < f->np) {
 /*			if(f->p[s]->connect == nil)
 				return 0;	/* protocol with no user interface */
-			mkqid(&q, DEVIPQID(s, 0, Qip_protodir), 0, QTDIR);
+			mkqid(&q, QID(s, 0, Qprotodir), 0, QTDIR);
 			devdir(c, q, f->p[s]->name, 0, network, 0555, dp);
 			return 1;
 		}
 		s -= f->np;
-		return ip1gen(c, s+Qip_topbase, dp);
-	case Qip_arp:
-	case Qip_ndb:
-/*	case Qip_iproute:
-	case Qip_iprouter:
-	case Qip_ipselftab:	*/
-		return ip1gen(c, DEVIPTYPE(c->qid), dp);
-	case Qip_protodir:
+		return ip1gen(c, s+Qtopbase, dp);
+	case Qarp:
+	case Qndb:
+/*	case Qiproute:
+	case Qiprouter:
+	case Qipselftab:	*/
+		return ip1gen(c, TYPE(c->qid), dp);
+	case Qprotodir:
 		if(s == DEVDOTDOT){
-			mkqid(&q, DEVIPQID(0, 0, Qip_topdir), 0, QTDIR);
+			mkqid(&q, QID(0, 0, Qtopdir), 0, QTDIR);
 			sprint(up->genbuf, "#I%lud", c->dev);
 			devdir(c, q, up->genbuf, 0, network, 0555, dp);
 			return 1;
 		}
-		if(s < f->p[DEVIPPROTO(c->qid)]->ac) {
-			cv = f->p[DEVIPPROTO(c->qid)]->conv[s];
+		if(s < f->p[PROTO(c->qid)]->ac) {
+			cv = f->p[PROTO(c->qid)]->conv[s];
 			sprint(up->genbuf, "%d", s);
-			mkqid(&q, DEVIPQID(DEVIPPROTO(c->qid), s, Qip_convdir), 0, QTDIR);
+			mkqid(&q, QID(PROTO(c->qid), s, Qconvdir), 0, QTDIR);
 			devdir(c, q, up->genbuf, 0, cv->owner, 0555, dp);
 			return 1;
 		}
-		s -= f->p[DEVIPPROTO(c->qid)]->ac;
-		return ip2gen(c, s+Qip_protobase, dp);
-	case Qip_clone:
-	case Qip_stats:
-		return ip2gen(c, DEVIPTYPE(c->qid), dp);
-	case Qip_convdir:
+		s -= f->p[PROTO(c->qid)]->ac;
+		return ip2gen(c, s+Qprotobase, dp);
+	case Qclone:
+	case Qstats:
+		return ip2gen(c, TYPE(c->qid), dp);
+	case Qconvdir:
 		if(s == DEVDOTDOT){
-			s = DEVIPPROTO(c->qid);
-			mkqid(&q, DEVIPQID(s, 0, Qip_protodir), 0, QTDIR);
+			s = PROTO(c->qid);
+			mkqid(&q, QID(s, 0, Qprotodir), 0, QTDIR);
 			devdir(c, q, f->p[s]->name, 0, network, 0555, dp);
 			return 1;
 		}
-		return ip3gen(c, s+Qip_convbase, dp);
-	case Qip_ctl:
-	case Qip_data:
-	case Qip_listen:
-	case Qip_local:
-	case Qip_remote:
-	case Qip_status:
-		return ip3gen(c, DEVIPTYPE(c->qid), dp);
+		return ip3gen(c, s+Qconvbase, dp);
+	case Qctl:
+	case Qdata:
+	case Qlisten:
+	case Qlocal:
+	case Qremote:
+	case Qstatus:
+		return ip3gen(c, TYPE(c->qid), dp);
 	}
 	return -1;
 }
@@ -321,7 +320,7 @@ newproto(char *name, int type, int maxconv)
 {
 	Proto *p;
 
-	p = (Proto *)smalloc(sizeof(*p));
+	p = smalloc(sizeof(*p));
 	p->name = name;
 	p->stype = type;
 	p->ipproto = type+1;	/* temporary */
@@ -333,7 +332,7 @@ newproto(char *name, int type, int maxconv)
 void
 ipinit(void)
 {
-	ipfs[0] = (Fs*)mallocz(sizeof(Fs), 1);
+	ipfs[0] = malloc(sizeof(Fs));
 	if(ipfs[0] == nil)
 		panic("no memory for IP stack");
 
@@ -348,7 +347,7 @@ ipinit(void)
 }
 
 Chan *
-ipattach(const char *spec)
+ipattach(char *spec)
 {
 	Chan *c;
 
@@ -356,20 +355,20 @@ ipattach(const char *spec)
 		error("bad specification");
 
 	c = devattach('I', spec);
-	mkqid(&c->qid, DEVIPQID(0, 0, Qip_topdir), 0, QTDIR);
+	mkqid(&c->qid, QID(0, 0, Qtopdir), 0, QTDIR);
 	c->dev = 0;
 
 	return c;
 }
 
 static Walkqid*
-ipwalk(Chan* c, Chan *nc, const char **name, int nname)
+ipwalk(Chan* c, Chan *nc, char **name, int nname)
 {
 	return devwalk(c, nc, name, nname, nil, 0, ipgen);
 }
 
 static int
-ipstat(Chan *c, char *db, int n)
+ipstat(Chan *c, uchar *db, int n)
 {
 	return devstat(c, db, n, 0, 0, ipgen);
 }
@@ -383,7 +382,7 @@ static int m2p[] = {
 static Chan *
 ipopen(Chan *c, int omode)
 {
-	IpConv *cv, *nc;
+	Conv *cv, *nc;
 	Proto *p;
 	ulong raddr;
 	ushort rport;
@@ -394,21 +393,21 @@ ipopen(Chan *c, int omode)
 
 	f = ipfs[c->dev];
 
-	switch(DEVIPTYPE(c->qid)) {
+	switch(TYPE(c->qid)) {
 	default:
 		break;
-	case Qip_topdir:
-	case Qip_protodir:
-	case Qip_convdir:
-	case Qip_status:
-	case Qip_remote:
-	case Qip_local:
-	case Qip_stats:
-	/* case Qip_ipselftab: */
+	case Qtopdir:
+	case Qprotodir:
+	case Qconvdir:
+	case Qstatus:
+	case Qremote:
+	case Qlocal:
+	case Qstats:
+	/* case Qipselftab: */
 		if(omode != OREAD)
 			error(Eperm);
 		break;
-	case Qip_ndb:
+	case Qndb:
 		if(omode & (OWRITE|OTRUNC) && !iseve())
 			error(Eperm);
 		if((omode & (OWRITE|OTRUNC)) == (OWRITE|OTRUNC)){
@@ -416,18 +415,18 @@ ipopen(Chan *c, int omode)
 			f->ndbvers++;
 		}
 		break;
-	case Qip_clone:
-		p = f->p[DEVIPPROTO(c->qid)];
+	case Qclone:
+		p = f->p[PROTO(c->qid)];
 		cv = protoclone(p, up->env->user, -1);
 		if(cv == 0)
 			error(Enodev);
-		mkqid(&c->qid, DEVIPQID(p->x, cv->x, Qip_ctl), 0, QTFILE);
+		mkqid(&c->qid, QID(p->x, cv->x, Qctl), 0, QTFILE);
 		break;
-	case Qip_data:
-	case Qip_ctl:
-		p = f->p[DEVIPPROTO(c->qid)];
+	case Qdata:
+	case Qctl:
+		p = f->p[PROTO(c->qid)];
 		qlock(&p->l);
-		cv = p->conv[DEVIPCONV(c->qid)];
+		cv = p->conv[CONV(c->qid)];
 		qlock(&cv->l);
 		if(waserror()){
 			qunlock(&cv->l);
@@ -451,9 +450,9 @@ ipopen(Chan *c, int omode)
 		qunlock(&cv->l);
 		qunlock(&p->l);
 		break;
-	case Qip_listen:
-		p = f->p[DEVIPPROTO(c->qid)];
-		cv = p->conv[DEVIPCONV(c->qid)];
+	case Qlisten:
+		p = f->p[PROTO(c->qid)];
+		cv = p->conv[CONV(c->qid)];
 		if((perm & (cv->perm>>6)) != perm){
 			if(strcmp(up->env->user, cv->owner) != 0)
 				error(Eperm);
@@ -481,7 +480,7 @@ ipopen(Chan *c, int omode)
 		nc->rport = rport;
 		setladdr(nc);
 		nc->state = Connected;
-		mkqid(&c->qid, DEVIPQID(DEVIPPROTO(c->qid), nc->x, Qip_ctl), 0, QTFILE);
+		mkqid(&c->qid, QID(PROTO(c->qid), nc->x, Qctl), 0, QTFILE);
 
 		poperror();
 		qunlock(&cv->listenq);
@@ -494,7 +493,7 @@ ipopen(Chan *c, int omode)
 }
 
 static void
-closeipconv(IpConv *cv)
+closeconv(Conv *cv)
 {
 	int fd;
 
@@ -528,73 +527,75 @@ ipclose(Chan *c)
 	Fs *f;
 
 	f = ipfs[c->dev];
-	switch(DEVIPTYPE(c->qid)) {
-	case Qip_data:
-	case Qip_ctl:
+	switch(TYPE(c->qid)) {
+	case Qdata:
+	case Qctl:
 		if(c->flag & COPEN)
-			closeipconv(f->p[DEVIPPROTO(c->qid)]->conv[DEVIPCONV(c->qid)]);
+			closeconv(f->p[PROTO(c->qid)]->conv[CONV(c->qid)]);
 		break;
 	}
 }
 
 static long
-ipread(Chan *ch, char *a, long n, vlong off)
+ipread(Chan *ch, void *a, long n, vlong off)
 {
 	int r;
-	IpConv *c;
+	Conv *c;
 	Proto *x;
-	char *s;
+	char *p, *s;
 	Fs *f;
 	ulong offset = off;
 
 	f = ipfs[ch->dev];
 
-	switch(DEVIPTYPE(ch->qid)) {
+	p = a;
+	switch(TYPE(ch->qid)) {
 	default:
 		error(Eperm);
-	case Qip_protodir:
-	case Qip_topdir:
-	case Qip_convdir:
+	case Qprotodir:
+	case Qtopdir:
+	case Qconvdir:
 		return devdirread(ch, a, n, 0, 0, ipgen);
-	case Qip_arp:
+	case Qarp:
 		error(Eperm);	/* TO DO */
-	case Qip_ndb:
+	case Qndb:
 		return readstr(off, a, n, f->ndb);
-	case Qip_ctl:
-		sprint(up->genbuf, "%lud", DEVIPCONV(ch->qid));
-		return readstr(offset, a, n, up->genbuf);
-	case Qip_remote:
-		x = f->p[DEVIPPROTO(ch->qid)];
-		c = x->conv[DEVIPCONV(ch->qid)];
+	case Qctl:
+		sprint(up->genbuf, "%lud", CONV(ch->qid));
+		return readstr(offset, p, n, up->genbuf);
+	case Qremote:
+		x = f->p[PROTO(ch->qid)];
+		c = x->conv[CONV(ch->qid)];
 		sprint(up->genbuf, "%I!%d\n", c->raddr, c->rport);
-		return readstr(offset, a, n, up->genbuf);
-	case Qip_local:
-		x = f->p[DEVIPPROTO(ch->qid)];
-		c = x->conv[DEVIPCONV(ch->qid)];
+		return readstr(offset, p, n, up->genbuf);
+	case Qlocal:
+		x = f->p[PROTO(ch->qid)];
+		c = x->conv[CONV(ch->qid)];
 		sprint(up->genbuf, "%I!%d\n", c->laddr, c->lport);
-		return readstr(offset, a, n, up->genbuf);
-	case Qip_status:
-		x = f->p[DEVIPPROTO(ch->qid)];
-		c = x->conv[DEVIPCONV(ch->qid)];
-		s = (char*) smalloc(Statelen);
+		return readstr(offset, p, n, up->genbuf);
+	case Qstatus:
+		x = f->p[PROTO(ch->qid)];
+		c = x->conv[CONV(ch->qid)];
+		s = smalloc(Statelen);
 		if(waserror()){
 			free(s);
 			nexterror();
 		}
 		snprint(s, Statelen, "%s\n", ipstates[c->state]);
-		n = readstr(offset, a, n, s);
+		n = readstr(offset, p, n, s);
 		poperror();
 		free(s);
 		return n;
-	case Qip_data:
-		x = f->p[DEVIPPROTO(ch->qid)];
-		c = x->conv[DEVIPCONV(ch->qid)];
+	case Qdata:
+		x = f->p[PROTO(ch->qid)];
+		c = x->conv[CONV(ch->qid)];
 		if(c->sfd < 0)
 			error(Ehungup);
 		if(c->headers) {
 			if(n < c->headers)
 				error(Ebadarg);
-			r = so_recv(c->sfd, a + c->headers, n - c->headers, a, c->headers);
+			p = a;
+			r = so_recv(c->sfd, p + c->headers, n - c->headers, p, c->headers);
 			if(r > 0)
 				r += c->headers;
 		} else
@@ -602,14 +603,14 @@ ipread(Chan *ch, char *a, long n, vlong off)
 		if(r < 0)
 			oserror();
 		return r;
-	case Qip_stats:
+	case Qstats:
 		error("stats not implemented");
 		return n;
 	}
 }
 
 static void
-setladdr(IpConv *c)
+setladdr(Conv *c)
 {
 	ulong laddr;
 
@@ -622,7 +623,7 @@ setladdr(IpConv *c)
  * pick a local port and set it
  */
 static void
-setlport(IpConv *c)
+setlport(Conv *c)
 {
 	ulong laddr;
 	ushort p;
@@ -654,7 +655,7 @@ portno(char *p)
  *	[address!]port[!r]
  */
 static void
-setladdrport(IpConv *c, char *str, int announcing)
+setladdrport(Conv *c, char *str, int announcing)
 {
 	char *p;
 	int lport;
@@ -702,7 +703,7 @@ setladdrport(IpConv *c, char *str, int announcing)
 }
 
 static char*
-setraddrport(IpConv *c, char *str)
+setraddrport(Conv *c, char *str)
 {
 	char *p;
 
@@ -722,7 +723,7 @@ setraddrport(IpConv *c, char *str)
 }
 
 static void
-connectctlmsg(Proto *x, IpConv *c, Cmdbuf *cb)
+connectctlmsg(Proto *x, Conv *c, Cmdbuf *cb)
 {
 	char *p;
 
@@ -762,7 +763,7 @@ connectctlmsg(Proto *x, IpConv *c, Cmdbuf *cb)
 }
 
 static void
-announcectlmsg(Proto *x, IpConv *c, Cmdbuf *cb)
+announcectlmsg(Proto *x, Conv *c, Cmdbuf *cb)
 {
 	if(c->state != Idle)
 		error(Econinuse);
@@ -794,7 +795,7 @@ announcectlmsg(Proto *x, IpConv *c, Cmdbuf *cb)
 }
 
 static void
-bindctlmsg(Proto *x, IpConv *c, Cmdbuf *cb)
+bindctlmsg(Proto *x, Conv *c, Cmdbuf *cb)
 {
 	USED(x);
 	switch(cb->nf){
@@ -807,21 +808,22 @@ bindctlmsg(Proto *x, IpConv *c, Cmdbuf *cb)
 }
 
 static long
-ipwrite(Chan *ch, const char *a, long n, vlong off)
+ipwrite(Chan *ch, void *a, long n, vlong off)
 {
-	IpConv *c;
+	Conv *c;
 	Proto *x;
+	char *p;
 	Cmdbuf *cb;
 	Fs *f;
 
 	f = ipfs[ch->dev];
 
-	switch(DEVIPTYPE(ch->qid)) {
+	switch(TYPE(ch->qid)) {
 	default:
 		error(Eperm);
-	case Qip_data:
-		x = f->p[DEVIPPROTO(ch->qid)];
-		c = x->conv[DEVIPCONV(ch->qid)];
+	case Qdata:
+		x = f->p[PROTO(ch->qid)];
+		c = x->conv[CONV(ch->qid)];
 		if(c->sfd < 0)
 			error(Ehungup);
 		qlock(&c->wlock);
@@ -832,7 +834,8 @@ ipwrite(Chan *ch, const char *a, long n, vlong off)
 		if(c->headers) {
 			if(n < c->headers)
 				error(Eshort);
-			n = so_send(c->sfd, a + c->headers, n - c->headers, a, c->headers);
+			p = a;
+			n = so_send(c->sfd, p + c->headers, n - c->headers, p, c->headers);
 			if(n >= 0)
 				n += c->headers;
 		} else
@@ -842,9 +845,9 @@ ipwrite(Chan *ch, const char *a, long n, vlong off)
 		if(n < 0)
 			oserror();
 		break;
-	case Qip_arp:
+	case Qarp:
 		return arpwrite(a, n);
-	case Qip_ndb:
+	case Qndb:
 		if(off > strlen(f->ndb))
 			error(Eio);
 		if(off+n >= sizeof(f->ndb)-1)
@@ -854,9 +857,9 @@ ipwrite(Chan *ch, const char *a, long n, vlong off)
 		f->ndbvers++;
 		f->ndbmtime = seconds();
 		break;
-	case Qip_ctl:
-		x = f->p[DEVIPPROTO(ch->qid)];
-		c = x->conv[DEVIPCONV(ch->qid)];
+	case Qctl:
+		x = f->p[PROTO(ch->qid)];
+		c = x->conv[CONV(ch->qid)];
 		cb = parsecmd(a, n);
 		qlock(&c->l);
 		if(waserror()){
@@ -922,24 +925,24 @@ ipwrite(Chan *ch, const char *a, long n, vlong off)
 }
 
 static int
-ipwstat(Chan *c, char *dp, int n)
+ipwstat(Chan *c, uchar *dp, int n)
 {
 	Dir *d;
-	IpConv *cv;
+	Conv *cv;
 	Proto *p;
 	Fs *f;
 
 	f = ipfs[c->dev];
-	switch(DEVIPTYPE(c->qid)) {
+	switch(TYPE(c->qid)) {
 	default:
 		error(Eperm);
 		break;
-	case Qip_ctl:
-	case Qip_data:
+	case Qctl:
+	case Qdata:
 		break;
 	}
 
-	d = (Dir *)smalloc(sizeof(*d)+n);
+	d = smalloc(sizeof(*d)+n);
 	if(waserror()){
 		free(d);
 		nexterror();
@@ -947,8 +950,8 @@ ipwstat(Chan *c, char *dp, int n)
 	n = convM2D(dp, n, d, (char*)&d[1]);
 	if(n == 0)
 		error(Eshortstat);
-	p = f->p[DEVIPPROTO(c->qid)];
-	cv = p->conv[DEVIPCONV(c->qid)];
+	p = f->p[PROTO(c->qid)];
+	cv = p->conv[CONV(c->qid)];
 	if(!iseve() && strcmp(up->env->user, cv->owner) != 0)
 		error(Eperm);
 	if(!emptystr(d->uid))
@@ -960,10 +963,10 @@ ipwstat(Chan *c, char *dp, int n)
 	return n;
 }
 
-static IpConv*
+static Conv*
 protoclone(Proto *p, char *user, int nfd)
 {
-	IpConv *c, **pp, **ep, **np;
+	Conv *c, **pp, **ep, **np;
 	int maxconv;
 
 	c = 0;
@@ -994,12 +997,12 @@ protoclone(Proto *p, char *user, int nfd)
 		maxconv = 2 * p->nc;
 		if(maxconv > MAXCONV)
 			maxconv = MAXCONV;
-		np = (IpConv **)realloc(p->conv, sizeof(IpConv*) * maxconv);
+		np = realloc(p->conv, sizeof(Conv*) * maxconv);
 		if(np == nil)
 			error(Enomem);
 		p->conv = np;
 		pp = &p->conv[p->nc];
-		memset(pp, 0, sizeof(IpConv*)*(maxconv - p->nc));
+		memset(pp, 0, sizeof(Conv*)*(maxconv - p->nc));
 		p->nc = maxconv;
 		c = newconv(p, pp);
 	}
@@ -1023,12 +1026,12 @@ protoclone(Proto *p, char *user, int nfd)
 	return c;
 }
 
-static IpConv*
-newconv(Proto *p, IpConv **pp)
+static Conv*
+newconv(Proto *p, Conv **pp)
 {
-	IpConv *c;
+	Conv *c;
 
-	*pp = c = (IpConv *)malloc(sizeof(IpConv));
+	*pp = c = malloc(sizeof(Conv));
 	if(c == 0)
 		error(Enomem);
 	qlock(&c->l);
@@ -1040,7 +1043,7 @@ newconv(Proto *p, IpConv **pp)
 }
 
 int
-arpwrite(const char *s, int len)
+arpwrite(char *s, int len)
 {
 	int n;
 	char *f[4], buf[256];
@@ -1098,8 +1101,8 @@ Fsproto(Fs *f, Proto *p)
 	}
 
 	p->qid.type = QTDIR;
-	p->qid.path = DEVIPQID(f->np, 0, Qip_protodir);
-	p->conv = (IpConv**)malloc(sizeof(IpConv*)*(p->nc+1));
+	p->qid.path = QID(f->np, 0, Qprotodir);
+	p->conv = malloc(sizeof(Conv*)*(p->nc+1));
 	if(p->conv == nil)
 		panic("Fsproto");
 
@@ -1129,7 +1132,7 @@ ip6w(uchar *a)
 	uchar v4[IPv4addrlen];
 
 	v6tov4(v4, a);
-	return (((((v4[0]<<8)|v4[1])<<8)|v4[2])<<8)|v4[3]; // TODO
+	return (((((v4[0]<<8)|v4[1])<<8)|v4[2])<<8)|v4[3];
 }
 
 static void

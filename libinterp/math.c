@@ -1,10 +1,10 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <raise.h>
-#include <mathi.h>
-#include <mathmod.h>
+#include "lib9.h"
+#include "interp.h"
+#include "isa.h"
+#include "runt.h"
+#include "raise.h"
+#include "mathi.h"
+#include "mathmod.h"
 
 static union
 {
@@ -29,378 +29,725 @@ mathmodinit(void)
 	fmtinstall('f', gfltconv);
 }
 
-DISAPI(Math_import_int)
+void
+Math_import_int(void *fp)
 {
-	int i, n = f->x->len;
-	char *bp = f->b->data;
-	int *x = (int*)f->x->data;
+	F_Math_import_int *f;
+	int i, n;
+	unsigned int u;
+	unsigned char *bp;
+	int *x;
 
+	f = fp;
+	n = f->x->len;
 	if(f->b->len!=4*n)
 		error(exMathia);
+	bp = (unsigned char *)(f->b->data);
+	x = (int*)(f->x->data);
 	for(i=0; i<n; i++){
-		x[i] = GBIT32BE(bp);
-		bp += 4;
+		u = *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		x[i] = u;
 	}
 }
 
-DISAPI(Math_import_real32)
+void
+Math_import_real32(void *fp)
 {
-	int i, n = f->x->len;
-	char *bp = f->b->data;
-	double *x = (double*)f->x->data;
+	F_Math_import_int *f;
+	int i, n;
+	unsigned int u;
+	unsigned char *bp;
+	double *x;
 
+	f = fp;
+	n = f->x->len;
 	if(f->b->len!=4*n)
 		error(exMathia);
+	bp = (unsigned char *)(f->b->data);
+	x = (double*)(f->x->data);
 	for(i=0; i<n; i++){
-		bits32.u = GBIT32BE(bp);
+		u = *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		bits32.u = u;
 		x[i] = bits32.x;
-		bp += 4;
 	}
 }
 
-DISAPI(Math_import_real)
+void
+Math_import_real(void *fp)
 {
-	int i, n = f->x->len;
-	char *bp = f->b->data;
-	double *x = (double*)f->x->data;
+	F_Math_import_int *f;
+	int i, n;
+	uvlong u;
+	unsigned char *bp;
+	double *x;
 
+	f = fp;
+	n = f->x->len;
 	if(f->b->len!=8*n)
 		error(exMathia);
+	bp = f->b->data;
+	x = (double*)(f->x->data);
 	for(i=0; i<n; i++){
-		bits64.u = GBIT64BE(bp);
+		u = *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		u = (u<<8) | *bp++;
+		bits64.u = u;
 		x[i] = bits64.x;
-		bp += 8;
 	}
 }
 
-DISAPI(Math_export_int)
+void
+Math_export_int(void *fp)
 {
-	int i, n = f->x->len;
-	char *bp = f->b->data;
-	int *x = (int*)f->x->data;
+	F_Math_export_int *f;
+	int i, n;
+	unsigned int u;
+	unsigned char *bp;
+	int *x;
 
+	f = fp;
+	n = f->x->len;
 	if(f->b->len!=4*n)
 		error(exMathia);
+	bp = (unsigned char *)(f->b->data);
+	x = (int*)(f->x->data);
 	for(i=0; i<n; i++){
-		PBIT32BE(bp, x[i]);
-		bp += 4;
+		u = x[i];
+		*bp++ = u>>24;
+		*bp++ = u>>16;
+		*bp++ = u>>8;
+		*bp++ = u;
 	}
 }
 
-DISAPI(Math_export_real32)
+void
+Math_export_real32(void *fp)
 {
-	int i, n = f->x->len;
-	char *bp = f->b->data;
-	double *x = (double*)f->x->data;
+	F_Math_export_int *f;
+	int i, n;
+	unsigned int u;
+	unsigned char *bp;
+	double *x;
 
+	f = fp;
+	n = f->x->len;
 	if(f->b->len!=4*n)
 		error(exMathia);
+	bp = (unsigned char *)(f->b->data);
+	x = (double*)(f->x->data);
 	for(i=0; i<n; i++){
 		bits32.x = x[i];
-		PBIT32BE(bp, bits32.u);
-		bp += 4;
+		u = bits32.u;
+		*bp++ = u>>24;
+		*bp++ = u>>16;
+		*bp++ = u>>8;
+		*bp++ = u;
 	}
 }
 
-DISAPI(Math_export_real)
+void
+Math_export_real(void *fp)
 {
-	int i, n = f->x->len;
-	char *bp = f->b->data;
-	double *x = (double*)f->x->data;
+	F_Math_export_int *f;
+	int i, n;
+	uvlong u;
+	unsigned char *bp;
+	double *x;
 
+	f = fp;
+	n = f->x->len;
 	if(f->b->len!=8*n)
 		error(exMathia);
+	bp = (unsigned char *)(f->b->data);
+	x = (double*)(f->x->data);
 	for(i=0; i<n; i++){
 		bits64.x = x[i];
-		PBIT64BE(bp, bits64.u);
-		bp += 8;
+		u = bits64.u;
+		*bp++ = u>>56;
+		*bp++ = u>>48;
+		*bp++ = u>>40;
+		*bp++ = u>>32;
+		*bp++ = u>>24;
+		*bp++ = u>>16;
+		*bp++ = u>>8;
+		*bp++ = u;
 	}
 }
 
-DISAPI(Math_bits32real)
+
+void
+Math_bits32real(void *fp)
 {
+	F_Math_bits32real *f;
+
+	f = fp;
 	bits32.u = f->b;
 	*f->ret = bits32.x;
 }
 
-DISAPI(Math_bits64real)
+void
+Math_bits64real(void *fp)
 {
+	F_Math_bits64real *f;
+
+	f = fp;
 	bits64.u = f->b;
 	*f->ret = bits64.x;
 }
 
-DISAPI(Math_realbits32)
+void
+Math_realbits32(void *fp)
 {
+	F_Math_realbits32 *f;
+
+	f = fp;
 	bits32.x = f->x;
 	*f->ret = bits32.u;
 }
 
-DISAPI(Math_realbits64)
+void
+Math_realbits64(void *fp)
 {
+	F_Math_realbits64 *f;
+
+	f = fp;
 	bits64.x = f->x;
 	*f->ret = bits64.u;
 }
 
-DISAPI(Math_getFPcontrol)
+
+void
+Math_getFPcontrol(void *fp)
 {
+	F_Math_getFPcontrol *f;
+
+	f = fp;
+
 	*f->ret = getFPcontrol();
 }
 
-DISAPI(Math_getFPstatus)
+void
+Math_getFPstatus(void *fp)
 {
+	F_Math_getFPstatus *f;
+
+	f = fp;
+
 	*f->ret = getFPstatus();
 }
 
-DISAPI(Math_finite)
+void
+Math_finite(void *fp)
 {
+	F_Math_finite *f;
+
+	f = fp;
+
 	*f->ret = finite(f->x);
 }
 
-DISAPI(Math_ilogb)
+void
+Math_ilogb(void *fp)
 {
+	F_Math_ilogb *f;
+
+	f = fp;
+
 	*f->ret = ilogb(f->x);
 }
 
-DISAPI(Math_isnan)
+void
+Math_isnan(void *fp)
 {
+	F_Math_isnan *f;
+
+	f = fp;
+
 	*f->ret = isnan(f->x);
 }
 
-DISAPI(Math_acos)
+void
+Math_acos(void *fp)
 {
+	F_Math_acos *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_acos(f->x);
 }
 
-DISAPI(Math_acosh)
+void
+Math_acosh(void *fp)
 {
+	F_Math_acosh *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_acosh(f->x);
 }
 
-DISAPI(Math_asin)
+void
+Math_asin(void *fp)
 {
+	F_Math_asin *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_asin(f->x);
 }
 
-DISAPI(Math_asinh)
+void
+Math_asinh(void *fp)
 {
+	F_Math_asinh *f;
+
+	f = fp;
+
 	*f->ret = asinh(f->x);
 }
 
-DISAPI(Math_atan)
+void
+Math_atan(void *fp)
 {
+	F_Math_atan *f;
+
+	f = fp;
+
 	*f->ret = atan(f->x);
 }
 
-DISAPI(Math_atanh)
+void
+Math_atanh(void *fp)
 {
+	F_Math_atanh *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_atanh(f->x);
 }
 
-DISAPI(Math_cbrt)
+void
+Math_cbrt(void *fp)
 {
+	F_Math_cbrt *f;
+
+	f = fp;
+
 	*f->ret = cbrt(f->x);
 }
 
-DISAPI(Math_ceil)
+void
+Math_ceil(void *fp)
 {
+	F_Math_ceil *f;
+
+	f = fp;
+
 	*f->ret = ceil(f->x);
 }
 
-DISAPI(Math_cos)
+void
+Math_cos(void *fp)
 {
+	F_Math_cos *f;
+
+	f = fp;
+
 	*f->ret = cos(f->x);
 }
 
-DISAPI(Math_cosh)
+void
+Math_cosh(void *fp)
 {
+	F_Math_cosh *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_cosh(f->x);
 }
 
-DISAPI(Math_erf)
+void
+Math_erf(void *fp)
 {
+	F_Math_erf *f;
+
+	f = fp;
+
 	*f->ret = erf(f->x);
 }
 
-DISAPI(Math_erfc)
+void
+Math_erfc(void *fp)
 {
+	F_Math_erfc *f;
+
+	f = fp;
+
 	*f->ret = erfc(f->x);
 }
 
-DISAPI(Math_exp)
+void
+Math_exp(void *fp)
 {
+	F_Math_exp *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_exp(f->x);
 }
 
-DISAPI(Math_expm1)
+void
+Math_expm1(void *fp)
 {
+	F_Math_expm1 *f;
+
+	f = fp;
+
 	*f->ret = expm1(f->x);
 }
 
-DISAPI(Math_fabs)
+void
+Math_fabs(void *fp)
 {
+	F_Math_fabs *f;
+
+	f = fp;
+
 	*f->ret = fabs(f->x);
 }
 
-DISAPI(Math_floor)
+void
+Math_floor(void *fp)
 {
+	F_Math_floor *f;
+
+	f = fp;
+
 	*f->ret = floor(f->x);
 }
 
-DISAPI(Math_j0)
+void
+Math_j0(void *fp)
 {
+	F_Math_j0 *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_j0(f->x);
 }
 
-DISAPI(Math_j1)
+void
+Math_j1(void *fp)
 {
+	F_Math_j1 *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_j1(f->x);
 }
 
-DISAPI(Math_log)
+void
+Math_log(void *fp)
 {
+	F_Math_log *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_log(f->x);
 }
 
-DISAPI(Math_log10)
+void
+Math_log10(void *fp)
 {
+	F_Math_log10 *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_log10(f->x);
 }
 
-DISAPI(Math_log1p)
+void
+Math_log1p(void *fp)
 {
+	F_Math_log1p *f;
+
+	f = fp;
+
 	*f->ret = log1p(f->x);
 }
 
-DISAPI(Math_rint)
+void
+Math_rint(void *fp)
 {
+	F_Math_rint *f;
+
+	f = fp;
+
 	*f->ret = rint(f->x);
 }
 
-DISAPI(Math_sin)
+void
+Math_sin(void *fp)
 {
+	F_Math_sin *f;
+
+	f = fp;
+
 	*f->ret = sin(f->x);
 }
 
-DISAPI(Math_sinh)
+void
+Math_sinh(void *fp)
 {
+	F_Math_sinh *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_sinh(f->x);
 }
 
-DISAPI(Math_sqrt)
+void
+Math_sqrt(void *fp)
 {
+	F_Math_sqrt *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_sqrt(f->x);
 }
 
-DISAPI(Math_tan)
+void
+Math_tan(void *fp)
 {
+	F_Math_tan *f;
+
+	f = fp;
+
 	*f->ret = tan(f->x);
 }
 
-DISAPI(Math_tanh)
+void
+Math_tanh(void *fp)
 {
+	F_Math_tanh *f;
+
+	f = fp;
+
 	*f->ret = tanh(f->x);
 }
 
-DISAPI(Math_y0)
+void
+Math_y0(void *fp)
 {
+	F_Math_y0 *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_y0(f->x);
 }
 
-DISAPI(Math_y1)
+void
+Math_y1(void *fp)
 {
+	F_Math_y1 *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_y1(f->x);
 }
 
-DISAPI(Math_fdim)
+void
+Math_fdim(void *fp)
 {
+	F_Math_fdim *f;
+
+	f = fp;
+
 	*f->ret = fdim(f->x, f->y);
 }
 
-DISAPI(Math_fmax)
+void
+Math_fmax(void *fp)
 {
+	F_Math_fmax *f;
+
+	f = fp;
+
 	*f->ret = fmax(f->x, f->y);
 }
 
-DISAPI(Math_fmin)
+void
+Math_fmin(void *fp)
 {
+	F_Math_fmin *f;
+
+	f = fp;
+
 	*f->ret = fmin(f->x, f->y);
 }
 
-DISAPI(Math_fmod)
+void
+Math_fmod(void *fp)
 {
+	F_Math_fmod *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_fmod(f->x, f->y);
 }
 
-DISAPI(Math_hypot)
+void
+Math_hypot(void *fp)
 {
+	F_Math_hypot *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_hypot(f->x, f->y);
 }
 
-DISAPI(Math_nextafter)
+void
+Math_nextafter(void *fp)
 {
+	F_Math_nextafter *f;
+
+	f = fp;
+
 	*f->ret = nextafter(f->x, f->y);
 }
 
-DISAPI(Math_pow)
+void
+Math_pow(void *fp)
 {
+	F_Math_pow *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_pow(f->x, f->y);
 }
 
-DISAPI(Math_FPcontrol)
+
+
+void
+Math_FPcontrol(void *fp)
 {
+	F_Math_FPcontrol *f;
+
+	f = fp;
+
 	*f->ret = FPcontrol(f->r, f->mask);
 }
 
-DISAPI(Math_FPstatus)
+void
+Math_FPstatus(void *fp)
 {
+	F_Math_FPstatus *f;
+
+	f = fp;
+
 	*f->ret = FPstatus(f->r, f->mask);
 }
 
-DISAPI(Math_atan2)
+void
+Math_atan2(void *fp)
 {
+	F_Math_atan2 *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_atan2(f->y, f->x);
 }
 
-DISAPI(Math_copysign)
+void
+Math_copysign(void *fp)
 {
+	F_Math_copysign *f;
+
+	f = fp;
+
 	*f->ret = copysign(f->x, f->s);
 }
 
-DISAPI(Math_jn)
+void
+Math_jn(void *fp)
 {
+	F_Math_jn *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_jn(f->n, f->x);
 }
 
-DISAPI(Math_lgamma)
+void
+Math_lgamma(void *fp)
 {
+	F_Math_lgamma *f;
+
+	f = fp;
+
 	f->ret->t1 = __ieee754_lgamma_r(f->x, &f->ret->t0);
 }
 
-DISAPI(Math_modf)
+void
+Math_modf(void *fp)
 {
+	F_Math_modf *f;
 	double ipart;
+
+	f = fp;
 
 	f->ret->t1 = modf(f->x, &ipart);
 	f->ret->t0 = ipart;
 }
 
-DISAPI(Math_pow10)
+void
+Math_pow10(void *fp)
 {
+	F_Math_pow10 *f;
+
+	f = fp;
+
 	*f->ret = ipow10(f->p);
 }
 
-DISAPI(Math_remainder)
+void
+Math_remainder(void *fp)
 {
+	F_Math_remainder *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_remainder(f->x, f->p);
 }
 
-DISAPI(Math_scalbn)
+void
+Math_scalbn(void *fp)
 {
+	F_Math_scalbn *f;
+
+	f = fp;
+
 	*f->ret = scalbn(f->x, f->n);
 }
 
-DISAPI(Math_yn)
+void
+Math_yn(void *fp)
 {
+	F_Math_yn *f;
+
+	f = fp;
+
 	*f->ret = __ieee754_yn(f->n, f->x);
 }
 
@@ -413,7 +760,7 @@ DISAPI(Math_yn)
 */
 
 static int
-_cmp(int *u, int *v, double *x)
+cmp(int *u, int *v, double *x)
 {
 	return ((x[*u]==x[*v])? 0 : ((x[*u]<x[*v])? -1 : 1));
 }
@@ -435,9 +782,9 @@ _cmp(int *u, int *v, double *x)
 
 static int *
 med3(int *a, int *b, int *c, double *x)
-{	return _cmp(a, b, x) < 0 ?
-		  (_cmp(b, c, x) < 0 ? b : (_cmp(a, c, x) < 0 ? c : a ) )
-		: (_cmp(b, c, x) > 0 ? b : (_cmp(a, c, x) < 0 ? a : c ) );
+{	return cmp(a, b, x) < 0 ?
+		  (cmp(b, c, x) < 0 ? b : (cmp(a, c, x) < 0 ? c : a ) )
+		: (cmp(b, c, x) > 0 ? b : (cmp(a, c, x) < 0 ? a : c ) );
 }
 
 void
@@ -448,7 +795,7 @@ rqsort(int *a, int n, double *x)
 
 	if (n < 7) { /* Insertion sort on small arrays */
 		for (pm = a + 1; pm < a + n; pm++)
-			for (pl = pm; pl > a && _cmp(pl-1, pl, x) > 0; pl--)
+			for (pl = pm; pl > a && cmp(pl-1, pl, x) > 0; pl--)
 				swap(pl, pl-1);
 		return;
 	}
@@ -468,11 +815,11 @@ rqsort(int *a, int n, double *x)
 	pa = pb = a + 1;
 	pc = pd = a + (n-1);
 	for (;;) {
-		while (pb <= pc && (r = _cmp(pb, a, x)) <= 0) {
+		while (pb <= pc && (r = cmp(pb, a, x)) <= 0) {
 			if (r == 0) { swap(pa, pb); pa++; }
 			pb++;
 		}
-		while (pb <= pc && (r = _cmp(pc, a, x)) >= 0) {
+		while (pb <= pc && (r = cmp(pc, a, x)) >= 0) {
 			if (r == 0) { swap(pc, pd); pd--; }
 			pc--;
 		}
@@ -488,9 +835,13 @@ rqsort(int *a, int n, double *x)
 	if ((r = pd-pc) > 1) rqsort(pn-r, r, x);
 }
 
-DISAPI(Math_sort)
+void
+Math_sort(void*fp)
 {
+	F_Math_sort *f;
 	int	i, pilen, xlen, *p;
+
+	f = fp;
 
 	/* check that permutation contents are in [0,n-1] !!! */
 	p = (int*) (f->pi->data);
@@ -509,30 +860,51 @@ DISAPI(Math_sort)
 
 /************ BLAS ***************/
 
-DISAPI(Math_dot)
+void
+Math_dot(void *fp)
 {
+	F_Math_dot *f;
+
+	f = fp;
 	if(f->x->len!=f->y->len)
 		error(exMathia);	/* incompatible lengths */
 	*f->ret = dot(f->x->len, (double*)(f->x->data), (double*)(f->y->data));
 }
 
-DISAPI(Math_iamax)
+void
+Math_iamax(void *fp)
 {
+	F_Math_iamax *f;
+
+	f = fp;
+
 	*f->ret = iamax(f->x->len, (double*)(f->x->data));
 }
 
-DISAPI(Math_norm2)
+void
+Math_norm2(void *fp)
 {
+	F_Math_norm2 *f;
+
+	f = fp;
+
 	*f->ret = norm2(f->x->len, (double*)(f->x->data));
 }
 
-DISAPI(Math_norm1)
+void
+Math_norm1(void *fp)
 {
+	F_Math_norm1 *f;
+
+	f = fp;
+
 	*f->ret = norm1(f->x->len, (double*)(f->x->data));
 }
 
-DISAPI(Math_gemm)
+void
+Math_gemm(void *fp)
 {
+	F_Math_gemm *f = fp;
 	int nrowa, ncola, nrowb, ncolb, mn, ld, m, n;
 	double *adata = 0, *bdata = 0, *cdata;
 	int nota = f->transa=='N';

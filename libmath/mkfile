@@ -2,7 +2,7 @@
 
 TARGTYPE=${SYSTARG:os%=Inferno%}		# maps 'os' into 'Inferno'
 
-LIBNAME=libmath.a
+LIB=libmath.a
 OFILES=\
 	blas.$O\
 	dtoa.$O\
@@ -60,8 +60,8 @@ OFILES=\
 HFILES=\
 	$ROOT/include/mathi.h\
 	fdlibm/fdlibm.h\
-
+	
 <$ROOT/mkfiles/mksyslib-$SHELLTYPE
 
 %.$O:	fdlibm/%.c
-	$CC $CFLAGS $CCOUT$target -Ifdlibm fdlibm/$stem.c
+	$CC $CFLAGS -o $target -Ifdlibm fdlibm/$stem.c

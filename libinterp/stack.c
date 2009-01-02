@@ -1,14 +1,11 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
 #include <pool.h>
 
 #define T(r)	*((void**)(R.r))
 
-/*
- * Alloc stack of Limbo process' frames
- */
 void
 newstack(Prog *p)
 {
@@ -48,9 +45,6 @@ newstack(Prog *p)
 	f->t = nil;
 }
 
-/*
- * Extend stack of Limbo process' frames
- */
 void
 extend(void)
 {

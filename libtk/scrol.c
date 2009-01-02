@@ -1,10 +1,8 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Layout constants */
 enum {
@@ -42,18 +40,18 @@ enum {
 };
 
 static
-TkOption opts_scrol[] =
+TkOption opts[] =
 {
-	{"activerelief",	OPTstab,	offsetof(TkScroll, activer),	{tkrelief}},
-	{"command",		OPTtext,	offsetof(TkScroll, cmd),	},
-	{"elementborderwidth",	OPTignore,	0				},	/* deprecated */
-	{"jump",		OPTstab,	offsetof(TkScroll, jump),	{tkbool}},
-	{"orient",		OPTstab,	offsetof(TkScroll, orient),	{tkorient}},
+	{"activerelief",	OPTstab,	O(TkScroll, activer),	tkrelief},
+	{"command",	OPTtext,	O(TkScroll, cmd),	nil},
+	{"elementborderwidth",	OPTignore,	0,	nil},	/* deprecated */
+	{"jump",	OPTstab,	O(TkScroll, jump),	tkbool},
+	{"orient",	OPTstab,	O(TkScroll, orient),	tkorient},
 	{nil}
 };
 
 static
-TkEbind b_scrol[] =
+TkEbind b[] = 
 {
 	{TkLeave,		"%W activate {}"},
 	{TkEnter,		"%W activate [%W identify %x %y]"},
@@ -61,7 +59,7 @@ TkEbind b_scrol[] =
 	{TkButton1P|TkMotion,	"%W tkScrollDrag %x %y"},
 	{TkButton1P,		"%W tkScrolBut1P %x %y"},
 	{TkButton1P|TkDouble,	"%W tkScrolBut1P %x %y"},
-	{TkButton1R,		"%W tkScrolBut1R; %W activate [%W identify %x %y]"},
+	{TkButton1R,	"%W tkScrolBut1R; %W activate [%W identify %x %y]"},
 	{TkButton2P,		"%W tkScrolBut2P [%W fraction %x %y]"},
 };
 
@@ -72,23 +70,23 @@ tkinitscroll(Tk *tk)
 	TkScroll *tks;
 
 	tks = TKobj(TkScroll, tk);
-
+	
 	gap = 2*tk->borderwidth;
 	if(tks->orient == Tkvertical) {
 		if(tk->req.width == 0)
 			tk->req.width = Triangle + gap;
-		if(tk->req.height == 0)
+		if(tk->req.height == 0)	
 			tk->req.height = 2*Triangle + gap + 6*Elembw;
 	}
 	else {
 		if(tk->req.width == 0)
 			tk->req.width = 2*Triangle + gap + 6*Elembw;
-		if(tk->req.height == 0)
+		if(tk->req.height == 0)	
 			tk->req.height = Triangle + gap;
 	}
 
 
-	return tkbindings(tk->env->top, tk, b_scrol, nelem(b_scrol));
+	return tkbindings(tk->env->top, tk, b, nelem(b));
 }
 
 char*
@@ -114,7 +112,7 @@ tkscrollbar(TkTop *t, char *arg, char **ret)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tks;
-	tko[1].optab = opts_scrol;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	names = nil;
@@ -151,7 +149,7 @@ tkscrollcget(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tks;
-	tko[1].optab = opts_scrol;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, tk->env->top);
@@ -389,7 +387,7 @@ tkdrawscrlb(Tk *tk, Point orig)
 	return nil;
 }
 
-/* Widget Commands (+ means implemented)
+/* Widget Commands (+ means implemented)	
 	+activate
 	+cget
 	+configure
@@ -412,7 +410,7 @@ tkscrollconf(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tks;
-	tko[1].optab = opts_scrol;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	if(*arg == '\0')
@@ -512,7 +510,7 @@ tkscrolldelta(Tk *tk, char *arg, char **val)
 		delta = TKI2F(atoi(buf)) / l;
 	tkfprint(buf, delta);
 
-	return tkvalue(val, "%s", buf);
+	return tkvalue(val, "%s", buf);	
 }
 
 static char*
@@ -526,7 +524,7 @@ tkscrollget(Tk *tk, char *arg, char **val)
 	*v++ = ' ';
 	tkfprint(v, tks->bot);
 
-	return tkvalue(val, "%s", buf);
+	return tkvalue(val, "%s", buf);	
 }
 
 static char*
@@ -613,7 +611,7 @@ tkScrolBut2P(Tk *tk, char *arg, char **val)
 	TkTop *t;
 	char *e, buf[Tkmaxitem], fracbuf[Tkmaxitem];
 	TkScroll *tks = TKobj(TkScroll, tk);
-
+	
 
 	USED(val);
 	t = tk->env->top;
@@ -632,16 +630,17 @@ tkScrolBut2P(Tk *tk, char *arg, char **val)
 }
 
 static void
-sbrepeat(Tk *tk, const char *fmt, int cancelled)
+sbrepeat(Tk *tk, void *v, int cancelled)
 {
 	char *e, buf[Tkmaxitem];
 	TkScroll *tks = TKobj(TkScroll, tk);
+	char *fmt = (char *)v;
 
 	if (cancelled) {
 		tks->flag &= ~Autorepeat;
 		return;
 	}
-
+		
 	if(tks->cmd != nil && fmt != nil) {
 		snprint(buf, sizeof(buf), fmt, tks->cmd);
 		e = tkexec(tk->env->top, buf, nil);
@@ -674,7 +673,7 @@ tkScrolBut1P(Tk *tk, char *arg, char **val)
 		return TkBadvl;
 
 	pix = atoi(buf);
-
+	
 	tks->dragpix = pix;
 	tks->dragtop = tks->top;
 	tks->dragbot = tks->bot;

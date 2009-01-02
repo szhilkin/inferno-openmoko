@@ -1,14 +1,10 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
-
-//typedef void	(*Drawfn)(Image*, Point, int, int, Image*, int);
+#define	O(t, e)		((long)(&((t*)0)->e))
+typedef void	(*Drawfn)(Image*, Point, int, int, Image*, int);
 
 /* Oval Options (+ means implemented)
 	+fill
@@ -30,17 +26,17 @@ struct TkCoval
 static
 TkOption ovalopts[] =
 {
-	{"width",	OPTnnfrac,	offsetof(TkCoval, width)	},			/* XXX should be nnfrac */
-	{"stipple",	OPTbmap,	offsetof(TkCoval, stipple)	},
+	{"width",	OPTnnfrac,	O(TkCoval, width),	nil},			/* XXX should be nnfrac */
+	{"stipple",	OPTbmap,	O(TkCoval, stipple),	nil},
 	{nil}
 };
 
 static
-TkOption itemopts_coval[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
-	{"fill",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCfill}},
-	{"outline",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCforegnd}},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill)},
+	{"outline",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
 	{nil}
 };
 
@@ -89,7 +85,7 @@ tkcvsovalcreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = o;
 	tko[0].optab = ovalopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_coval;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
@@ -126,7 +122,7 @@ tkcvsovalcget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = o;
 	tko[0].optab = ovalopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_coval;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -142,7 +138,7 @@ tkcvsovalconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = o;
 	tko[0].optab = ovalopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_coval;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);
@@ -232,7 +228,7 @@ tkcvsovalhit(TkCitem *i, Point p)
 	TkCoval *o;
 	int w, dx, dy;
 	Rectangle d;
-
+	
 	o = TKobj(TkCoval, i);
 	w = TKF2I(o->width)/2;
 	d = canonrect(Rpt(i->p.drawpt[0], i->p.drawpt[1]));

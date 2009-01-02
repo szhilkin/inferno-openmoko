@@ -20,13 +20,11 @@
 #define __PSHGLOB_H__
 
 
-#include <freetype/freetype.h>
-#include <freetype/internal/pshints.h>
+#include FT_FREETYPE_H
+#include FT_INTERNAL_POSTSCRIPT_HINTS_H
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -180,9 +178,7 @@ extern "C" {
 #endif
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __PSHGLOB_H__ */

@@ -2,31 +2,35 @@
  *  platform-specific interface
  */
 
-#include <windows.h>
-#include <winsock.h>
-
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#define Unknown win_Unknown
+#define UNICODE
+#include	<windows.h>
+#include <winbase.h>
+#include	<winsock.h>
+#undef Unknown
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 
 enum{
-	Qarch_dir,
-	Qarch_archctl,
-	Qarch_cputype,
-	Qarch_regquery,
-	Qarch_hostmem
+	Qdir,
+	Qarchctl,
+	Qcputype,
+	Qregquery,
+	Qhostmem
 };
 
 static
 Dirtab archtab[]={
-	".",		{Qarch_dir, 0, QTDIR},	0,	0555,
-	"archctl",	{Qarch_archctl, 0},	0,	0444,
-	"cputype",	{Qarch_cputype},	0,	0444,
-	"regquery",	{Qarch_regquery},	0,	0666,
-	"hostmem",	{Qarch_hostmem},	0,	0444,
+	".",		{Qdir, 0, QTDIR},	0,	0555,
+	"archctl",	{Qarchctl, 0},	0,	0444,
+	"cputype",	{Qcputype},	0,	0444,
+	"regquery",	{Qregquery}, 0,	0666,
+	"hostmem",	{Qhostmem},	0,	0444,
 };
 
+typedef struct Value Value;
 struct Value {
 	int	type;
 	int	size;
@@ -61,7 +65,7 @@ static struct {
 
 static	QLock	reglock;
 
-extern Rune	*widen(const char*);
+extern wchar_t	*widen(char*);
 static	Value*	getregistry(HKEY, Rune*, Rune*);
 static int nprocs(void);
 
@@ -121,19 +125,19 @@ nprocs(void)
 }
 
 static Chan*
-archattach(const char* spec)
+archattach(char* spec)
 {
 	return devattach('a', spec);
 }
 
 static Walkqid*
-archwalk(Chan *c, Chan *nc, const char **name, int nname)
+archwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	return devwalk(c, nc, name, nname, archtab, nelem(archtab), devgen);
 }
 
 static int
-archstat(Chan* c, char *db, int n)
+archstat(Chan* c, uchar *db, int n)
 {
 	return devstat(c, db, n, archtab, nelem(archtab), devgen);
 }
@@ -147,12 +151,12 @@ archopen(Chan* c, int omode)
 static void
 archclose(Chan* c)
 {
-	if((ulong)c->qid.path == Qarch_regquery && c->aux.value != nil)
-		free(c->aux.value);
+	if((ulong)c->qid.path == Qregquery && c->aux != nil)
+		free(c->aux);
 }
 
 static long
-archread(Chan* c, char* a, long n, vlong offset)
+archread(Chan* c, void* a, long n, vlong offset)
 {
 	char *p;
 	Value *v;
@@ -160,14 +164,14 @@ archread(Chan* c, char* a, long n, vlong offset)
 	MEMORYSTATUS mem;
 
 	switch((ulong)c->qid.path){
-	case Qarch_dir:
+	case Qdir:
 		return devdirread(c, a, n, archtab, nelem(archtab), devgen);
-	case Qarch_archctl:
-	case Qarch_cputype:
+	case Qarchctl:
+	case Qcputype:
 		l = 0;
-		if((ulong)c->qid.path == Qarch_cputype)
+		if((ulong)c->qid.path == Qcputype)
 			l = 4;
-		p = (char*)smalloc(READSTR);
+		p = smalloc(READSTR);
 		if(waserror()){
 			free(p);
 			nexterror();
@@ -177,11 +181,11 @@ archread(Chan* c, char* a, long n, vlong offset)
 		poperror();
 		free(p);
 		break;
-	case Qarch_regquery:
-		v = c->aux.value;
+	case Qregquery:
+		v = c->aux;
 		if(v == nil)
 			return 0;
-		p = (char*)smalloc(READSTR);
+		p = smalloc(READSTR);
 		if(waserror()){
 			free(p);
 			nexterror();
@@ -236,13 +240,13 @@ archread(Chan* c, char* a, long n, vlong offset)
 		}
 		poperror();
 		free(p);
-		c->aux.value = nil;
+		c->aux = nil;
 		free(v);
 		break;
-	case Qarch_hostmem:
+	case Qhostmem:
 		mem.dwLength = sizeof(mem);
 		GlobalMemoryStatus(&mem);	/* GlobalMemoryStatusEx isn't on NT */
-		p = (char*)smalloc(READSTR);
+		p = smalloc(READSTR);
 		if(waserror()){
 			free(p);
 			nexterror();
@@ -263,19 +267,19 @@ archread(Chan* c, char* a, long n, vlong offset)
 }
 
 static long
-archwrite(Chan* c, const char* a, long n, vlong offset)
+archwrite(Chan* c, void* a, long n, vlong offset)
 {
 	Value *v;
 	int i;
 	Cmdbuf *cb;
 	Rune *key, *item;
 
-	if((ulong)c->qid.path != Qarch_regquery)
+	if((ulong)c->qid.path != Qregquery)
 		error(Eperm);
 	USED(offset);
-	if(c->aux.value != nil){
-		free(c->aux.value);
-		c->aux.value = nil;
+	if(c->aux != nil){
+		free(c->aux);
+		c->aux = nil;
 	}
 	cb = parsecmd(a, n);
 	if(waserror()){
@@ -302,7 +306,7 @@ archwrite(Chan* c, const char* a, long n, vlong offset)
 	v = getregistry(roots[i].root, key, item);
 	if(v == nil)
 		error(up->env->errstr);
-	c->aux.value = v;
+	c->aux = v;
 	poperror();
 	free(item);
 	poperror();
@@ -367,7 +371,7 @@ getregistry(HKEY root, Rune *keyname, Rune *name)
 	res = RegQueryValueEx(key, name, NULL, &dtype, NULL, &n);
 	if(res != ERROR_SUCCESS)
 		regerr(res);
-	val = (Value*)smalloc(sizeof(Value)+n);
+	val = smalloc(sizeof(Value)+n);
 	if(waserror()){
 		free(val);
 		nexterror();
@@ -398,7 +402,7 @@ getregistry(HKEY root, Rune *keyname, Rune *name)
 		errorf("unsupported registry type: %d", dtype);
 		return nil;	/* for compiler */
 	}
-	res = RegQueryValueEx(key, name, NULL, NULL, (LPBYTE)vp, &n);
+	res = RegQueryValueEx(key, name, NULL, NULL, vp, &n);
 	if(res != ERROR_SUCCESS)
 		regerr(res);
 	poperror();

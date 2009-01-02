@@ -1,11 +1,11 @@
-#include <lib9.h>
+#include "lib9.h"
 
 char*
-strecpy(char *to, char *e, const char *from)
+strecpy(char *to, char *e, char *from)
 {
 	if(to >= e)
 		return to;
-	to = _memccpy(to, from, '\0', e - to); /*strncpy?*/
+	to = memccpy(to, from, '\0', e - to);
 	if(to == nil){
 		to = e - 1;
 		*to = '\0';

@@ -20,7 +20,7 @@ lrand(void)
 }
 
 void
-prng(char *p, int n)
+prng(uchar *p, int n)
 {
 	while(n-- > 0)
 		*p++ = lrand();

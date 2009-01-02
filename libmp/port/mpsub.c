@@ -1,6 +1,6 @@
-#include <os.h>
+#include "os.h"
 #include <mp.h>
-#include "mpdat.h"
+#include "dat.h"
 
 // diff = abs(b1) - abs(b2), i.e., subtract the magnitudes
 void

@@ -25,17 +25,14 @@
 #ifndef __CIDERRS_H__
 #define __CIDERRS_H__
 
-#include <freetype/ftmoderr.h>
+#include FT_MODULE_ERRORS_H
 
 #undef __FTERRORS_H__
 
 #define FT_ERR_PREFIX  CID_Err_
 #define FT_ERR_BASE    FT_Mod_Err_CID
 
-#include <freetype/fterrors.h>
-
-#undef FT_ERR_PREFIX
-#undef FT_ERR_BASE
+#include FT_ERRORS_H
 
 #endif /* __CIDERRS_H__ */
 

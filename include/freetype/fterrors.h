@@ -87,12 +87,12 @@
   /*************************************************************************/
 
 
-#if !defined(__FTERRORS_H__) /* avoid tcc optimization */
+#ifndef __FTERRORS_H__
 #define __FTERRORS_H__
 
 
   /* include module base error codes */
-#include <freetype/ftmoderr.h>
+#include FT_MODULE_ERRORS_H
 
 
   /*******************************************************************/
@@ -169,7 +169,7 @@
 
 
   /* no include the error codes */
-#include <freetype/fterrdef.h>
+#include FT_ERROR_DEFINITIONS_H
 
 
 #ifdef FT_ERROR_END_LIST

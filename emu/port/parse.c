@@ -1,15 +1,15 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 /*
  * Generous estimate of number of fields, including terminal nil pointer
  */
 static int
-ncmdfield(const char *p, int n)
+ncmdfield(char *p, int n)
 {
 	int white, nwhite;
-	const char *ep;
+	char *ep;
 	int nf;
 
 	if(p == nil)
@@ -31,7 +31,7 @@ ncmdfield(const char *p, int n)
  *  parse a command written to a device
  */
 Cmdbuf*
-parsecmd(const char *p, int n)
+parsecmd(char *p, int n)
 {
 	Cmdbuf *volatile cb;
 	int nf;
@@ -40,7 +40,7 @@ parsecmd(const char *p, int n)
 	nf = ncmdfield(p, n);
 
 	/* allocate Cmdbuf plus string pointers plus copy of string including \0 */
-	sp = (char*)smalloc(sizeof(*cb) + nf * sizeof(char*) + n + 1);
+	sp = smalloc(sizeof(*cb) + nf * sizeof(char*) + n + 1);
 	cb = (Cmdbuf*)sp;
 	cb->f = (char**)(&cb[1]);
 	cb->buf = (char*)(&cb->f[nf]);

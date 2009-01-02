@@ -1,6 +1,6 @@
-#include <os.h>
-#include <mp.h>
-#include <libsec.h>
+#include "os.h"
+#include "mp.h"
+#include "libsec.h"
 
 #define KEYLEN	52
 
@@ -35,7 +35,7 @@ mod(ushort x, ushort y)
 	return r-q+(r<q);
 }
 
-static ushort
+static ushort 
 inv(ushort x)
 {
 	int q, r0, r1, r2, v0, v1, v2;
@@ -126,7 +126,7 @@ idea_cipher(ushort key[2*KEYLEN], uchar text[8], int decrypting)
 		}
 	}
 	for (i = 0; i < 4; i++) {
-		text[2*i] = MSB(x[i]);
+		text[2*i] = MSB(x[i]); 
 		text[2*i+1] = LSB(x[i]);
 	}
 }
@@ -165,7 +165,4 @@ main()
 		exits("");
 	}
 }
-*/
-
-#undef MSB
-#undef LSB
+*/	

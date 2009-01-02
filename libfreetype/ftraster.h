@@ -20,14 +20,12 @@
 #define __FTRASTER_H__
 
 
+#include <ft2build.h>
+#include FT_CONFIG_CONFIG_H
+#include FT_IMAGE_H
 
-#include <freetype/config/ftconfig.h>
-#include <freetype/ftimage.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -40,9 +38,7 @@ extern "C" {
   FT_EXPORT_VAR( const FT_Raster_Funcs )  ft_standard_raster;
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FTRASTER_H__ */
 

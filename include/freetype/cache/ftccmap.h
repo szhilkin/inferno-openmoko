@@ -19,13 +19,11 @@
 #ifndef __FTCCMAP_H__
 #define __FTCCMAP_H__
 
+#include <ft2build.h>
+#include FT_CACHE_H
 
-#include <freetype/ftcache.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -209,9 +207,7 @@ extern "C" {
   /* */
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __FTCCMAP_H__ */

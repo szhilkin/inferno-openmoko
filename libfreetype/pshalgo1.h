@@ -21,9 +21,7 @@
 
 #include "pshrec.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
   typedef struct PSH1_HintRec_*  PSH1_Hint;
 
@@ -104,9 +102,7 @@ extern "C" {
   extern PSH1_HintFunc  ps1_debug_hint_func;
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __PSHALGO1_H__ */
 

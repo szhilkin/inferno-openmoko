@@ -1,10 +1,11 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	"interp.h"
+#include	<isa.h>
+#include	"runt.h"
 
+typedef struct SrvFile SrvFile;
 struct SrvFile
 {
 	char*	spec;
@@ -51,7 +52,7 @@ Type	*Trdchan;
 Type	*Twrchan;
 
 static int
-srvgen(Chan *c, const char *name, Dirtab *tab, int ntab, int s, Dir *dp)
+srvgen(Chan *c, char *name, Dirtab *tab, int ntab, int s, Dir *dp)
 {
 	SrvFile *f;
 
@@ -63,7 +64,7 @@ srvgen(Chan *c, const char *name, Dirtab *tab, int ntab, int s, Dir *dp)
 		devdir(c, c->qid, "#s", 0, eve, 0555, dp);
 		return 1;
 	}
-	f = c->aux.srv;
+	f = c->aux;
 	if((c->qid.type & QTDIR) == 0){
 		if(s > 0)
 			return -1;
@@ -85,15 +86,15 @@ srvgen(Chan *c, const char *name, Dirtab *tab, int ntab, int s, Dir *dp)
 static void
 srvinit(void)
 {
-	static char rmap[] = Sys_Rread_map;
-	static char wmap[] = Sys_Rwrite_map;
+	static uchar rmap[] = Sys_Rread_map;
+	static uchar wmap[] = Sys_Rwrite_map;
 
-	Trdchan = dtype(freerdchan, sizeof(Channel), Tchannel.map, Tchannel.np, "Srv->rdchan");
-	Twrchan = dtype(freewrchan, sizeof(Channel), Tchannel.map, Tchannel.np, "Srv->wrchan");
+	Trdchan = dtype(freerdchan, sizeof(Channel), Tchannel.map, Tchannel.np);
+	Twrchan = dtype(freewrchan, sizeof(Channel), Tchannel.map, Tchannel.np);
 
 	dev.pathgen = 1;
-	dev.Rread = dtype(freeheap, Sys_Rread_size, rmap, sizeof(rmap), "Srv->read");
-	dev.Rwrite = dtype(freeheap, Sys_Rwrite_size, wmap, sizeof(wmap), "Srv->write");
+	dev.Rread = dtype(freeheap, Sys_Rread_size, rmap, sizeof(rmap));
+	dev.Rwrite = dtype(freeheap, Sys_Rwrite_size, wmap, sizeof(wmap));
 }
 
 static int
@@ -113,7 +114,7 @@ srvchkattach(SrvFile *d)
 }
 
 static Chan*
-srvattach(const char *spec)
+srvattach(char *spec)
 {
 	Chan *c;
 	SrvFile *d;
@@ -134,13 +135,13 @@ srvattach(const char *spec)
 
 		if(d != nil){
 			c = devattach('s', spec);
-			c->aux.srv = d;
+			c->aux = d;
 			c->qid = d->qid;
 			return c;
 		}
 	}
 
-	d = (SrvFile*)malloc(sizeof(SrvFile));
+	d = malloc(sizeof(SrvFile));
 	if(d == nil)
 		error(Enomem);
 
@@ -159,19 +160,19 @@ srvattach(const char *spec)
 	dev.devices = d;
 	qunlock(&dev.l);
 
-	c->aux.srv = d;
+	c->aux = d;
 	c->qid = d->qid;
 
 	return c;
 }
 
 static Walkqid*
-srvwalk(Chan *c, Chan *nc, const char **name, int nname)
+srvwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	SrvFile *d, *pd;
 	Walkqid *w;
 
-	pd = c->aux.srv;
+	pd = c->aux;
 	qlock(&dev.l);
 	if(waserror()){
 		qunlock(&dev.l);
@@ -190,7 +191,7 @@ srvwalk(Chan *c, Chan *nc, const char **name, int nname)
 				pd->ref--;
 		}else
 			d = pd;
-		w->clone->aux.srv = d;
+		w->clone->aux = d;
 		d->ref++;
 	}
 	poperror();
@@ -199,7 +200,7 @@ srvwalk(Chan *c, Chan *nc, const char **name, int nname)
 }
 
 static int
-srvstat(Chan *c, char *db, int n)
+srvstat(Chan *c, uchar *db, int n)
 {
 	qlock(&dev.l);
 	if(waserror()){
@@ -227,7 +228,7 @@ srvopen(Chan *c, int omode)
 		return c;
 	}
 
-	sf = c->aux.srv;
+	sf = c->aux;
 
 	qlock(&dev.l);
 	if(waserror()){
@@ -253,16 +254,16 @@ srvopen(Chan *c, int omode)
 }
 
 static int
-srvwstat(Chan *c, char *dp, int n)
+srvwstat(Chan *c, uchar *dp, int n)
 {
 	Dir *d;
 	SrvFile *sf, *f;
 
-	sf = c->aux.srv;
+	sf = c->aux;
 	if(strcmp(up->env->user, sf->user) != 0)
 		error(Eperm);
 
-	d = (Dir*)smalloc(sizeof(*d)+n);
+	d = smalloc(sizeof(*d)+n);
 	if(waserror()){
 		free(d);
 		nexterror();
@@ -329,16 +330,16 @@ srvunblock(SrvFile *sf, int fid)
 		rreq.t0 = 0;
 		rreq.t1 = 0;
 		rreq.t2 = fid;
-		rreq.t3 = (Channel*)H;
+		rreq.t3 = H;
 		csendalt(d, &rreq, d->mid.t, -1);
 	}
 
 	d = sf->write;
 	if(d != H){
 		wreq.t0 = 0;
-		wreq.t1 = (Array*)H;
+		wreq.t1 = H;
 		wreq.t2 = fid;
-		wreq.t3 = (Channel*)H;
+		wreq.t3 = H;
 		csendalt(d, &wreq, d->mid.t, -1);
 	}
 	poperror();
@@ -392,8 +393,8 @@ freerdchan(Heap *h, int swept)
 
 	release();
 	qlock(&dev.l);
-	sf = H2D(Channel*, h)->aux.srv;
-	sf->read = (Channel*)H;
+	sf = H2D(Channel*, h)->aux;
+	sf->read = H;
 	srvfree(sf, SRDCLOSE);
 	qunlock(&dev.l);
 	acquire();
@@ -407,8 +408,8 @@ freewrchan(Heap *h, int swept)
 
 	release();
 	qlock(&dev.l);
-	sf = H2D(Channel*, h)->aux.srv;
-	sf->write = (Channel*)H;
+	sf = H2D(Channel*, h)->aux;
+	sf->write = H;
 	srvfree(sf, SWRCLOSE);
 	qunlock(&dev.l);
 	acquire();
@@ -421,7 +422,7 @@ srvclunk(Chan *c, int remove)
 	int opens, noperm;
 	SrvFile *sf;
 
-	sf = c->aux.srv;
+	sf = c->aux;
 	qlock(&dev.l);
 	if(c->qid.type & QTDIR){
 		srvputdir(sf);
@@ -470,7 +471,7 @@ srvremove(Chan *c)
 }
 
 static long
-srvread(Chan *c, char *va, long count, vlong offset)
+srvread(Chan *c, void *va, long count, vlong offset)
 {
 	int l;
 	Heap * volatile h;
@@ -493,7 +494,7 @@ srvread(Chan *c, char *va, long count, vlong offset)
 		return l;
 	}
 
-	sp = c->aux.srv;
+	sp = c->aux;
 
 	acquire();
 	if(waserror()){
@@ -505,11 +506,11 @@ srvread(Chan *c, char *va, long count, vlong offset)
 	if(rd == H)
 		error(Eshutdown);
 
-	rc = cnewc(dev.Rread, movertmp, 1);
+	rc = cnewc(dev.Rread, movtmp, 1);
 	ptradd(D2H(rc));
 	if(waserror()){
 		ptrdel(D2H(rc));
-		ASSIGN(rc, H);
+		destroy(rc);
 		nexterror();
 	}
 
@@ -524,7 +525,7 @@ srvread(Chan *c, char *va, long count, vlong offset)
 	ptradd(h);
 	if(waserror()){
 		ptrdel(h);
-		ASSIGN(r, H);
+		destroy(r);
 		nexterror();
 	}
 
@@ -543,11 +544,11 @@ srvread(Chan *c, char *va, long count, vlong offset)
 
 	poperror();
 	ptrdel(h);
-	ASSIGN(r, H);
+	destroy(r);
 
 	poperror();
 	ptrdel(D2H(rc));
-	ASSIGN(rc, H);
+	destroy(rc);
 
 	poperror();
 	release();
@@ -556,7 +557,7 @@ srvread(Chan *c, char *va, long count, vlong offset)
 }
 
 static long
-srvwrite(Chan *c, const char *va, long count, vlong offset)
+srvwrite(Chan *c, void *va, long count, vlong offset)
 {
 	long l;
 	Heap * volatile h;
@@ -575,16 +576,16 @@ srvwrite(Chan *c, const char *va, long count, vlong offset)
 		nexterror();
 	}
 
-	sp = c->aux.srv;
+	sp = c->aux;
 	wr = sp->write;
 	if(wr == H)
 		error(Eshutdown);
 
-	wc = cnewc(dev.Rwrite, movertmp, 1);
+	wc = cnewc(dev.Rwrite, movtmp, 1);
 	ptradd(D2H(wc));
 	if(waserror()){
 		ptrdel(D2H(wc));
-		ASSIGN(wc, H);
+		destroy(wc);
 		nexterror();
 	}
 
@@ -596,7 +597,7 @@ srvwrite(Chan *c, const char *va, long count, vlong offset)
 	ptradd(D2H(req.t1));
 	if(waserror()){
 		ptrdel(D2H(req.t1));
-		ASSIGN(req.t1, H);
+		destroy(req.t1);
 		nexterror();
 	}
 
@@ -604,14 +605,14 @@ srvwrite(Chan *c, const char *va, long count, vlong offset)
 
 	poperror();
 	ptrdel(D2H(req.t1));
-	ASSIGN(req.t1, H);
+	destroy(req.t1);
 
 	h = heap(dev.Rwrite);
 	w = H2D(Sys_Rwrite *, h);
 	ptradd(h);
 	if(waserror()){
 		ptrdel(h);
-		ASSIGN(w, H);
+		destroy(w);
 		nexterror();
 	}
 	crecv(wc, w);
@@ -620,11 +621,11 @@ srvwrite(Chan *c, const char *va, long count, vlong offset)
 	poperror();
 	ptrdel(h);
 	l = w->t0;
-	ASSIGN(w, H);
+	destroy(w);
 
 	poperror();
 	ptrdel(D2H(wc));
-	ASSIGN(wc, H);
+	destroy(wc);
 
 	poperror();
 	release();
@@ -642,7 +643,7 @@ srvretype(Channel *c, SrvFile *f, Type *t)
 	h->t->ref--;
 	h->t = t;
 	t->ref++;
-	c->aux.srv = f;
+	c->aux = f;
 }
 
 int
@@ -664,7 +665,7 @@ srvf2c(char *dir, char *file, Sys_FileIO *io)
 	if((c.c->qid.type&QTDIR) == 0 || devtab[c.c->type]->dc != 's')
 		error("directory not a srv device");
 
-	s = c.c->aux.srv;
+	s = c.c->aux;
 
 	qlock(&dev.l);
 	for(f = s->entry; f != nil; f = f->entry){
@@ -674,7 +675,7 @@ srvf2c(char *dir, char *file, Sys_FileIO *io)
 		}
 	}
 
-	f = (SrvFile*)malloc(sizeof(SrvFile));
+	f = malloc(sizeof(SrvFile));
 	if(f == nil){
 		qunlock(&dev.l);
 		error(Enomem);

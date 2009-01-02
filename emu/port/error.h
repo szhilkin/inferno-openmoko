@@ -62,7 +62,4 @@ extern char Ecmdargs[];		/* wrong #args in control message */
 extern char	Enofd[];	/* no free file descriptors */
 extern char Enoctl[];	/* unknown control request */
 
-#if !defined(NORETURN)
-#define NORETURN void
-#endif
-extern NORETURN	error(const char*);
+extern void	error(char*);

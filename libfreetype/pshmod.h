@@ -20,21 +20,17 @@
 #define __PSHMOD_H__
 
 
+#include <ft2build.h>
+#include FT_MODULE_H
 
-#include <freetype/ftmodule.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_EXPORT_VAR( const FT_Module_Class )  pshinter_module_class;
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __PSHMOD_H__ */

@@ -29,13 +29,11 @@ THE SOFTWARE.
 #define __PCFTYPES_H__
 
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-#include <freetype/freetype.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   typedef struct  PCF_Public_FaceRec_
@@ -50,9 +48,7 @@ extern "C" {
   } PCF_Public_FaceRec, *PCF_Public_Face;
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif  /* __PCFTYPES_H__ */
 

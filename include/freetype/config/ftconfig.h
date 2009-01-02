@@ -39,13 +39,11 @@
 #ifndef __FTCONFIG_H__
 #define __FTCONFIG_H__
 
+#include <ft2build.h>
+#include FT_CONFIG_OPTIONS_H
+#include FT_CONFIG_STANDARD_LIBRARY_H
 
-#include <freetype/config/ftoption.h>
-#include <freetype/config/ftstdlib.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -61,10 +59,6 @@ extern "C" {
 
 
   /* The number of bytes in an `int' type.  */
-#ifndef   FT_UINT_MAX
-#error "xxx"
-#endif
-
 #if   FT_UINT_MAX == 0xFFFFFFFFUL
 #define FT_SIZEOF_INT  4
 #elif FT_UINT_MAX == 0xFFFFU
@@ -331,9 +325,7 @@ extern "C" {
 #endif /* FT_CALLBACK_TABLE */
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __FTCONFIG_H__ */

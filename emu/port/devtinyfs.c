@@ -1,10 +1,11 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+
 
 enum{
-	Qtinyfs_dir,
-	Qtinyfs_medium,
+	Qdir,
+	Qmedium,
 
 	Maxfs=		10,	/* max file systems */
 
@@ -210,7 +211,7 @@ writedata(Tfs *fs, ulong bno, ulong next, uchar *buf, int len, int last)
 	}
 	memmove(md.data, buf, len);
 	md.sum = 0 - checksum((uchar*)&md);
-
+	
 	if(devtab[fs->c->type]->write(fs->c, &md, Blen, Blen*bno) != Blen)
 		error(Eio);
 }
@@ -231,7 +232,7 @@ writedir(Tfs *fs, Tfile *f)
 	PUTS(md->bno, f->dbno);
 	PUTS(md->pin, f->pin);
 	md->sum = 0 - checksum(buf);
-
+	
 	if(devtab[fs->c->type]->write(fs->c, buf, Blen, Blen*f->bno) != Blen)
 		error(Eio);
 }
@@ -342,7 +343,7 @@ newfile(Tfs *fs, char *name)
 		error("out of space");
 	writedir(rock.fs, rock.f);
 	poperror();
-
+	
 	return rock.f;
 }
 
@@ -688,7 +689,7 @@ tinyfsclose(Chan *c)
 }
 
 static long
-tinyfsread(Chan *c, char *a, long n, vlong offset)
+tinyfsread(Chan *c, void *a, long n, vlong offset)
 {
 	volatile struct { Tfs *fs; } rock;
 	Tfile *f;
@@ -762,7 +763,7 @@ tinyfsread(Chan *c, char *a, long n, vlong offset)
  *  be lost.  They should be recovered next fsinit.
  */
 static long
-tinyfswrite(Chan *c, const char *a, long n, vlong offset)
+tinyfswrite(Chan *c, void *a, long n, vlong offset)
 {
 	Tfile *f;
 	int last, next, i, finger, off, used;

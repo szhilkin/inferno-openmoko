@@ -1,6 +1,6 @@
 <../mkconfig
 
-LIBNAME=liblogfs.a
+LIB=liblogfs.a
 
 OFILES=	\
 		boot.$O\
@@ -42,3 +42,4 @@ HFILES=\
 	$ROOT/include/logfs.h
 
 <$ROOT/mkfiles/mksyslib-$SHELLTYPE
+

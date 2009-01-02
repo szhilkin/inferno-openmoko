@@ -11,12 +11,12 @@
  * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
-#include <lib9.h>
-#include <fmtdef.h>
+#include "lib9.h"
+#include "fmtdef.h"
 
 /* format the output into f->to and return the number of characters fmted  */
 int
-dofmt(Fmt *f, const char *fmt)
+dofmt(Fmt *f, char *fmt)
 {
 	Rune rune, *rt, *rs;
 	int r;

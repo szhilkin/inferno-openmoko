@@ -1,6 +1,8 @@
-#include <lib9.h>
-#include <draw.h>
-#include <kernel.h>
+#include "lib9.h"
+#include "draw.h"
+#include "kernel.h"
+
+typedef struct Memimage Memimage;
 
 static int	screenid;
 

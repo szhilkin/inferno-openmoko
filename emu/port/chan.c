@@ -1,6 +1,6 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 char*
 c2name(Chan *c)		/* DEBUGGING */
@@ -33,16 +33,16 @@ struct Elemlist
 {
 	char	*name;	/* copy of name, so '/' can be overwritten */
 	int	nelems;
-	const char	**elems;
+	char	**elems;
 	int	*off;
 	int	mustbedir;
 };
 
-//#define SEP(c) ((c) == 0 || (c) == '/')
+#define SEP(c) ((c) == 0 || (c) == '/')
 void cleancname(Cname*);
 
 int
-isdotdot(const char *p)
+isdotdot(char *p)
 {
 	return p[0]=='.' && p[1]=='.' && p[2]=='\0';
 }
@@ -66,7 +66,7 @@ decref(Ref *r)
 	lock(&r->lk);
 	x = --r->ref;
 	unlock(&r->lk);
-	if(x < 0)
+	if(x < 0) 
 		panic("decref, pc=0x%lux", getcallerpc(&r));
 
 	return x;
@@ -79,7 +79,7 @@ decref(Ref *r)
  * save a string in up->genbuf;
  */
 void
-kstrcpy(char *s, const char *t, int ns)
+kstrcpy(char *s, char *t, int ns)
 {
 	int nt;
 
@@ -105,7 +105,7 @@ kstrcpy(char *s, const char *t, int ns)
 }
 
 int
-emptystr(const char *s)
+emptystr(char *s)
 {
 	return s == nil || s[0] == '\0';
 }
@@ -114,13 +114,13 @@ emptystr(const char *s)
  * Atomically replace *p with copy of s
  */
 void
-kstrdup(char **p, const char *s)
+kstrdup(char **p, char *s)
 {
 	int n;
 	char *t, *prev;
 
 	n = strlen(s)+1;
-	t = (char*)kmalloc(n);
+	t = kmalloc(n);
 	if(t == nil)
 		panic("kstrdup: no memory");
 	memmove(t, s, n);
@@ -163,7 +163,7 @@ newchan(void)
 	unlock(&chanalloc.l);
 
 	if(c == nil) {
-		c = (Chan*)malloc(sizeof(Chan));
+		c = malloc(sizeof(Chan));
 		if(c == nil)
 			error(Enomem);
 		lock(&chanalloc.l);
@@ -184,7 +184,7 @@ newchan(void)
 	c->umh = 0;
 	c->uri = 0;
 	c->dri = 0;
-	c->aux.i = 0;
+	c->aux = 0;
 	c->mchan = 0;
 	c->mcp = 0;
 	c->mux = 0;
@@ -198,16 +198,16 @@ newchan(void)
 static Ref ncname;
 
 Cname*
-newcname(const char *s)
+newcname(char *s)
 {
 	Cname *n;
 	int i;
 
-	n = (Cname*)smalloc(sizeof(Cname));
+	n = smalloc(sizeof(Cname));
 	i = strlen(s);
 	n->len = i;
 	n->alen = i+CNAMESLOP;
-	n->s = (char*)smalloc(n->alen);
+	n->s = smalloc(n->alen);
 	memmove(n->s, s, i+1);
 	n->r.ref = 1;
 	incref(&ncname);
@@ -227,7 +227,7 @@ cnameclose(Cname *n)
 }
 
 Cname*
-addelem(Cname *n, const char *s)
+addelem(Cname *n, char *s)
 {
 	int i, a;
 	char *t;
@@ -246,7 +246,7 @@ addelem(Cname *n, const char *s)
 	i = strlen(s);
 	if(n->len+1+i+1 > n->alen){
 		a = n->len+1+i+1 + CNAMESLOP;
-		t = (char*)smalloc(a);
+		t = smalloc(a);
 		memmove(t, n->s, n->len+1);
 		free(n->s);
 		n->s = t;
@@ -367,7 +367,7 @@ newmhead(Chan *from)
 {
 	Mhead *mh;
 
-	mh = (Mhead*)smalloc(sizeof(Mhead));
+	mh = smalloc(sizeof(Mhead));
 	mh->r.ref = 1;
 	mh->from = from;
 	incref(&from->r);
@@ -415,7 +415,7 @@ if(old->umh)
 	 * work.  The check of mount->mflag catches things like
 	 *	mount fd /root
 	 *	bind -c /root /
-	 *
+	 * 
 	 * This is far more complicated than it should be, but I don't
 	 * see an easier way at the moment.		-rsc
 	 */
@@ -508,7 +508,7 @@ cunmount(Chan *mnt, Chan *mounted)
 		print("cunmount newp extra umh %p has %p\n", mnt, mnt->umh);
 
 	/*
-	 * It _can_ happen that mounted->umh is non-nil,
+	 * It _can_ happen that mounted->umh is non-nil, 
 	 * because mounted is the result of namec(Aopen)
 	 * (see sysfile.c:/^sysunmount).
 	 * If we open a union directory, it will have a umh.
@@ -680,7 +680,7 @@ undomount(Chan *c, Cname *name)
  */
 static char Edoesnotexist[] = "does not exist";
 int
-walk(Chan **cp, const char **names, int nnames, int nomount, int *nerror)
+walk(Chan **cp, char **names, int nnames, int nomount, int *nerror)
 {
 	int dev, dotdot, i, n, nhave, ntry, type;
 	Chan *c, *nc;
@@ -890,16 +890,16 @@ cleancname(Cname *n)
 static void
 growparse(Elemlist *e)
 {
-	const char **new;
+	char **new;
 	int *inew;
 	enum { Delta = 8 };
 
 	if(e->nelems % Delta == 0){
-		new = (const char**)smalloc((e->nelems+Delta) * sizeof(char*));
+		new = smalloc((e->nelems+Delta) * sizeof(char*));
 		memmove(new, e->elems, e->nelems*sizeof(char*));
 		free(e->elems);
 		e->elems = new;
-		inew = (int*)smalloc((e->nelems+Delta+1) * sizeof(int));
+		inew = smalloc((e->nelems+Delta+1) * sizeof(int));
 		memmove(inew, e->off, e->nelems*sizeof(int));
 		free(e->off);
 		e->off = inew;
@@ -908,7 +908,7 @@ growparse(Elemlist *e)
 
 /*
  * The name is known to be valid.
- * Copy the name so slashes can be overwritten.                   - BUG, name is not copied actually
+ * Copy the name so slashes can be overwritten.
  * An empty string will set nelem=0.
  * A path ending in / or /. or /.//./ etc. will have
  * e.mustbedir = 1, so that we correctly
@@ -916,15 +916,15 @@ growparse(Elemlist *e)
  * rather than a directory.
  */
 static void
-parsename(const char *name, Elemlist *e)
+parsename(char *name, Elemlist *e)
 {
-	const char *slash;
+	char *slash;
 
 	kstrdup(&e->name, name);
 	name = e->name;
 	e->nelems = 0;
 	e->elems = nil;
-	e->off = (int*)smalloc(sizeof(int));
+	e->off = smalloc(sizeof(int));
 	e->off[0] = skipslash(name) - name;
 	for(;;){
 		name = skipslash(name);
@@ -933,26 +933,26 @@ parsename(const char *name, Elemlist *e)
 			break;
 		}
 		growparse(e);
-
+		
 		e->elems[e->nelems++] = name;
-		slash = utfrune((char*)name, '/');
+		slash = utfrune(name, '/');
 		if(slash == nil){
 			e->off[e->nelems] = name+strlen(name) - e->name;
 			e->mustbedir = 0;
 			break;
 		}
 		e->off[e->nelems] = slash - e->name;
-		//FIXME *slash++ = '\0';
-		*(char*)slash = '\0'; slash++;
+		*slash++ = '\0';
 		name = slash;
 	}
 }
 
-static const char*
-kmemrchr(const char *a, int c, long n)
+static void*
+kmemrchr(void *va, int c, long n)
 {
-	const char *e;
+	uchar *a, *e;
 
+	a = va;
 	for(e=a+n-1; e>a; e--)
 		if(*e == c)
 			return e;
@@ -981,7 +981,7 @@ saveregisters(void)
  * do not use the Cname*, this avoids an unnecessary clone.
  */
 Chan*
-namec(const char *aname, int amode, int omode, ulong perm)
+namec(char *aname, int amode, int omode, ulong perm)
 {
 	int n, prefix, len, t, nomount, npath;
 	Chan *c, *cnew;
@@ -990,7 +990,7 @@ namec(const char *aname, int amode, int omode, ulong perm)
 	Rune r;
 	Mhead *m;
 	char *createerr, tmperrbuf[ERRMAX];
-	const char *name;
+	char *name;
 
 	name = aname;
 	if(name[0] == '\0')
@@ -1008,7 +1008,7 @@ namec(const char *aname, int amode, int omode, ulong perm)
 		c = up->env->pgrp->slash;
 		incref(&c->r);
 		break;
-
+	
 	case '#':
 		nomount = 1;
 		up->genbuf[0] = '\0';
@@ -1090,9 +1090,9 @@ namec(const char *aname, int amode, int omode, ulong perm)
 	NameError:
 		len = prefix+e.off[npath];
 		if(len < ERRMAX/3 || (name=kmemrchr(aname, '/', len))==nil || name==aname)
-			snprint(up->genbuf, 128/*sizeof up->genbuf*/, "%.*s", len, aname);
+			snprint(up->genbuf, sizeof (up->genbuf), "%.*s", len, aname);
 		else
-			snprint(up->genbuf, 128/*sizeof up->genbuf*/, "...%.*s", (int)(len-(name-aname)), name);
+			snprint(up->genbuf, sizeof (up->genbuf), "...%.*s", (int)(len-(name-aname)), name);
 		snprint(up->env->errstr, ERRMAX, "%#q %s", up->genbuf, tmperrbuf);
 		nexterror();
 	}
@@ -1210,11 +1210,11 @@ if(c->umh != nil){
 		 * The semantics of the create(2) system call are that if the
 		 * file exists and can be written, it is to be opened with truncation.
 		 * On the other hand, the create(5) message fails if the file exists.
-		 * If we get two create(2) calls happening simultaneously,
-		 * they might both get here and send create(5) messages, but only
+		 * If we get two create(2) calls happening simultaneously, 
+		 * they might both get here and send create(5) messages, but only 
 		 * one of the messages will succeed.  To provide the expected create(2)
 		 * semantics, the call with the failed message needs to try the above
-		 * walk again, opening for truncation.  This correctly solves the
+		 * walk again, opening for truncation.  This correctly solves the 
 		 * create/create race, in the sense that any observable outcome can
 		 * be explained as one happening before the other.
 		 * The create/create race is quite common.  For example, it happens
@@ -1224,7 +1224,7 @@ if(c->umh != nil){
 		 * The implementation still admits a create/create/remove race:
 		 * (A) walk to file, fails
 		 * (B) walk to file, fails
-		 * (A) create file, succeeds, returns
+		 * (A) create file, succeeds, returns 
 		 * (B) create file, fails
 		 * (A) remove file, succeeds, returns
 		 * (B) walk to file, return failure.
@@ -1306,9 +1306,9 @@ if(c->umh != nil){
 
 	/* place final element in genbuf for e.g. exec */
 	if(e.nelems > 0)
-		kstrcpy(up->genbuf, e.elems[e.nelems-1], 128/*sizeof up->genbuf*/);
+		kstrcpy(up->genbuf, e.elems[e.nelems-1], sizeof (up->genbuf));
 	else
-		kstrcpy(up->genbuf, ".", 128/*sizeof up->genbuf*/);
+		kstrcpy(up->genbuf, ".", sizeof (up->genbuf));
 	free(e.name);
 	free(e.elems);
 	free(e.off);
@@ -1319,8 +1319,8 @@ if(c->umh != nil){
 /*
  * name is valid. skip leading / and ./ as much as possible
  */
-const char*
-skipslash(const char *name)
+char*
+skipslash(char *name)
 {
 	while(name[0]=='/' || (name[0]=='.' && (name[1]==0 || name[1]=='/')))
 		name++;
@@ -1338,14 +1338,14 @@ skipslash(const char *name)
  * or a valid character.
  */
 void
-validname(const char *aname, int slashok)
+validname(char *aname, int slashok)
 {
-	const char *ename, *name;
+	char *ename, *name;
 	int c;
 	Rune r;
 
 	name = aname;
-	ename = (const char *)memchr(name, 0, (1<<16));
+	ename = memchr(name, 0, (1<<16));
 
 	if(ename==nil || ename-name>=(1<<16))
 		error("name too long");
@@ -1367,7 +1367,7 @@ validname(const char *aname, int slashok)
 }
 
 void
-isdir(const Chan *c)
+isdir(Chan *c)
 {
 	if(c->qid.type & QTDIR)
 		return;
@@ -1388,7 +1388,7 @@ isdir(const Chan *c)
  * The mount list is deleted when we cunmount.
  * The RWlock ensures that nothing is using the mount list at that time.
  *
- * It is okay to replace c->mh with whatever you want as
+ * It is okay to replace c->mh with whatever you want as 
  * long as you are sure you have a unique reference to it.
  *
  * This comment might belong somewhere else.

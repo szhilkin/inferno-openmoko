@@ -54,7 +54,7 @@ struct BFstate
 	u32int	sbox[1024];
 };
 
-void	setupBFstate(BFstate *s, const uchar key[], int keybytes, uchar *ivec);
+void	setupBFstate(BFstate *s, uchar key[], int keybytes, uchar *ivec);
 void	bfCBCencrypt(uchar*, int, BFstate*);
 void	bfCBCdecrypt(uchar*, int, BFstate*);
 void	bfECBencrypt(uchar*, int, BFstate*);
@@ -79,9 +79,9 @@ struct DESstate
 	uchar	ivec[8];	/* initialization vector */
 };
 
-void	setupDESstate(DESstate *s, const uchar key[8], uchar *ivec);
-void	des_key_setup(const uchar[8], ulong[32]);
-void	block_cipher(const ulong[32], uchar*, int);
+void	setupDESstate(DESstate *s, uchar key[8], uchar *ivec);
+void	des_key_setup(uchar[8], ulong[32]);
+void	block_cipher(ulong*, uchar*, int);
 void	desCBCencrypt(uchar*, int, DESstate*);
 void	desCBCdecrypt(uchar*, int, DESstate*);
 void	desECBencrypt(uchar*, int, DESstate*);
@@ -111,7 +111,7 @@ struct DES3state
 	uchar	ivec[8];		/* initialization vector */
 };
 
-void	setupDES3state(DES3state *s, const uchar key[3][8], uchar *ivec);
+void	setupDES3state(DES3state *s, uchar key[3][8], uchar *ivec);
 void	triple_block_cipher(ulong keys[3][32], uchar*, int);
 void	des3CBCencrypt(uchar*, int, DES3state*);
 void	des3CBCdecrypt(uchar*, int, DES3state*);
@@ -171,10 +171,10 @@ SHA1state* sha1unpickle(char*);
 /*/////////////////////////////////////////////////////// */
 /* random number generation */
 /*/////////////////////////////////////////////////////// */
-void	genrandom(char *buf, int nbytes);
+void	genrandom(uchar *buf, int nbytes);
 void	_genrandomqlock(void);
 void	_genrandomqunlock(void);
-void	prng(char *buf, int nbytes);
+void	prng(uchar *buf, int nbytes);
 ulong	fastrand(void);
 ulong	nfastrand(ulong);
 

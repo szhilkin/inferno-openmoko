@@ -22,12 +22,10 @@
 
 #include "pshrec.h"
 #include "pshglob.h"
-#include <freetype/fttrigon.h>
+#include FT_TRIGONOMETRY_H
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /* handle to Hint structure */
@@ -247,9 +245,7 @@ extern "C" {
                    FT_Render_Mode  hint_mode );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __PSHALGO3_H__ */

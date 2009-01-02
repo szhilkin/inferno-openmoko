@@ -1,7 +1,7 @@
-#include <lib9.h>
-#include <draw.h>
-#include <memdraw.h>
-#include <memlayer.h>
+#include "lib9.h"
+#include "draw.h"
+#include "memdraw.h"
+#include "memlayer.h"
 
 /*
  * ellipse(dst, c, a, b, t, src, sp)
@@ -15,14 +15,14 @@
  *   where x = b/a
  */
 
-typedef struct ParamEllipse	ParamEllipse;
-typedef struct StateEllipse	StateEllipse;
+typedef struct Param	Param;
+typedef struct State	State;
 
-static	void	bellipse(int, StateEllipse*, ParamEllipse*);
-static	void	erect(int, int, int, int, ParamEllipse*);
-static	void	eline(int, int, int, int, ParamEllipse*);
+static	void	bellipse(int, State*, Param*);
+static	void	erect(int, int, int, int, Param*);
+static	void	eline(int, int, int, int, Param*);
 
-struct ParamEllipse {
+struct Param {
 	Memimage	*dst;
 	Memimage	*src;
 	Point			c;
@@ -37,7 +37,7 @@ struct ParamEllipse {
  * e(x,y) = 0 on ellipse, e(x,y) < 0 inside, e(x,y) > 0 outside
  */
 
-struct StateEllipse {
+struct State {
 	int	a;
 	int	x;
 	vlong	a2;	/* a^2 */
@@ -54,8 +54,8 @@ struct StateEllipse {
 };
 
 static
-StateEllipse*
-newstate(StateEllipse *s, int a, int b)
+State*
+newstate(State *s, int a, int b)
 {
 	s->x = 0;
 	s->a = a;
@@ -78,37 +78,37 @@ newstate(StateEllipse *s, int a, int b)
  */
 static
 int
-step(StateEllipse *s)
+step(State *s)
 {
 	while(s->x < s->a) {
 		if(s->ee+s->b2x <= s->c1 ||	/* e(x+1,y-1/2) <= 0 */
 		   s->ee+s->a2y <= s->c2) {	/* e(x+1/2,y) <= 0 (rare) */
-			s->dxe += s->d2xe;
-			s->ee += s->dxe;
+			s->dxe += s->d2xe;	  
+			s->ee += s->dxe;	  
 			s->b2x += s->b2;
-			s->x++;
+			s->x++;	  
 			continue;
 		}
-		s->dye += s->d2ye;
-		s->ee += s->dye;
+		s->dye += s->d2ye;	  
+		s->ee += s->dye;	  
 		s->a2y -= s->a2;
 		if(s->ee-s->a2y <= s->c2) {	/* e(x+1/2,y-1) <= 0 */
-			s->dxe += s->d2xe;
-			s->ee += s->dxe;
+			s->dxe += s->d2xe;	  
+			s->ee += s->dxe;	  
 			s->b2x += s->b2;
 			return s->x++;
 		}
 		break;
 	}
-	return s->x;
+	return s->x;	  
 }
 
 void
 memellipse(Memimage *dst, Point c, int a, int b, int t, Memimage *src, Point sp, int op)
 {
-	StateEllipse in, out;
+	State in, out;
 	int y, inb, inx, outx, u;
-	ParamEllipse p;
+	Param p;
 
 	if(a < 0)
 		a = -a;
@@ -132,7 +132,7 @@ memellipse(Memimage *dst, Point c, int a, int b, int t, Memimage *src, Point sp,
 	if(t < 0) {
 		inb = -1;
 		newstate(&out, a, y = b);
-	} else {
+	} else {	
 		inb = b - t;
 		newstate(&out, a+t, y = b+t);
 	}
@@ -170,7 +170,7 @@ static Point p00 = {0, 0};
  */
 static
 void
-bellipse(int y, StateEllipse *s, ParamEllipse *p)
+bellipse(int y, State *s, Param *p)
 {
 	int t, ox, oy, x, nx;
 
@@ -204,7 +204,7 @@ bellipse(int y, StateEllipse *s, ParamEllipse *p)
  */
 static
 void
-erect(int x0, int y0, int x1, int y1, ParamEllipse *p)
+erect(int x0, int y0, int x1, int y1, Param *p)
 {
 	Rectangle r;
 
@@ -218,7 +218,7 @@ erect(int x0, int y0, int x1, int y1, ParamEllipse *p)
  */
 static
 void
-epoint(int x, int y, ParamEllipse *p)
+epoint(int x, int y, Param *p)
 {
 	Point p0;
 	Rectangle r;
@@ -229,12 +229,12 @@ epoint(int x, int y, ParamEllipse *p)
 	memdraw(p->dst, r, p->src, addpt(p->sp, r.min), p->disc, p->disc->r.min, p->op);
 }
 
-/*
+/* 
  * a brushed horizontal or vertical line similarly specified
  */
 static
 void
-eline(int x0, int y0, int x1, int y1, ParamEllipse *p)
+eline(int x0, int y0, int x1, int y1, Param *p)
 {
 /*	print("L%d %d,%d %d,%d\n", p->t, x0, y0, x1, y1); /**/
 	if(x1 > x0+1)

@@ -20,14 +20,12 @@
 #define __TTCMAP0_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_TRUETYPE_TYPES_H
+#include FT_INTERNAL_OBJECTS_H
 
-#include <freetype/internal/tttypes.h>
-#include <freetype/internal/ftobjs.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
   typedef struct  TT_CMapRec_
   {
@@ -68,9 +66,7 @@ extern "C" {
   tt_face_build_cmaps( TT_Face  face );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __TTCMAP0_H__ */
 

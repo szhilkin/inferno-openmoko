@@ -34,7 +34,7 @@ mpint*	mpcopy(mpint *b);
 void	mpassign(mpint *old, mpint *new);
 
 /* random bits */
-mpint*	mprand(int bits, void (*gen)(char*, int), mpint *b);
+mpint*	mprand(int bits, void (*gen)(uchar*, int), mpint *b);
 
 /* conversion */
 mpint*	strtomp(char*, char**, int, mpint*);	/* ascii */
@@ -42,7 +42,7 @@ int	mpfmt(Fmt*);
 char*	mptoa(mpint*, int, char*, int);
 mpint*	letomp(uchar*, uint, mpint*);	/* byte array, little-endian */
 int	mptole(mpint*, uchar*, uint, uchar**);
-mpint*	betomp(const uchar*, uint, mpint*);	/* byte array, little-endian */
+mpint*	betomp(uchar*, uint, mpint*);	/* byte array, little-endian */
 int	mptobe(mpint*, uchar*, uint, uchar**);
 uint	mptoui(mpint*);			/* unsigned int */
 mpint*	uitomp(uint, mpint*);

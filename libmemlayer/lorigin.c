@@ -1,7 +1,7 @@
-#include <lib9.h>
-#include <draw.h>
-#include <memdraw.h>
-#include <memlayer.h>
+#include "lib9.h"
+#include "draw.h"
+#include "memdraw.h"
+#include "memlayer.h"
 
 /*
  * Place i so i->r.min = log, i->layer->screenr.min == scr.
@@ -98,7 +98,7 @@ memlorigin(Memimage *i, Point log, Point scr)
 }
 
 void
-memlnorefresh(Memimage *l, Rectangle r, Refx *v)
+memlnorefresh(Memimage *l, Rectangle r, void *v)
 {
 	USED(l);
 	USED(r.min.x);

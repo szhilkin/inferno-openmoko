@@ -1,13 +1,13 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 extern Rootdata rootdata[];
 extern Dirtab roottab[];
 extern int	rootmaxq;
 
 static Chan*
-rootattach(const char *spec)
+rootattach(char *spec)
 {
 	int i;
 	ulong len;
@@ -27,7 +27,7 @@ rootattach(const char *spec)
 }
 
 static int
-rootgen(Chan *c, const char *name, Dirtab *tab, int nd, int s, Dir *dp)
+rootgen(Chan *c, char *name, Dirtab *tab, int nd, int s, Dir *dp)
 {
 	int p, i;
 	Rootdata *r;
@@ -66,7 +66,7 @@ rootgen(Chan *c, const char *name, Dirtab *tab, int nd, int s, Dir *dp)
 }
 
 static Walkqid*
-rootwalk(Chan *c, Chan *nc, const char **name, int nname)
+rootwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	ulong p;
 
@@ -77,7 +77,7 @@ rootwalk(Chan *c, Chan *nc, const char **name, int nname)
 }
 
 static int
-rootstat(Chan *c, char *dp, int n)
+rootstat(Chan *c, uchar *dp, int n)
 {
 	int p;
 
@@ -97,17 +97,17 @@ rootopen(Chan *c, int omode)
 /*
  * sysremove() knows this is a nop
  */
-static void
+static void	 
 rootclose(Chan *c)
 {
 	USED(c);
 }
 
-static long
-rootread(Chan *c, char *buf, long n, vlong offset)
+static long	 
+rootread(Chan *c, void *buf, long n, vlong offset)
 {
 	ulong p, len;
-	char *data;
+	uchar *data;
 
 	p = c->qid.path;
 	if(c->qid.type & QTDIR)
@@ -117,13 +117,13 @@ rootread(Chan *c, char *buf, long n, vlong offset)
 		return 0;
 	if(offset+n > len)
 		n = len - offset;
-	data = rootdata[p].ptr->name;
+	data = rootdata[p].ptr;
 	memmove(buf, data+offset, n);
 	return n;
 }
 
-static long
-rootwrite(Chan *c, const char *a, long n, vlong off)
+static long	 
+rootwrite(Chan *c, void *a, long n, vlong off)
 {
 	USED(c); USED(a); USED(n); USED(off);
 	error(Eperm);

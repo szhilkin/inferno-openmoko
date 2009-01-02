@@ -1,6 +1,6 @@
 <../../mkconfig
 
-LIBNAME=libmach.a
+LIB=libmach.a
 OFILES=\
 	2.$O\
 	4.$O\

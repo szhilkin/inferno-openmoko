@@ -19,13 +19,11 @@
 #ifndef __FTINCREM_H__
 #define __FTINCREM_H__
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-#include <freetype/freetype.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
  /***************************************************************************
@@ -197,11 +195,11 @@ extern "C" {
    *
    * @struct:
    *   FT_Incremental_FuncsRec
-   *
+   * 
    * @description:
    *   A table of functions for accessing fonts that load data
    *   incrementally.  Used in @FT_Incremental_Interface.
-   *
+   * 
    * @fields:
    *   get_glyph_data ::
    *     The function to get glyph data.  Must not be null.
@@ -211,7 +209,7 @@ extern "C" {
    *
    *   get_glyph_metrics ::
    *     The function to get glyph metrics.  May be null if the font does
-   *     not provide overriding glyph metrics.
+   *     not provide overriding glyph metrics. 
    */
   typedef struct  FT_Incremental_FuncsRec_
   {
@@ -262,7 +260,7 @@ extern "C" {
   {
     const FT_Incremental_FuncsRec*  funcs;
     FT_Incremental                  object;
-
+  
   } FT_Incremental_InterfaceRec;
 
 
@@ -278,11 +276,9 @@ extern "C" {
   */
 #define FT_PARAM_TAG_INCREMENTAL  FT_MAKE_TAG( 'i', 'n', 'c', 'r' )
 
- /* */
+ /* */  
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FTINCREM_H__ */
 

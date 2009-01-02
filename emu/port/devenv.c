@@ -1,9 +1,9 @@
 /*
  *	devenv - environment
  */
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 enum
 {
@@ -14,7 +14,7 @@ enum
 static void envremove(Chan*);
 
 static int
-envgen(Chan *c, const char *name, Dirtab *d, int nd, int s, Dir *dp)
+envgen(Chan *c, char *name, Dirtab *d, int nd, int s, Dir *dp)
 {
 	Egrp *eg;
 	Evalue *e;
@@ -35,26 +35,26 @@ envgen(Chan *c, const char *name, Dirtab *d, int nd, int s, Dir *dp)
 		return -1;
 	}
 	/* make sure name string continues to exist after we release lock */
-	kstrcpy(up->genbuf, e->var, 128/*sizeof up->genbuf*/);
+	kstrcpy(up->genbuf, e->var, sizeof (up->genbuf));
 	devdir(c, e->qid, up->genbuf, e->len, eve, 0666, dp);
 	qunlock(&eg->l);
 	return 1;
 }
 
 static Chan*
-envattach(const char *spec)
+envattach(char *spec)
 {
 	return devattach('e', spec);
 }
 
 static Walkqid*
-envwalk(Chan *c, Chan *nc, const char **name, int nname)
+envwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	return devwalk(c, nc, name, nname, 0, 0, envgen);
 }
 
 static int
-envstat(Chan *c, char *db, int n)
+envstat(Chan *c, uchar *db, int n)
 {
 	if(c->qid.type & QTDIR)
 		c->qid.vers = up->env->egrp->vers;
@@ -66,7 +66,7 @@ envopen(Chan *c, int mode)
 {
 	Egrp *eg;
 	Evalue *e;
-
+	
 	if(c->qid.type & QTDIR) {
 		if(mode != OREAD)
 			error(Eperm);
@@ -98,7 +98,7 @@ envopen(Chan *c, int mode)
 }
 
 static void
-envcreate(Chan *c, const char *name, int mode, ulong perm)
+envcreate(Chan *c, char *name, int mode, ulong perm)
 {
 	Egrp *eg;
 	Evalue *e, *le;
@@ -115,8 +115,8 @@ envcreate(Chan *c, const char *name, int mode, ulong perm)
 			qunlock(&eg->l);
 			error(Eexist);
 		}
-	e = (Evalue*)smalloc(sizeof(Evalue));
-	e->var = (char*)smalloc(strlen(name)+1);
+	e = smalloc(sizeof(Evalue));
+	e->var = smalloc(strlen(name)+1);
 	strcpy(e->var, name);
 	e->val = 0;
 	e->len = 0;
@@ -142,7 +142,7 @@ envclose(Chan * c)
 }
 
 static long
-envread(Chan *c, char *a, long n, vlong offset)
+envread(Chan *c, void *a, long n, vlong offset)
 {
 	Egrp *eg;
 	Evalue *e;
@@ -171,7 +171,7 @@ envread(Chan *c, char *a, long n, vlong offset)
 }
 
 static long
-envwrite(Chan *c, const char *a, long n, vlong offset)
+envwrite(Chan *c, void *a, long n, vlong offset)
 {
 	char *s;
 	ulong ve;
@@ -193,7 +193,7 @@ envwrite(Chan *c, const char *a, long n, vlong offset)
 		error(Enonexist);
 	}
 	if(ve > e->len) {
-		s = (char*)smalloc(ve);
+		s = smalloc(ve);
 		memmove(s, e->val, e->len);
 		if(e->val)
 			free(e->val);

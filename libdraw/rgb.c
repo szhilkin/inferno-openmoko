@@ -1,7 +1,5 @@
-#include <lib9.h>
-#include <draw.h>
-
-// todo: there are tables for fast computation in libmemdraw (memdefcmap)
+#include "lib9.h"
+#include "draw.h"
 
 /*
  * This original version, although fast and a true inverse of
@@ -12,7 +10,7 @@
  * over the color map looking for the nearest point in RGB
  * space.  There is no visual psychology reason for that
  * criterion, but it's easy to implement and the results are
- * far more pleasing.
+ * far more pleasing. 
  *
 int
 rgb2cmap(int cr, int cg, int cb)

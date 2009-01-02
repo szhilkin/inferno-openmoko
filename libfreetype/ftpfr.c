@@ -15,9 +15,9 @@
 /*                                                                         */
 /***************************************************************************/
 
-
-#include <freetype/internal/pfr.h>
-#include <freetype/internal/ftobjs.h>
+#include <ft2build.h>
+#include FT_INTERNAL_PFR_H
+#include FT_INTERNAL_OBJECTS_H
 
 
  /* check the format */

@@ -1,12 +1,12 @@
-#include <lib9.h>
-#include <draw.h>
-#include <kernel.h>
+#include "lib9.h"
+#include "draw.h"
+#include "kernel.h"
 
 int
-cloadimage(Image *i, Rectangle r, const char *data, int ndata)
+cloadimage(Image *i, Rectangle r, uchar *data, int ndata)
 {
 	int m, nb, miny, maxy, ncblock;
-	char *a;
+	uchar *a;
 
 	if(!rectinrect(r, i->r)){
 		werrstr("cloadimage: bad rectangle");
@@ -17,8 +17,8 @@ cloadimage(Image *i, Rectangle r, const char *data, int ndata)
 	m = 0;
 	ncblock = _compblocksize(r, i->depth);
 	while(miny != r.max.y){
-		maxy = atoi(data+0*12);
-		nb = atoi(data+1*12);
+		maxy = atoi((char*)data+0*12);
+		nb = atoi((char*)data+1*12);
 		if(maxy<=miny || r.max.y<maxy){
 			werrstr("creadimage: bad maxy %d", maxy);
 			return -1;

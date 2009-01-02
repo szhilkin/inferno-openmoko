@@ -1,10 +1,6 @@
-#include <lib9.h>
-#include <draw.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
 
 extern void	rptwakeup(void*, void*);
 extern void*	rptproc(char*, int, void*, int (*)(void*), int (*)(void*,int), void (*)(void*));
@@ -50,7 +46,7 @@ static struct Cmd cmdmain[] =
 	"winfo",	tkwinfo,
 };
 
-char*	tkfont;
+extern char*	tkfont;
 
 /* auto-repeating support
  * should perhaps be one rptproc per TkCtxt
@@ -60,8 +56,8 @@ char*	tkfont;
 static void *autorpt;
 static int rptid;
 static Tk *rptw;
-static const char *rptnote;
-static void (*rptcb)(Tk*, const char*, int);
+static void *rptnote;
+static void (*rptcb)(Tk*, void*, int);
 static long rptto;
 static int rptint;
 
@@ -170,7 +166,7 @@ tkcolor(TkCtxt *c, ulong pix)
 		i = allocimage(d, r, RGBA32, 1, pix);
 	if(i == nil)
 		return d->black;
-	cc = (TkCol *)malloc(sizeof(*cc));
+	cc = malloc(sizeof(*cc));
 	if(cc == nil){
 		freeimage(i);
 		return d->black;
@@ -254,7 +250,7 @@ rgb2hsv(int r, int g, int b, int *h, int *s, int *v)
 		*h = 0;	/* undefined */
 	} else {
 		delta = max - min;
-		if (r == max)
+		if (r == max) 
 			*h = (g - b)*255 / delta;
 		else if (g == max)
 			*h = (2*255) + ((b - r)*255) / delta;
@@ -354,7 +350,7 @@ tknewenv(TkTop *t)
 {
 	TkEnv *e;
 
-	e = (TkEnv *)malloc(sizeof(TkEnv));
+	e = malloc(sizeof(TkEnv));
 	if(e == nil)
 		return nil;
 
@@ -374,7 +370,7 @@ tkdefaultenv(TkTop *t)
 		t->env->ref++;
 		return t->env;
 	}
-	t->env = (TkEnv*)malloc(sizeof(TkEnv));
+	t->env = malloc(sizeof(TkEnv));
 	if(t->env == nil)
 		return nil;
 
@@ -447,7 +443,7 @@ tkdupenv(TkEnv **env)
 	if(e->ref == 1)
 		return e;
 
-	ne = (TkEnv *)malloc(sizeof(TkEnv));
+	ne = malloc(sizeof(TkEnv));
 	if(ne == nil)
 		return nil;
 
@@ -470,7 +466,7 @@ tknewobj(TkTop *t, int type, int n)
 {
 	Tk *tk;
 
-	tk = (Tk *)malloc(n);
+	tk = malloc(n);
 	if(tk == 0)
 		return 0;
 
@@ -537,7 +533,7 @@ tkfreeobj(Tk *tk)
 	if (tk == blinkw)
 		blinkw = nil;
 	tkextnfreeobj(tk);
-	tkmethod[tk->type]->fnfree(tk);
+	tkmethod[tk->type]->free(tk);
 	tkputenv(tk->env);
 	tkfreebind(tk->binds);
 	if(tk->name != nil)
@@ -636,7 +632,7 @@ tklook(TkTop *t, char *wp, int parent)
 			free(p);
 			return t->root;
 		}
-		*q = '\0';
+		*q = '\0';	
 	} else
 		p = wp;
 
@@ -762,10 +758,10 @@ tkdrawrelief(Image *i, Tk *tk, Point o, int color, int rlf)
 		break;
 	case TKsunken:
 		tkbevel(i, o, w, h, bd, d, l);
-		break;
+		break;	
 	case TKraised:
 		tkbevel(i, o, w, h, bd, l, d);
-		break;
+		break;	
 	case TKgroove:
 		t = d;
 		d = l;
@@ -817,7 +813,7 @@ tkstringsize(Tk *tk, char *text)
 	if(locked)
 		unlockdisplay(d);
 
-	return p;
+	return p;	
 }
 
 static char*
@@ -836,7 +832,7 @@ tkul(Image *i, Point o, Image *col, int ul, Font *f, char *text)
 	r.min.x = r.max.x - r.min.x;
 	r.min.y = r.max.y - 1;
 	r.max.y += 2;
-	draw(i, r, col, nil, ZP);
+	draw(i, r, col, nil, ZP);	
 
 	return nil;
 }
@@ -1056,7 +1052,7 @@ tkaction(TkAction **l, int event, int type, char *arg, int how)
 		return nil;
 	}
 
-	a = (TkAction*)malloc(sizeof(TkAction));
+	a = malloc(sizeof(TkAction));
 	if(a == nil) {
 		if(type == TkDynamic)
 			free(arg);
@@ -1231,7 +1227,7 @@ tkanchorpoint(Rectangle r, Point size, int anchor)
 		p.x += dx;
 	return p;
 }
-
+	
 static char*
 tkunits(char c, int *d, TkEnv *e)
 {
@@ -1362,7 +1358,7 @@ tkfprint(char *v, int frac)
 		fscale /= 10;
 	}
 	*v = '\0';
-	return v;
+	return v;	
 }
 
 char*
@@ -1396,7 +1392,7 @@ tkwidgetcmd(TkTop *t, Tk *tk, char *arg, char **val)
 	int bot, top, new, r;
 	char *e, *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -1482,7 +1478,7 @@ tkdirty(Tk *tk)
 	}
 }
 
-static int __cdecl
+static int
 qcmdcmp(const void *a, const void *b)
 {
 	return strcmp(((TkCmdtab*)a)->name, ((TkCmdtab*)b)->name);
@@ -1518,7 +1514,7 @@ tksinglecmd(TkTop *t, char *arg, char **val)
 	if(t->debug)
 		print("tk: '%s'\n", arg);
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -1545,13 +1541,13 @@ tksinglecmd(TkTop *t, char *arg, char **val)
 	while(bot <= top) {
 		int rc;
 		new = (bot + top)/2;
-		rc = strcmp(cmdmain[new].name, buf);
+		rc = strcmp(cmdmain[new].name, buf); 
 		if(!rc) {
 			e = cmdmain[new].fn(t, arg, val);
 			break;
 		}
 
-		if(rc < 0)
+		if(rc < 0) 
 			bot = new + 1;
 		else
 			top = new - 1;
@@ -1619,7 +1615,7 @@ tkexec(TkTop *t, char *arg, char **val)
 			n = p - arg - 1;
 			if(cmdsz < n)
 				cmdsz = n;
-			c = (char*)realloc(cmd, cmdsz+1);
+			c = realloc(cmd, cmdsz+1);
 			if(c == nil){
 				free(cmd);
 				return TkNomem;
@@ -1726,9 +1722,9 @@ tkerr(TkTop *t, char *e)
 }
 
 char*
-tkerrstr(TkTop *t, const char *e)
+tkerrstr(TkTop *t, char *e)
 {
-	char *s = (char*)malloc(strlen(e)+1+strlen(t->errx)+1);
+	char *s = malloc(strlen(e)+1+strlen(t->errx)+1);
 
 	if(s == nil)
 		return nil;
@@ -1835,7 +1831,7 @@ tkhaskeyfocus(Tk *tk)
 }
 
 static int
-rpt_active(void *v)
+rptactive(void *v)
 {
 	int id = (int)v;
 	if (id == rptid)
@@ -1879,7 +1875,7 @@ tkcancelrepeat(Tk *tk)
 }
 
 void
-tkrepeat(Tk *tk, void (*callback)(Tk*, const char*, int), const char *note, int pause, int interval)
+tkrepeat(Tk *tk, void (*callback)(Tk*, void*, int), void *note, int pause, int interval)
 {
 	rptid++;
 	if (tk != rptw && rptw != nil)
@@ -1893,7 +1889,7 @@ tkrepeat(Tk *tk, void (*callback)(Tk*, const char*, int), const char *note, int 
 	rptto = pause;
 	rptint = interval;
 	if (!autorpt)
-		autorpt = rptproc("autorepeat", TkRptclick, (void*)rptid, rpt_active, ckrpt, dorpt);
+		autorpt = rptproc("autorepeat", TkRptclick, (void*)rptid, rptactive, ckrpt, dorpt);
 	else
 		rptwakeup((void*)rptid, autorpt);
 }

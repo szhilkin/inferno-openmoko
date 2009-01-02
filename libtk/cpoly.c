@@ -1,12 +1,9 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 typedef struct TkCpoly TkCpoly;
 struct TkCpoly
@@ -40,20 +37,20 @@ TkStab tkwinding[] =
 static
 TkOption polyopts[] =
 {
-	{"width",	OPTnnfrac,	offsetof(TkCpoly, width)	},
-	{"stipple",	OPTbmap,	offsetof(TkCpoly, stipple)	},
-	{"smooth",	OPTstab,	offsetof(TkCpoly, smooth),	{tkbool}},
-	{"splinesteps",	OPTdist,	offsetof(TkCpoly, steps)	},
-	{"winding",	OPTstab, 	offsetof(TkCpoly, winding), 	{tkwinding}},
+	{"width",	OPTnnfrac,	O(TkCpoly, width),	nil},
+	{"stipple",	OPTbmap,	O(TkCpoly, stipple),	nil},
+	{"smooth",	OPTstab,	O(TkCpoly, smooth),	tkbool},
+	{"splinesteps",	OPTdist,	O(TkCpoly, steps),	nil},
+	{"winding",	OPTstab, O(TkCpoly, winding), tkwinding},
 	{nil}
 };
 
 static
-TkOption itemopts_cpoly[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
-	{"fill",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCfill}},
-	{"outline",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCforegnd}},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill)},
+	{"outline",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
 	{nil}
 };
 
@@ -101,7 +98,7 @@ tkcvspolycreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = p;
 	tko[0].optab = polyopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cpoly;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
@@ -140,7 +137,7 @@ tkcvspolycget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = p;
 	tko[0].optab = polyopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cpoly;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -156,7 +153,7 @@ tkcvspolyconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = p;
 	tko[0].optab = polyopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cpoly;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);

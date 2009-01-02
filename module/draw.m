@@ -79,31 +79,21 @@ Draw: module
 		eq:	fn(c: self Chans, d: Chans): int;
 		# bits per pixel
 		depth:	fn(c: self Chans): int;
-		# pack rgb to 'depth' bits
-		pack:	fn(c: self Chans, r,g,b,a:int): int;
-		# unpack 'depth' bits to (r,g,b,a)
-		unpack:	fn(c: self Chans, bits:int): (int,int,int,int);
 	};
 
 	CRed, CGreen, CBlue, CGrey, CAlpha, CMap, CIgnore: con iota;
 
-	GREY1:	con Chans((CGrey<<4) | 1);
-	GREY2:	con Chans((CGrey<<4) | 2);
-	GREY4:	con Chans((CGrey<<4) | 4);
-	GREY8:	con Chans((CGrey<<4) | 8);
-	CMAP8:	con Chans((CMap<<4) | 8);
-	RGB15:	con Chans(((CIgnore<<4)|1)<<24 | ((CRed<<4)|5)<<16 | ((CGreen<<4)|5)<<8 | ((CBlue<<4)|5));
-	RGB16:	con Chans(((CRed<<4)|5)<<16 | ((CGreen<<4)|6)<<8 | ((CBlue<<4)|5));
-	RGB24:	con Chans(((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8));
-	RGBA32:	con Chans((((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8))<<8 | ((CAlpha<<4)|8));
-	ARGB32:	con Chans(((CAlpha<<4)|8)<<24 | ((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8));	# stupid VGAs
-	XRGB32:	con Chans(((CIgnore<<4)|8)<<24 | ((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8));	# stupid VGAs
-	# compact image formats (for PDA)
-	BWA8:	con Chans(((CGrey<<4)|1)<<8 | ((CAlpha<<4)|7));							# k1a7
-	GRAY4A:	con Chans(((CGrey<<4)|4)<<8 | ((CAlpha<<4)|4));							# k4a4
-	RGBA8:	con Chans((((CRed<<4)|2)<<16 | ((CGreen<<4)|2)<<8 | ((CBlue<<4)|2))<<8 | ((CAlpha<<4)|2));	# r2g2b2a2
-	RGBA16:	con Chans((((CRed<<4)|4)<<16 | ((CGreen<<4)|4)<<8 | ((CBlue<<4)|4))<<8 | ((CAlpha<<4)|4));	# r4g4b4a4
-	MRGB16:	con Chans(((CAlpha<<4)|1)<<24 | ((CRed<<4)|5)<<16 | ((CGreen<<4)|5)<<8 | ((CBlue<<4)|5));	# RGB15 + mask bit
+	GREY1: con Chans((CGrey<<4) | 1);
+	GREY2: con Chans((CGrey<<4) | 2);
+	GREY4: con Chans((CGrey<<4) | 4);
+	GREY8: con Chans((CGrey<<4) | 8);
+	CMAP8: con Chans((CMap<<4) | 8);
+	RGB15: con Chans(((CIgnore<<4)|1)<<24 | ((CRed<<4)|5)<<16 | ((CGreen<<4)|5)<<8 | ((CBlue<<4)|5));
+	RGB16: con Chans(((CRed<<4)|5)<<16 | ((CGreen<<4)|6)<<8 | ((CBlue<<4)|5));
+	RGB24: con Chans(((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8));
+	RGBA32: con Chans((((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8))<<8 | ((CAlpha<<4)|8));
+	ARGB32: con Chans(((CAlpha<<4)|8)<<24 | ((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8));	# stupid VGAs
+	XRGB32: con Chans(((CIgnore<<4)|8)<<24 | ((CRed<<4)|8)<<16 | ((CGreen<<4)|8)<<8 | ((CBlue<<4)|8));	# stupid VGAs
 
 	# Coordinate of a pixel on display
 	Point: adt
@@ -165,41 +155,41 @@ Draw: module
 		# graphics operators
 		drawop:		fn(dst: self ref Image, r: Rect, src: ref Image, matte: ref Image, p: Point, op: int);
 		draw:		fn(dst: self ref Image, r: Rect, src: ref Image, matte: ref Image, p: Point);
-		gendrawop:	fn(dst: self ref Image, r: Rect, src: ref Image, p0: Point, matte: ref Image, p1: Point, op: int);
-		gendraw:	fn(dst: self ref Image, r: Rect, src: ref Image, p0: Point, matte: ref Image, p1: Point);
+		gendrawop:		fn(dst: self ref Image, r: Rect, src: ref Image, p0: Point, matte: ref Image, p1: Point, op: int);
+		gendraw:		fn(dst: self ref Image, r: Rect, src: ref Image, p0: Point, matte: ref Image, p1: Point);
 		lineop:		fn(dst: self ref Image, p0,p1: Point, end0,end1,radius: int, src: ref Image, sp: Point, op: int);
 		line:		fn(dst: self ref Image, p0,p1: Point, end0,end1,radius: int, src: ref Image, sp: Point);
 		polyop:		fn(dst: self ref Image, p: array of Point, end0,end1,radius: int, src: ref Image, sp: Point, op: int);
 		poly:		fn(dst: self ref Image, p: array of Point, end0,end1,radius: int, src: ref Image, sp: Point);
-		bezsplineop:	fn(dst: self ref Image, p: array of Point, end0,end1,radius: int, src: ref Image, sp: Point, op: int);
-		bezspline:	fn(dst: self ref Image, p: array of Point, end0,end1,radius: int, src: ref Image, sp: Point);
+		bezsplineop:		fn(dst: self ref Image, p: array of Point, end0,end1,radius: int, src: ref Image, sp: Point, op: int);
+		bezspline:		fn(dst: self ref Image, p: array of Point, end0,end1,radius: int, src: ref Image, sp: Point);
 		fillpolyop:	fn(dst: self ref Image, p: array of Point, wind: int, src: ref Image, sp: Point, op: int);
 		fillpoly:	fn(dst: self ref Image, p: array of Point, wind: int, src: ref Image, sp: Point);
-		fillbezsplineop:fn(dst: self ref Image, p: array of Point, wind: int, src: ref Image, sp: Point, op: int);
+		fillbezsplineop:	fn(dst: self ref Image, p: array of Point, wind: int, src: ref Image, sp: Point, op: int);
 		fillbezspline:	fn(dst: self ref Image, p: array of Point, wind: int, src: ref Image, sp: Point);
 		ellipseop:	fn(dst: self ref Image, c: Point, a, b, thick: int, src: ref Image, sp: Point, op: int);
 		ellipse:	fn(dst: self ref Image, c: Point, a, b, thick: int, src: ref Image, sp: Point);
 		fillellipseop:	fn(dst: self ref Image, c: Point, a, b: int, src: ref Image, sp: Point, op: int);
 		fillellipse:	fn(dst: self ref Image, c: Point, a, b: int, src: ref Image, sp: Point);
-		arcop:		fn(dst: self ref Image, c: Point, a, b, thick: int, src: ref Image, sp: Point, alpha, phi: int, op: int);
-		arc:		fn(dst: self ref Image, c: Point, a, b, thick: int, src: ref Image, sp: Point, alpha, phi: int);
+		arcop:	fn(dst: self ref Image, c: Point, a, b, thick: int, src: ref Image, sp: Point, alpha, phi: int, op: int);
+		arc:	fn(dst: self ref Image, c: Point, a, b, thick: int, src: ref Image, sp: Point, alpha, phi: int);
 		fillarcop:	fn(dst: self ref Image, c: Point, a, b: int, src: ref Image, sp: Point, alpha, phi: int, op: int);
 		fillarc:	fn(dst: self ref Image, c: Point, a, b: int, src: ref Image, sp: Point, alpha, phi: int);
 		bezierop:	fn(dst: self ref Image, a,b,c,d: Point, end0,end1,radius: int, src: ref Image, sp: Point, op: int);
-		bezier:		fn(dst: self ref Image, a,b,c,d: Point, end0,end1,radius: int, src: ref Image, sp: Point);
+		bezier:	fn(dst: self ref Image, a,b,c,d: Point, end0,end1,radius: int, src: ref Image, sp: Point);
 		fillbezierop:	fn(dst: self ref Image, a,b,c,d: Point, wind:int, src: ref Image, sp: Point, op: int);
 		fillbezier:	fn(dst: self ref Image, a,b,c,d: Point, wind:int, src: ref Image, sp: Point);
 		textop:		fn(dst: self ref Image, p: Point, src: ref Image, sp: Point, font: ref Font, str: string, op: int): Point;
 		text:		fn(dst: self ref Image, p: Point, src: ref Image, sp: Point, font: ref Font, str: string): Point;
-		textbgop:	fn(dst: self ref Image, p: Point, src: ref Image, sp: Point, font: ref Font, str: string, bg: ref Image, bgp: Point, op: int): Point;
+		textbgop:		fn(dst: self ref Image, p: Point, src: ref Image, sp: Point, font: ref Font, str: string, bg: ref Image, bgp: Point, op: int): Point;
 		textbg:		fn(dst: self ref Image, p: Point, src: ref Image, sp: Point, font: ref Font, str: string, bg: ref Image, bgp: Point): Point;
-		border:		fn(dst: self ref Image, r: Rect, i: int, src: ref Image, sp: Point);
+		border:	fn(dst: self ref Image, r: Rect, i: int, src: ref Image, sp: Point);
 		arrow:		fn(a,b,c: int): int;
 		# direct access to pixels
 		readpixels:	fn(src: self ref Image, r: Rect, data: array of byte): int;
 		writepixels:	fn(dst: self ref Image, r: Rect, data: array of byte): int;
 		# publishing
-		name:		fn(src: self ref Image, name: string, in: int): int;
+		name:	fn(src: self ref Image, name: string, in: int): int;
 		# windowing
 		top:		fn(win: self ref Image);
 		bottom:		fn(win: self ref Image);
@@ -225,7 +215,7 @@ Draw: module
 		# image creation
 		newimage:	fn(d: self ref Display, r: Rect, chans: Chans, repl, color: int): ref Image;
 		color:		fn(d: self ref Display, color: int): ref Image;
-		colormix:	fn(d: self ref Display, c1: int, c2: int): ref Image;
+		colormix:		fn(d: self ref Display, c1: int, c2: int): ref Image;
 		rgb:		fn(d: self ref Display, r, g, b: int): ref Image;
 		# attach to named Image
 		namedimage:	fn(d: self ref Display, name: string): ref Image;

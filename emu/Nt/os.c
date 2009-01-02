@@ -1,36 +1,36 @@
-#include <windows.h>
-#include <winsock.h>
-#include <Lmcons.h>
+#define Unknown win_Unknown
+#define UNICODE
+#include	<windows.h>
+#include <winbase.h>
+#include	<winsock.h>
+#undef Unknown
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-
-#include <isa.h>
-#include <interp.h> /* debug */
-
-
-#define	MAXSLEEPERS	1500 /* WTF */
+int	SYS_SLEEP = 2;
+int SOCK_SELECT = 3;
+#define	MAXSLEEPERS	1500
 
 extern	int	cflag;
 
 DWORD	PlatformId;
 DWORD	consolestate;
-static	char*	path = 0;
+static	char*	path;
 static	HANDLE	kbdh = INVALID_HANDLE_VALUE;
 static	HANDLE	conh = INVALID_HANDLE_VALUE;
 static	HANDLE	errh = INVALID_HANDLE_VALUE;
 static	int	donetermset = 0;
 static	int sleepers = 0;
 
-	Rune	*widen(const char *s);
-	char		*narrowen(const Rune *ws);
-	int		widebytes(const Rune *ws);
-//	int		runeslen(const Rune*);
-	Rune*	runesdup(const Rune*);
-	Rune*	utftorunes(Rune*, const char*, int);
-	char*	runestoutf(char*, const Rune*, int);
-	int		runescmp(const Rune*, const Rune*);
+	wchar_t	*widen(char *s);
+	char		*narrowen(wchar_t *ws);
+	int		widebytes(wchar_t *ws);
+	int		runeslen(Rune*);
+	Rune*	runesdup(Rune*);
+	Rune*	utftorunes(Rune*, char*, int);
+	char*	runestoutf(char*, Rune*, int);
+	int		runescmp(Rune*, Rune*);
 
 #ifdef _MSC_VER_TLS
 __declspec(thread)       Proc    *up;
@@ -50,8 +50,8 @@ static void setup(Proc*v)
 HANDLE	ntfd2h(int);
 int	nth2fd(HANDLE);
 void	termrestore(void);
-char*	hosttype = "Nt";
-char*	cputype = "386";
+char *hosttype = "Nt";
+char *cputype = "386";
 
 static void
 pfree(Proc *p)
@@ -123,7 +123,7 @@ tramp(LPVOID p)
 }
 
 int
-kproc(const char *name, void (*func)(void*), void *arg, KProcFlags flags)
+kproc(char *name, void (*func)(void*), void *arg, int flags)
 {
 	DWORD h;
 	Proc *p;
@@ -142,7 +142,7 @@ kproc(const char *name, void (*func)(void*), void *arg, KProcFlags flags)
 		print("can't allocate os event\n");
 		return -1;
 	}
-
+		
 	if(flags & KPDUPPG) {
 		pg = up->env->pgrp;
 		incref(&pg->r);
@@ -179,36 +179,34 @@ kproc(const char *name, void (*func)(void*), void *arg, KProcFlags flags)
 	unlock(&procs.l);
 
 	p->pid = (int)CreateThread(0, 16384, tramp, p, 0, &h);
-	print("kproc(%s) p->pid=%x\n", name, p->pid);
-	if(p->pid == 0){
+	if(p->pid <= 0){
 		pfree(p);
 		print("ran out of  kernel processes\n");
 		return -1;
 	}
 	return p->pid;
 }
-/*
+
 #if(_WIN32_WINNT >= 0x0400)
 void APIENTRY sleepintr(DWORD param)
 {
 }
 #endif
-/**/
+
 void
 oshostintr(Proc *p)
 {
-	if (p->syscall == SYSCALL_SOCK_SELECT)
+	if (p->syscall == SOCK_SELECT)
 		return;
 	p->intwait = 0;
 #if(_WIN32_WINNT >= 0x0400)
-	/*
 	if(p->syscall == SYS_SLEEP) {
 		QueueUserAPC(sleepintr, (HANDLE) p->pid, (DWORD) p->pid);
-	}*/
+	}
 #endif
 }
-/**/
-NORETURN
+
+void
 oslongjmp(void *regs, osjmpbuf env, int val)
 {
 	USED(regs);
@@ -228,41 +226,18 @@ readkbd(void)
 
 	if (buf[0] == 0x03) {
 		// INTR (CTRL+C)
-		cleanexit(0);
+		termrestore();
+		ExitProcess(0);
 	}
 	if(buf[0] == '\r')
 		buf[0] = '\n';
 	return buf[0];
 }
 
-int fdheap;
-void heapview_callback( void* v, size_t size, int tag,
-	const char* file, int line, const char* function, const char* comment)
-{
-	if(file==nil) file = "";
-	if(function==nil) function = "";
-	if(comment==nil) comment = "";
-	print("%08p %8d %8x %s:%d %s [%s]", v, size, tag, file, line, function, comment);
-	PRINT_TYPE(((Heap*)v)->t);
-	print("\n");
-	/*fprint(fdheap, "%08p %8d %8x %s:%d %s %s\n", v, size, tag, file, line, function, comment);*/
-}
-
-
-NORETURN
+void
 cleanexit(int x)
 {
-	if (x == 0) {
-#if 1
-		/*fdheap = create("heap.log", O_WRONLY|O_TRUNC|O_CREAT, 0666);*/
-		/*print("fdheap=%d\n", fdheap);*/
-		//poolwalk(mainmem, heapview_callback);
-		poolwalk(heapmem, heapview_callback);
-		//poolwalk(imagmem, heapview_callback);
-		/*print("close=%d\n", fdheap);*/
-		/*close(fdheap);*/
-#endif
-	}
+	sleep(2);		/* give user a chance to see message */
 	termrestore();
 	ExitProcess(x);
 }
@@ -346,7 +321,7 @@ TrapHandler(LPEXCEPTION_POINTERS ureg)
 #ifdef _MSC_VER
 		_asm { fnclex };
 #else
-		asm volatile("fnclex"); // TODO ; fwait ?
+		__asm__ ("fnclex"); // TODO ; fwait ?
 #endif
 		ureg->ContextRecord->FloatSave.StatusWord = 0x0000;
 		ureg->ContextRecord->FloatSave.TagWord = 0xffff;
@@ -387,7 +362,7 @@ termrestore(void)
 static	int	rebootok = 0;	/* is shutdown -r supported? */
 
 void
-osreboot(const char *file, const char **argv)
+osreboot(char *file, char **argv)
 {
 	if(rebootok){
 		termrestore();
@@ -396,14 +371,14 @@ osreboot(const char *file, const char **argv)
 	}
 }
 
-NORETURN
-libinit(const char *imod)
+void
+libinit(char *imod)
 {
 	WSADATA wasdat;
 	DWORD lasterror, namelen;
 	OSVERSIONINFO os;
 	char sys[64], uname[64];
-	Rune wuname[UNLEN + 1];
+	wchar_t wuname[64];
 	char *uns;
 
 	os.dwOSVersionInfoSize = sizeof(os);
@@ -438,8 +413,8 @@ libinit(const char *imod)
 
 	strcpy(uname, "inferno");
 	namelen = sizeof(wuname);
-	if(GetUserNameW(wuname, &namelen) != TRUE) {
-		lasterror = GetLastError();
+	if(GetUserName(wuname, &namelen) != TRUE) {
+		lasterror = GetLastError();	
 		if(PlatformId == VER_PLATFORM_WIN32_NT || lasterror != ERROR_NOT_LOGGED_ON)
 			print("cannot GetUserName: %d\n", lasterror);
 	}else{
@@ -461,7 +436,7 @@ FPsave(void *fptr)
 		fstenv	[eax]
 	}
 #else
- 	asm ("fstenv %0" : : "m" (*fptr));
+	__asm__ ("fstenv %0" : : "m" (*fptr));
 #endif
 }
 
@@ -474,7 +449,7 @@ FPrestore(void *fptr)
 		fldenv	[eax]
 	}
 #else
- 	asm ("fldenv %0" : : "m" (*fptr));
+	__asm__ ("fldenv %0" : : "m" (*fptr));
 #endif
 }
 
@@ -488,19 +463,17 @@ close(int fd)
 }
 
 int
-read(int fd, void *buf, size_t n)
+read(int fd, void *buf, uint n)
 {
-	DWORD bytes = n;
-	if(!ReadFile(ntfd2h(fd), buf, bytes, &bytes, NULL))
+	if(!ReadFile(ntfd2h(fd), buf, n, &n, NULL))
 		return -1;
 	return n;
 }
 
 int
-write(int fd, const void *buf, size_t n)
+write(int fd, void *buf, uint n)
 {
 	HANDLE h;
-	DWORD bytes = n;
 
 	if(fd == 1 || fd == 2){
 		if(!donetermset)
@@ -511,12 +484,11 @@ write(int fd, const void *buf, size_t n)
 			h = errh;
 		if(h == INVALID_HANDLE_VALUE)
 			return -1;
-		if(!WriteFile(h, buf, bytes, &bytes, NULL))
+		if(!WriteFile(h, buf, n, &n, NULL))
 			return -1;
 		return n;
 	}
-	panic("write to hande=%d (and where it was open? we do not have working open/create on Windows)");
-	if(!WriteFile(ntfd2h(fd), buf, bytes, &bytes, NULL))
+	if(!WriteFile(ntfd2h(fd), buf, n, &n, NULL))
 		return -1;
 	return n;
 }
@@ -545,29 +517,29 @@ oslopri(void)
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 }
 
-
-void* mem_reserve(ulong size)
+/* Resolve system header name conflict */
+#undef Sleep
+void
+sleep(int secs)
 {
-	return VirtualAlloc(0, size, MEM_RESERVE, PAGE_NOACCESS);
+	Sleep(secs*1000);
 }
 
-void* mem_commit(void* p, ulong size)
+void*
+sbrk(int size)
 {
-	return VirtualAlloc(p, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	void *brk;
+
+	brk = VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE); 	
+	if(brk == 0)
+		return (void*)-1;
+
+	return brk;
 }
 
 ulong
 getcallerpc(void *arg)
 {
-/*
-	ulong cpc;
-	_asm {
-		mov eax, dword ptr [ebp]
-		mov eax, dword ptr [eax+4]
-		mov dword ptr cpc, eax
-	}
-	return cpc;
-*/
 	return 0;
 }
 
@@ -672,36 +644,79 @@ osnsec(void)
 int
 osmillisleep(ulong milsec)
 {
-	Sleep(milsec);
+	SleepEx(milsec, FALSE);
 	return 0;
 }
 
 int
 limbosleep(ulong milsec)
 {
-	if (sleepers > MAXSLEEPERS) /* BUG WTF MAXSLEEPERS? */
+	if (sleepers > MAXSLEEPERS)
 		return -1;
 	sleepers++;
-	up->syscall = SYSCALL_SLEEP;
-	/*SleepEx(milsec, TRUE); /* TODO: alertable? */
-	Sleep(milsec);
-	up->syscall = SYSCALL_NO;
+	up->syscall = SYS_SLEEP;
+	SleepEx(milsec, TRUE);
+	up->syscall = 0;
 	sleepers--;
 	return 0;
 }
 
 void
 osyield(void)
-{
-	/*Sleep(0);*/
-	Sleep(1); /* Sleep(0) does not yield well? */
+{	
+	sleep(0);
 }
 
-NORETURN
+void
 ospause(void)
 {
       for(;;)
-              Sleep(1000000);
+              sleep(1000000);
+}
+
+/*
+ * these should never be called, and are included
+ * as stubs since we are linking against a library which defines them
+ */
+int
+open(const char *path, int how, ...)
+{
+	panic("open");
+	return -1;
+}
+
+int
+creat(const char *path, int how)
+{
+	panic("creat");
+	return -1;
+}
+
+int
+stat(const char *path, struct stat *sp)
+{
+	panic("stat");
+	return -1;
+}
+
+int
+chown(const char *path, int uid, int gid)
+{
+	panic("chown");
+	return -1;
+}
+
+int
+chmod(const char *path, int mode)
+{
+	panic("chmod");
+	return -1;
+}
+
+void
+link(char *path, char *next)
+{
+	panic("link");
 }
 
 int
@@ -710,34 +725,34 @@ segflush(void *a, ulong n)
 	return 0;
 }
 
-Rune *
-widen(const char *s)
+wchar_t *
+widen(char *s)
 {
 	int n;
-	Rune *ws;
+	wchar_t *ws;
 
 	n = utflen(s) + 1;
-	ws = (Rune*)smalloc(n*sizeof(wchar_t));
+	ws = smalloc(n*sizeof(wchar_t));
 	utftorunes(ws, s, n);
 	return ws;
 }
 
 
 char *
-narrowen(const Rune *ws)
+narrowen(wchar_t *ws)
 {
 	char *s;
 	int n;
 
 	n = widebytes(ws);
-	s = (char*)smalloc(n);
+	s = smalloc(n);
 	runestoutf(s, ws, n);
 	return s;
 }
 
 
 int
-widebytes(const wchar_t *ws)
+widebytes(wchar_t *ws)
 {
 	int n = 0;
 

@@ -20,16 +20,14 @@
 #define __CFFOBJS_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_CFF_TYPES_H
+#include FT_INTERNAL_TRUETYPE_TYPES_H
+#include FT_INTERNAL_POSTSCRIPT_NAMES_H
 
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/cfftypes.h>
-#include <freetype/internal/tttypes.h>
-#include <freetype/internal/psnames.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -154,9 +152,7 @@ extern "C" {
   cff_driver_done( CFF_Driver  driver );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __CFFOBJS_H__ */
 

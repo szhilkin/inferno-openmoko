@@ -1,6 +1,6 @@
 <../mkconfig
 
-LIBNAME=libprefab.a
+LIB=libprefab.a
 
 OFILES=\
 	box.$O\

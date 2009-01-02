@@ -55,9 +55,16 @@ libbio\bwrite.c
 """
 
 cmd=r'iyacc.exe -d %s/limbo/limbo.y"' % ROOT
+
+def remove(fname):
+	try:
+		os.remove(fname);
+	except: pass
+
 os.system(cmd)
-os.remove('%s/limbo/y.tab.c' % ROOT); os.rename('y.tab.c', '%s/limbo/y.tab.c' % ROOT)
-os.remove('%s/limbo/y.tab.h' % ROOT); os.rename('y.tab.h', '%s/limbo/y.tab.h' % ROOT)
+
+remove('%s/limbo/y.tab.c' % ROOT); os.rename('y.tab.c', '%s/limbo/y.tab.c' % ROOT)
+remove('%s/limbo/y.tab.h' % ROOT); os.rename('y.tab.h', '%s/limbo/y.tab.h' % ROOT)
 
 
 FNAMES = ' '.join( (os.path.join(ROOT,x) for x in FNAMES.split()) )

@@ -21,14 +21,12 @@
 #define __PSAUX_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_TYPE1_TYPES_H
 
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/t1types.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -711,9 +709,7 @@ extern "C" {
   /* backwards-compatible type definition */
   typedef PSAux_ServiceRec   PSAux_Interface;
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __PSAUX_H__ */
 

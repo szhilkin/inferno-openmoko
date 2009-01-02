@@ -136,10 +136,7 @@ enum {
 	S_MAKEVAR,	/* dumpable mk variable */
 	S_EXPORTED,	/* var -> current exported value */
 	S_WESET,	/* variable; we set in the mkfile */
-	S_INTERNAL,	/* an internal mk variable (e.g., stem, target) */
-#if defined(CASE_INSENSITIVE_ENVIRONMENT)
-	S_LOWCASED,	/* low-cased windows env var name */
-#endif
+	S_INTERNAL	/* an internal mk variable (e.g., stem, target) */
 };
 
 extern	int	debug;

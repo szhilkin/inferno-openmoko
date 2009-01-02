@@ -1,5 +1,5 @@
-#include <os.h>
-#include <kernel.h>
+#include "os.h"
+#include "kernel.h"
 #include <mp.h>
 #include <libsec.h>
 
@@ -52,7 +52,7 @@ X917init(void)
 }
 
 void
-genrandom(char *p, int n)
+genrandom(uchar *p, int n)
 {
 	_genrandomqlock();
 	if(x917state.seeded == 0)

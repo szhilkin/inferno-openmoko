@@ -1,13 +1,8 @@
-#include <lib9.h>
-#include <draw.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
 #include <kernel.h>
-
+#include <interp.h>
 
 enum
 {
@@ -18,7 +13,7 @@ enum
 	Cbr,
 };
 
-struct
+struct 
 {
 	char*	event;
 	int	mask;
@@ -46,17 +41,17 @@ struct
 static
 TkOption tkcurop[] =
 {
-	{"x",		OPTdist,	offsetof(TkCursor, p.x)		},
-	{"y",		OPTdist,	offsetof(TkCursor, p.y)		},
-	{"bitmap",	OPTbmap,	offsetof(TkCursor, bit)		},
-	{"image",	OPTimag,	offsetof(TkCursor, img)		},
-	{"default",	OPTbool,	offsetof(TkCursor, def)		},
+	{"x",		OPTdist,	O(TkCursor, p.x),	nil},
+	{"y",		OPTdist,	O(TkCursor, p.y),	nil},
+	{"bitmap",	OPTbmap,	O(TkCursor, bit),	nil},
+	{"image",	OPTimag,	O(TkCursor, img),	nil},
+	{"default",	OPTbool,	O(TkCursor, def),	nil},
 	{nil}
 };
 
 static
 TkOption focusopts[] = {
-	{"global",	OPTbool,	0	},
+	{"global",			OPTbool,	0,	nil},
 	{nil}
 };
 
@@ -98,7 +93,7 @@ tkseqparse(char *seq)
 	int i, event;
 	char *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return -1;
 
@@ -106,11 +101,11 @@ tkseqparse(char *seq)
 
 	while(*seq && *seq != '>') {
 		seq = tkseqitem(buf, seq);
-
-		for(i = 0; i < nelem(etab); i++)
+	
+		for(i = 0; i < nelem(etab); i++)	
 			if(strcmp(buf, etab[i].event) == 0)
 				break;
-
+	
 		if(i >= nelem(etab)) {
 			seq = tkextnparseseq(buf, seq, &event);
 			if (seq == nil) {
@@ -119,8 +114,8 @@ tkseqparse(char *seq)
 			}
 			continue;
 		}
-
-
+	
+	
 		switch(etab[i].action) {
 		case Cmask:
 			event |= etab[i].mask;
@@ -134,7 +129,7 @@ tkseqparse(char *seq)
 			if(r <= '~')
 				r &= 0x1f;
 			event |= TkKey|TKKEY(r);
-			break;
+			break;	
 		case Ckey:
 			seq = tkseqkey(&r, seq);
 			if(r != 0)
@@ -217,7 +212,7 @@ tkcmdbind(Tk *tk, int event, char *s, void *data)
 
 	if(s == nil)
 		return;
-	cmd = (char*)malloc(2*Tkmaxitem);
+	cmd = malloc(2*Tkmaxitem);
 	if (cmd == nil) {
 		print("tk: bind command \"%s\": %s\n",
 			tk->name ? tk->name->name : "(noname)", TkNomem);
@@ -313,7 +308,7 @@ tkcmdbind(Tk *tk, int event, char *s, void *data)
 			c += snprint(c, len, "%.4X", TKKEY(event));
 			break;
 		case 'W':
-		        if (tk->name != nil)
+		        if (tk->name != nil) 
 			  c += snprint(c, len, "%s", tk->name->name);
 			break;
 		}
@@ -360,10 +355,10 @@ tkbind(TkTop *t, char *arg, char **ret)
 
 	USED(ret);
 
-	tag = (char*)mallocz(Tkmaxitem, 0);
+	tag = mallocz(Tkmaxitem, 0);
 	if(tag == nil)
 		return TkNomem;
-	seq = (char*)mallocz(Tkmaxitem, 0);
+	seq = mallocz(Tkmaxitem, 0);
 	if(seq == nil) {
 		free(tag);
 		return TkNomem;
@@ -498,7 +493,7 @@ tksend(TkTop *t, char *arg, char **ret)
 
 	USED(ret);
 
-	var = (char*)mallocz(Tkmaxitem, 0);
+	var = mallocz(Tkmaxitem, 0);
 	if(var == nil)
 		return TkNomem;
 
@@ -511,7 +506,7 @@ tksend(TkTop *t, char *arg, char **ret)
 		return TkNotvt;
 
 	arg = tkskip(arg, " \t");
-	if(tktolimbo(v->value.c, arg) == 0)
+	if(tktolimbo(v->value, arg) == 0)
 		return TkMovfw;
 
 	return nil;
@@ -619,7 +614,7 @@ tkfocus(TkTop *top, char *arg, char **ret)
 	tko[1].ptr = nil;
 
 	global = 0;
-
+	
 	names = nil;
 	e = tkparse(top, arg, tko, &names);
 	if (e != nil)
@@ -639,7 +634,7 @@ tkfocus(TkTop *top, char *arg, char **ret)
 		return nil;
 	}
 
-	wp = (char*)mallocz(Tkmaxitem, 0);
+	wp = mallocz(Tkmaxitem, 0);
 	if(wp == nil)
 		return TkNomem;
 
@@ -676,7 +671,7 @@ tkraise(TkTop *t, char *arg, char **ret)
 
 	USED(ret);
 
-	wp = (char*)mallocz(Tkmaxitem, 0);
+	wp = mallocz(Tkmaxitem, 0);
 	if(wp == nil)
 		return TkNomem;
 	tkword(t, arg, wp, wp+Tkmaxitem, nil);
@@ -702,7 +697,7 @@ tklower(TkTop *t, char *arg, char **ret)
 	char *wp;
 
 	USED(ret);
-	wp = (char*)mallocz(Tkmaxitem, 0);
+	wp = mallocz(Tkmaxitem, 0);
 	if(wp == nil)
 		return TkNomem;
 	tkword(t, arg, wp, wp+Tkmaxitem, nil);
@@ -730,11 +725,11 @@ tkgrab(TkTop *t, char *arg, char **ret)
 
 	USED(ret);
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
-	wp = (char*)mallocz(Tkmaxitem, 0);
+	wp = mallocz(Tkmaxitem, 0);
 	if(wp == nil) {
 		free(buf);
 		return TkNomem;
@@ -786,7 +781,7 @@ tkputs(TkTop *t, char *arg, char **ret)
 
 	USED(ret);
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	tkword(t, arg, buf, buf+Tkmaxitem, nil);
@@ -803,7 +798,7 @@ tkdestroy(TkTop *t, char *arg, char **ret)
 	char *n, *e, *buf;
 
 	USED(ret);
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	e = nil;
@@ -838,7 +833,7 @@ tkdestroy(TkTop *t, char *arg, char **ret)
 			continue;
 		if(tk->flag & Tkwindow) {
 			tkunmap(tk);
-			if((tk->name != nil)
+			if((tk->name != nil) 
 			   && (strcmp(tk->name->name, ".") == 0))
 				tk->flag &= ~Tkdestroy;
 			else
@@ -871,7 +866,7 @@ tkdestroy(TkTop *t, char *arg, char **ret)
 			*l = next;
 			continue;
 		}
-		l = &TKobj(TkWin, tk)->next;
+		l = &TKobj(TkWin, tk)->next;		
 	}
 	l = &t->root;
 	for(tk = t->root; tk; tk = next) {
@@ -926,13 +921,13 @@ tkwinfo(TkTop *t, char *arg, char **ret)
 	Tk *tk;
 	char *cmd, *arg1;
 
-	cmd = (char*)mallocz(Tkmaxitem, 0);
+	cmd = mallocz(Tkmaxitem, 0);
 	if(cmd == nil)
 		return TkNomem;
 
 	arg = tkword(t, arg, cmd, cmd+Tkmaxitem, nil);
 	if(strcmp(cmd, "class") == 0) {
-		arg1 = (char*)mallocz(Tkmaxitem, 0);
+		arg1 = mallocz(Tkmaxitem, 0);
 		if(arg1 == nil) {
 			free(cmd);
 			return TkNomem;
@@ -968,7 +963,7 @@ tkcursorcmd(TkTop *t, char *arg, char **ret)
 	c.p.y = Notset;
 	c.bit = nil;
 	c.img = nil;
-
+	
 	USED(ret);
 
 	c.def = 0;
@@ -994,7 +989,7 @@ tkcursorcmd(TkTop *t, char *arg, char **ret)
 	}
 	if(locked)
 		unlockdisplay(d);
-	return e;
+	return e;	
 }
 
 char *
@@ -1018,7 +1013,7 @@ tkbindings(TkTop *t, Tk *tk, TkEbind *b, int blen)
 		}
 		e = tkaction(&tk->binds, b[i].event, TkStatic, cmd, how);
 	}
-
+	
 	if(e != nil)
 		return e;
 

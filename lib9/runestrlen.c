@@ -1,8 +1,8 @@
-#include <lib9.h>
+#include "lib9.h"
 
 
 long
-runestrlen(const Rune *s)
+runestrlen(Rune *s)
 {
 	int i;
 

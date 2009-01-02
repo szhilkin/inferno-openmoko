@@ -20,17 +20,15 @@
 #define __T1LOAD_H__
 
 
-
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/psaux.h>
-#include <freetype/ftmm.h>
+#include <ft2build.h>
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_POSTSCRIPT_AUX_H
+#include FT_MULTIPLE_MASTERS_H
 
 #include "t1parse.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   typedef struct  T1_Loader_
@@ -78,9 +76,7 @@ extern "C" {
 #endif /* !T1_CONFIG_OPTION_NO_MM_SUPPORT */
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __T1LOAD_H__ */
 

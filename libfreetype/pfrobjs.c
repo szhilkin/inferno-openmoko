@@ -21,8 +21,8 @@
 #include "pfrgload.h"
 #include "pfrcmap.h"
 #include "pfrsbit.h"
-#include <freetype/ftoutln.h>
-#include <freetype/internal/ftdebug.h>
+#include FT_OUTLINE_H
+#include FT_INTERNAL_DEBUG_H
 
 #include "pfrerror.h"
 

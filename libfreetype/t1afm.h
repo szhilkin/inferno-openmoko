@@ -19,13 +19,11 @@
 #ifndef __T1AFM_H__
 #define __T1AFM_H__
 
-
+#include <ft2build.h>
 #include "t1objs.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   typedef struct  T1_Kern_Pair_
@@ -60,9 +58,7 @@ extern "C" {
                   FT_Vector*  kerning );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __T1AFM_H__ */
 

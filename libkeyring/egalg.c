@@ -1,21 +1,21 @@
 #include <lib9.h>
 #include <kernel.h>
 #include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <mp.h>
-#include <libsec.h>
-#include <keys.h>
+#include "interp.h"
+#include "../libinterp/runt.h"
+#include "mp.h"
+#include "libsec.h"
+#include "keys.h"
 
-static char* eg_pkattr[] = { "p", "alpha", "key", nil };
-static char* eg_skattr[] = { "p", "alpha", "key", "!secret", nil };
-static char* eg_sigattr[] = { "r", "s", nil };
+static char*	pkattr[] = { "p", "alpha", "key", nil };
+static char*	skattr[] = { "p", "alpha", "key", "!secret", nil };
+static char*	sigattr[] = { "r", "s", nil };
 
 static void*
-eg_str2sk(const char *str, const char **strp)
+eg_str2sk(char *str, char **strp)
 {
 	EGpriv *eg;
-	const char *p;
+	char *p;
 
 	eg = egprivalloc();
 	eg->pub.p = base64tobig(str, &p);
@@ -28,10 +28,10 @@ eg_str2sk(const char *str, const char **strp)
 }
 
 static void*
-eg_str2pk(const char *str, const char **strp)
+eg_str2pk(char *str, char **strp)
 {
 	EGpub *eg;
-	const char *p;
+	char *p;
 
 	eg = egpuballoc();
 	eg->p = base64tobig(str, &p);
@@ -43,10 +43,10 @@ eg_str2pk(const char *str, const char **strp)
 }
 
 static void*
-eg_str2sig(const char *str, const char **strp)
+eg_str2sig(char *str, char **strp)
 {
 	EGsig *eg;
-	const char *p;
+	char *p;
 
 	eg = egsigalloc();
 	eg->r = base64tobig(str, &p);
@@ -185,9 +185,9 @@ elgamalinit(void)
 
 	vec->name = "elgamal";
 
-	vec->pkattr = eg_pkattr;
-	vec->skattr = eg_skattr;
-	vec->sigattr = eg_sigattr;
+	vec->pkattr = pkattr;
+	vec->skattr = skattr;
+	vec->sigattr = sigattr;
 
 	vec->str2sk = eg_str2sk;
 	vec->str2pk = eg_str2pk;

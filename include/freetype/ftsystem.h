@@ -20,12 +20,10 @@
 #define __FTSYSTEM_H__
 
 
+#include <ft2build.h>
 
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -156,9 +154,9 @@ extern "C" {
   struct  FT_MemoryRec_
   {
     void*            user;
-    FT_Alloc_Func    fnalloc;
-    FT_Free_Func     fnfree;
-    FT_Realloc_Func  fnrealloc;
+    FT_Alloc_Func    alloc;
+    FT_Free_Func     free;
+    FT_Realloc_Func  realloc;
   };
 
 
@@ -303,9 +301,7 @@ extern "C" {
   /* */
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FTSYSTEM_H__ */
 

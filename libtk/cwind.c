@@ -1,12 +1,9 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Window Options (+ means implemented)
 	 +tags
@@ -19,17 +16,17 @@
 static
 TkOption windopts[] =
 {
-	{"width",	OPTdist,	offsetof(TkCwind, width)	},
-	{"height",	OPTdist,	offsetof(TkCwind, height)	},
-	{"anchor",	OPTstab,	offsetof(TkCwind, flags),	{tkanchor}},
-	{"window",	OPTwinp,	offsetof(TkCwind, sub)		},
+	{"width",	OPTdist,	O(TkCwind, width),	nil},
+	{"height",	OPTdist,	O(TkCwind, height),	nil},
+	{"anchor",	OPTstab,	O(TkCwind, flags),	tkanchor},
+	{"window",	OPTwinp,	O(TkCwind, sub),	nil},
 	{nil}
 };
 
 static
-TkOption itemopts_cwind[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
 	{nil}
 };
 
@@ -182,7 +179,7 @@ tkcvswindchk(Tk *tk, TkCwind *w, Tk *oldsub)
 		w->sub = oldsub;
 		if(sub == nil)
 			return nil;
-
+	
 		if(sub->flag & Tkwindow)
 			return TkIstop;
 
@@ -200,7 +197,7 @@ tkcvswindchk(Tk *tk, TkCwind *w, Tk *oldsub)
 		tksetbits(w->sub, Tksubsub);
 		sub->geom = tkcvswindgeom;
 		sub->destroyed = tkcvssubdestry;
-
+	
 		if(w->width == 0)
 			w->width = sub->req.width;
 		if(w->height == 0)
@@ -241,7 +238,7 @@ tkcvswindcreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = w;
 	tko[0].optab = windopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cwind;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
@@ -282,7 +279,7 @@ tkcvswindcget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = w;
 	tko[0].optab = windopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cwind;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -300,7 +297,7 @@ tkcvswindconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = w;
 	tko[0].optab = windopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cwind;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	dx = w->width;

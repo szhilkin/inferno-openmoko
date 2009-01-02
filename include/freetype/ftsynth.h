@@ -38,13 +38,11 @@
 #define __FTSYNTH_H__
 
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-#include <freetype/freetype.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /* This code is completely experimental -- use with care! */
@@ -59,9 +57,7 @@ extern "C" {
 
  /* */
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FTSYNTH_H__ */
 

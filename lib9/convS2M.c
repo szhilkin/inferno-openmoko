@@ -1,9 +1,9 @@
-#include <lib9.h>
+#include	"lib9.h"
 #include	"fcall.h"
 
 static
 uchar*
-pstring(uchar *p, const char *s)
+pstring(uchar *p, char *s)
 {
 	uint n;
 
@@ -23,7 +23,7 @@ pstring(uchar *p, const char *s)
 
 static
 uchar*
-pqid(uchar *p, const Qid *q)
+pqid(uchar *p, Qid *q)
 {
 	PBIT8(p, q->type);
 	p += BIT8SZ;
@@ -36,7 +36,7 @@ pqid(uchar *p, const Qid *q)
 
 static
 uint
-stringsz(const char *s)
+stringsz(char *s)
 {
 	if(s == nil)
 		return BIT16SZ;
@@ -44,10 +44,10 @@ stringsz(const char *s)
 	return BIT16SZ+strlen(s);
 }
 
-size_t
-sizeS2M(const Fcall *f)
+uint
+sizeS2M(Fcall *f)
 {
-	size_t n;
+	uint n;
 	int i;
 
 	n = 0;
@@ -189,11 +189,11 @@ sizeS2M(const Fcall *f)
 	return n;
 }
 
-size_t
-convS2M(const Fcall *f, char *ap, size_t nap)
+uint
+convS2M(Fcall *f, uchar *ap, uint nap)
 {
-	char *p;
-	size_t i, size;
+	uchar *p;
+	uint i, size;
 
 	size = sizeS2M(f);
 	if(size == 0)

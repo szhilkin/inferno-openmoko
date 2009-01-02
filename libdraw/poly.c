@@ -1,6 +1,5 @@
-#include <lib9.h>
-#include <draw.h>
-#include <kernel.h>
+#include "lib9.h"
+#include "draw.h"
 
 static
 uchar*

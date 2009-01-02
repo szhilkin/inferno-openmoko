@@ -2,7 +2,7 @@ objtype=386
 OBJTYPE=$objtype
 <../../mkconfig
 
-LIBNAME=libsec.a
+LIB=libsec.a
 FILES=\
 	md5block\
 	sha1block\

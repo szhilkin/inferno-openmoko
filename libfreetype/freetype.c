@@ -1,5 +1,5 @@
-#include <freetype/freetype.h>
-#include <freetype.h>
+#include "freetype/freetype.h"
+#include "freetype.h"
 
 static char* fterrstr(int);
 
@@ -115,11 +115,9 @@ struct FTerr {
 #define FT_ERRORDEF_(l,c,t)	c,t,
 
 static FTerr fterrs[] = {
-#include <freetype/fterrdef.h>
+#include "freetype/fterrdef.h"
 	-1, "",
 };
-#undef FT_NOERRORDEF_
-#undef FT_ERRORDEF_
 
 static char*
 fterrstr(int code)
@@ -133,3 +131,4 @@ fterrstr(int code)
 	}
 	return "unknown FreeType error";
 }
+

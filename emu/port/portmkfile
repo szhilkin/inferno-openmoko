@@ -12,8 +12,8 @@ LIBFILES=${LIBS:%=$ROOT/$SYSTARG/$OBJTYPE/lib/lib%.a}
 
 $ROOT/$SYSTARG/$OBJTYPE/lib/lib%.a:N:	lib%.a
 
-%.$O:	%.S
-	$AS $ASFLAGS $stem.S
+%.$O:	%.s
+	$AS $ASFLAGS $stem.s
 
 %.$O:	%.S$MACOSINF
 	$AS $ASFLAGS $stem.S
@@ -125,8 +125,7 @@ devdraw.$O:	$ROOT/include/draw.h\
 		$ROOT/include/memlayer.h
 devmem.$O:	$INTERP
 devpipe.$O:	$INTERP
-devprof.$O:	$ROOT/libinterp/runt.h\
-		$INTERP
+devprof.$O:	$INTERP
 devprog.$O:	$ROOT/libinterp/runt.h\
 			$INTERP
 devsign.$O:	$INTERP

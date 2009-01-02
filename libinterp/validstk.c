@@ -1,6 +1,6 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
 
 static int depth;
 
@@ -14,7 +14,7 @@ memchk(void *p, Type *t)
 	if(depth > 100)
 		return;
 	depth++;
-	base = (ulong**)p;
+	base = p;
 	for(i = 0; i < t->np; i++) {
 		for(j = 0; j < 8; j++) {
 			if(t->map[i] & (1<<(7-j))) {
@@ -31,4 +31,23 @@ memchk(void *p, Type *t)
 		}
 	}
 	depth--;
+}
+
+void
+validstk(void)
+{
+	Type *t;
+	Frame *f;
+	uchar *fp;
+
+	fp = R.FP;
+	while(fp != nil) {
+		f = (Frame*)fp;
+		t = f->t;
+		if(t == nil)
+			t = SEXTYPE(f)->reg.TR;
+
+		memchk(f, t);
+		fp = f->fp;
+	}
 }

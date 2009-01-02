@@ -17,10 +17,10 @@
 /***************************************************************************/
 
 
-
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/tttags.h>
+#include <ft2build.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
+#include FT_TRUETYPE_TAGS_H
 #include "ttload.h"
 #include "ttcmap.h"
 
@@ -1576,7 +1576,7 @@
   }
 
 
-  FT_CALLBACK_DEF( int )  __cdecl
+  FT_CALLBACK_DEF( int )
   tt_kern_pair_compare( const void*  a,
                         const void*  b );
 
@@ -1715,7 +1715,7 @@
 #define TT_KERN_INDEX( g1, g2 )  ( ( (FT_ULong)g1 << 16 ) | g2 )
 
 
-  FT_CALLBACK_DEF( int )  __cdecl
+  FT_CALLBACK_DEF( int )
   tt_kern_pair_compare( const void*  a,
                         const void*  b )
   {

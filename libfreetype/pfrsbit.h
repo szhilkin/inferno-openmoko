@@ -21,18 +21,14 @@
 
 #include "pfrobjs.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
   FT_LOCAL( FT_Error )
   pfr_slot_load_bitmap( PFR_Slot  glyph,
                         PFR_Size  size,
                         FT_UInt   glyph_index );
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __PFR_SBIT_H__ */
 

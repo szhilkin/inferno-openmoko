@@ -30,12 +30,10 @@
 #ifndef __FT_HASH_H__
 #define __FT_HASH_H__
 
+#include <ft2build.h>
+#include FT_TYPES_H
 
-#include <freetype/fttypes.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
  /***********************************************************
   *
@@ -499,8 +497,6 @@ extern "C" {
              }
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FT_HASH_H__ */

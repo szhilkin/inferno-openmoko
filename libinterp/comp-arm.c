@@ -1,12 +1,8 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
 
-#ifndef CHECK_STACK_ALIGN
-#define CHECK_STACK_ALIGN()
-#endif
-//#define DEBUGVM
 /*
  * to do:
  *	eliminate litpool?
@@ -214,24 +210,17 @@ enum
 #define CCALL(C,o)				gen(BRAW((C), ((ulong)(o)-(ulong)code-8)>>2)|(1<<24))
 #define CALLMAC(C,o)			gen(BRAW((C), (IA(macro, o)-(ulong)code-8)>>2)|(1<<24))
 #define RELPC(pc)			(ulong)(base+(pc))
-#define RETURN				DPI(AL, Add, RLINK, R15, 0, 0)
-#define CRETURN(C)				DPI(C, Add, RLINK, R15, 0, 0)
+#define RETURN				DPI(AL, Add, RLINK, R15, 0, 0)				
+#define CRETURN(C)				DPI(C, Add, RLINK, R15, 0, 0)				
 #define PATCH(ptr)			*ptr |= (((ulong)code-(ulong)(ptr)-8)>>2) & 0x00ffffff
 
-
 #define MOV(src, dst)			DP(AL, Mov, 0, dst, 0, src)
-#define NOP() MOV(R0, R0)
-#define SAVE_REGS()		*code++ = 0xe92d0ff0; 		/* push    {r4, r5, r6, r7, r8, r9, r10, r11} */
-#define RESTORE_REGS()		*code++ = 0xe8bd0ff0; 		/* pop     {r4, r5, r6, r7, r8, r9, r10, r11} */
-#define CRESTORE_REGS(C)	*code++ = (C<<28)|0x08bd0ff0; 	/* pop     {r4, r5, r6, r7, r8, r9, r10, r11} */
-//#define SAVE_REGS()		NOP()
-//#define RESTORE_REGS()	NOP()
 #define FITS8(v)	((ulong)(v)<BITS(8))
 #define FITS5(v)	((ulong)(v)<BITS(5))
 
 /* assumes H==-1 */
 #define CMPH(C, r)		CMNI(C, r, 0, 0, 1)
-#define NOTNIL(r)	(CMPH(AL, (r)), CCALL(EQ, nilref))
+#define NOTNIL(r)	(CMPH(AL, (r)), CCALL(EQ, bounds))
 
 /* array bounds checking */
 #define BCK(r, rb)	(CMP(AL, rb, 0, 0, r), CCALL(LS, bounds))
@@ -259,9 +248,7 @@ static	void	macmfra(void);
 static	void	macrelq(void);
 static	void movmem(Inst*);
 static	void mid(Inst*, int, int);
-static  void nilref(void);
 extern	void	das(ulong*, int);
-
 
 #define T(r)	*((void**)(R.r))
 
@@ -294,15 +281,13 @@ typedef struct Con Con;
 struct Con
 {
 	int	ptr;
-	Const	table[NCON];
+	Const	table[NCON];	
 };
 static Con rcon;
 
 static void
 rdestroy(void)
 {
-	CHECK_STACK_ALIGN();
-
 	destroy(R.s);
 }
 
@@ -311,8 +296,6 @@ rmcall(void)
 {
 	Frame *f;
 	Prog *p;
-
-	CHECK_STACK_ALIGN();
 
 	if((void*)R.dt == H)
 		error(exModule);
@@ -340,8 +323,6 @@ rmfram(void)
 	Type *t;
 	Frame *f;
 	uchar *nsp;
-
-	CHECK_STACK_ALIGN();
 
 	if(R.d == H)
 		error(exModule);
@@ -451,7 +432,7 @@ ccon(int cc, ulong o, int r, int opt)
 		u = o & ~0xff;
 		if(u == 0) {
 			DPI(cc, Mov, 0, r, 0, o);
-			return;
+			return;		
 		}
 		if(u == ~0xff) {
 			DPI(cc, Mvn, 0, r, 0, ~o);
@@ -682,7 +663,7 @@ literal(ulong imm, int roff)
 		return;
 
 	*litpool = imm;
-	litpool++;
+	litpool++;	
 }
 
 static void
@@ -698,20 +679,10 @@ schedcheck(Inst *i)
 }
 
 static void
-bounds(int r0, int r1, int r2, int r3)
+bounds(void)
 {
-#ifdef DEBUGVM
-	print("r0=%ux r1=%ux r2=%ux r3=%ux\n", r0, r1, r2, r3);
-	print("r1->len=%ux\n", ((Array*)r1)->len);
-#endif
 	/* mem(Stw, O(REG,FP), RREG, RFP); */
 	error(exBounds);
-}
-
-static void
-nilref(void)
-{
-	error(exNilref);
 }
 
 static void
@@ -769,7 +740,6 @@ punt(Inst *i, int m, void (*fn)(void))
 		mem(Ldw, O(REG, t), RREG, RA0);
 		CMPI(AL, RA0, 0, 0, 0);
 		memc(NE, Ldw, O(REG, xpc), RREG, RLINK);
-		CRESTORE_REGS(NE);
 		CRETURN(NE);		/* if(R.t) goto(R.xpc) */
 	}
 	mem(Ldw, O(REG, FP), RREG, RFP);
@@ -940,7 +910,7 @@ cbraf(Inst *i, int r)
 		if(pass){print("%D\n", i); das(s, code-s);}
 	}else
 		punt(i, SRCOP|THREOP|DBRAN|NEWPC|WRTPC, optab[i->op]);
-}
+}	
 
 static void
 comcase(Inst *i, int w)
@@ -957,7 +927,7 @@ comcase(Inst *i, int w)
 	t = (WORD*)(mod->origmp+i->d.ind+4);
 	l = t[-1];
 
-	/* have to take care not to relocate the same table twice -
+	/* have to take care not to relocate the same table twice - 
 	 * the limbo compiler can duplicate a case instruction
 	 * during its folding phase
 	 */
@@ -1088,7 +1058,6 @@ movloop(Inst *i, int s)
 
 	b = (s==1);
 	opwst(i, Lea, RA2);
-        NOTNIL(RA2);
 	LDxP(AL, RA1, RA0, s, b);
 	STxP(AL, RA2, RA0, s, b);
 	DPI(AL, Sub, RA3, RA3, 0, 1) | SBIT;
@@ -1141,64 +1110,8 @@ static
 void
 compdbg(void)
 {
-//	print("%s:%lux@%.8lux\n", R.M->m->name, *(ulong*)R.m, *(ulong*)R.s);
-	print("%s:%lud\t\t%D\n", R.M->m->name, *(ulong*)R.m, *(ulong*)R.s);
-//[*(ulong*)R.m]
-//  	print("%s@%.8lux %D\n", R.M->m->name, *(ulong*)R.s, *(Inst**)R.m);
+	print("%s:%lud@%.8lux\n", R.M->m->name, *(ulong*)R.m, *(ulong*)R.s);
 }
-
-typedef struct Step {
-	Inst i;
-	Inst* modprog;
-	WORD pc;
-	ulong* code;
-} Step;
-
-#ifdef DEBUGVM
-
-static
-void
-before(void)
-{
-	extern void statebefore(char* o, int n, uchar op, Inst* modprog);
-
-	CHECK_STACK_ALIGN();
-
-	//void statebefore(char* o, int n, uchar op)
-	char sz[100], sz2[200];
-	Step*step = *(Step**)R.t;
-	Inst*i = &step->i;
-
-	print("\n");
-
-	snprint(sz, sizeof(sz), "%s_%uX:", R.M->m->name, step->pc );
-	statebefore(sz2, sizeof(sz2), i->op, step->modprog);
-	print("%-16s", sz);
-//	print("%08x:", step->code);
-
-	print("\t%02ux %02ux %04ux %08ux %08ux", i->op, i->add, i->reg, i->s.imm, i->d.imm);
-	print("\t%-40D", i);
-	print("\t%s", sz2);
-
-}
-
-static
-void
-after(void)
-{
-	extern void stateafter(char* o, int n, uchar op);
-
-	CHECK_STACK_ALIGN();
-
-	char sz2[200];
-	Step*step = *(Step**)R.t;
-	Inst*i = &step->i;
-
-	stateafter(sz2, sizeof(sz2), i->op);
-	print("%s", sz2);
-}
-#endif
-
 
 static void
 comgoto(Inst *i)
@@ -1228,24 +1141,16 @@ comp(Inst *i)
 	int r, imm;
 	char buf[64];
 //ulong *s = code;
-#ifdef DEBUGVM
-	Step*step = malloc(sizeof(Step));
-	step->i = *i;
-	step->modprog = mod->prog;
-	step->pc = i-mod->prog;
-	step->code = code;
-	int m = 0;
-	if(USRC(i->add)!=AXXX) m |= SRCOP;
-	if(UDST(i->add)!=AXXX) m |= DSTOP;
-//  	if(!(i->op==IINDF || i->op==IINDB || i->op==IINDW || i->op==IINDL || i->op==IINDX)) // result in m
-  	m |= THREOP;
-
-	literal((int)step, O(REG, t));
-  	punt(i, m, before);
-
-	flushcon(1);
-	NOP(); /* just a marker for disasm readability */
-#endif
+	if(0) {
+		Inst xx;
+		xx.add = AXIMM|SRC(AIMM);
+		xx.s.imm = (ulong)code;
+		xx.reg = i-mod->prog;
+		puntpc = 0;
+		punt(&xx, SRCOP, compdbg);
+		puntpc = 1;
+		flushcon(1);
+	}
 	flushchk();
 
 	switch(i->op) {
@@ -1381,7 +1286,6 @@ comp(Inst *i)
 */
 	case IMOVM:
 		opwld(i, Lea, RA1);
-		NOTNIL(RA1);
 		movmem(i);
 		break;
 	case IFRAME:
@@ -1488,7 +1392,7 @@ comp(Inst *i)
 		break;
 	case IBEQW:
 		cbra(i, EQ);
-		break;
+		break;		
 	case IBNEW:
 		cbra(i, NE);
 		break;
@@ -1665,25 +1569,25 @@ comp(Inst *i)
 		}
 		opwst(i, Stw, RA3);
 		break;
-#if 1
 	case IINDL:
 	case IINDF:
 	case IINDW:
 	case IINDB:
-		punt(i, SRCOP|DSTOP|THREOP, optab[i->op]);
-		break;
-#else
-	// a yet unknown bug here
-	case IINDL:
-	case IINDF: r = 3; goto iind;
-	case IINDW: r = 2; goto iind;
-	case IINDB: r = 0;
-	iind:
 		opwld(i, Ldw, RA0);			/* a */
 		NOTNIL(RA0);
 		mem(Ldw, O(Array, data), RA0, RA0);
 		if(bflag)
 			mem(Ldw, O(Array, len), RA0, RA2);
+		r = 0;
+		switch(i->op) {
+		case IINDL:
+		case IINDF:
+			r = 3;
+			break;
+		case IINDW:
+			r = 2;
+			break;
+		}
 		if(UXDST(i->add) == DST(AIMM) && FITS8(i->d.imm<<r)) {
 			if(bflag)
 				BCKI(i->d.imm, RA2);
@@ -1696,7 +1600,6 @@ comp(Inst *i)
 		}
 		mid(i, Stw, RA0);
 		break;
-#endif
 	case IINDX:
 		opwld(i, Ldw, RA0);			/* a */
 		NOTNIL(RA0);
@@ -1732,12 +1635,12 @@ comp(Inst *i)
 		opwld(i, Ldw, RA1);
 		opwst(i, Lea, RA2);
 		DP(AL, Mov, 0, RA0, (0<<3)|(2<<1), RA1);	// ASR 32
-		STW(AL, RA2, RA0, 4);   // little endian
-		STW(AL, RA2, RA1, 0);
+		STW(AL, RA2, RA0, 0);
+		STW(AL, RA2, RA1, 4);
 		break;
 	case ICVTLW:
 		opwld(i, Lea, RA0);
-		mem(Ldw, 0, RA0, RA0);	// little endian
+		mem(Ldw, 4, RA0, RA0);
 		opwst(i, Stw, RA0);
 		break;
 	case IBEQL:
@@ -1843,13 +1746,6 @@ comp(Inst *i)
 		punt(i, DSTOP, optab[i->op]);
 		break;
 	}
-#ifdef DEBUGVM
-	NOP();
-	literal((int)step, O(REG, t));
-  	punt(i, 0, after);
-
-	flushcon(1);
-#endif
 }
 
 static void
@@ -1858,11 +1754,11 @@ preamble(void)
 	if(comvec)
 		return;
 
-	comvec = malloc(11 * sizeof(*code));
+	comvec = malloc(10 * sizeof(*code));
 	if(comvec == nil)
 		error(exNomem);
 	code = (ulong*)comvec;
-	SAVE_REGS();
+
 	con((ulong)&R, RREG, 0);
 	mem(Stw, O(REG, xpc), RREG, RLINK);
 	mem(Ldw, O(REG, FP), RREG, RFP);
@@ -1872,7 +1768,7 @@ preamble(void)
 	flushcon(0);
 	pass--;
 
-	segflush(comvec, 11 * sizeof(*code));
+	segflush(comvec, 10 * sizeof(*code));
 }
 
 static void
@@ -2026,7 +1922,6 @@ macret(void)
 	mem(Stw, O(REG,PC),RREG, RA1);	// R.PC = fp->lr
 	mem(Stw, O(REG,FP),RREG, RFP);	// R.FP = RFP
 	mem(Ldw, O(REG, xpc), RREG, RLINK);
-	RESTORE_REGS();
 	RETURN;		// return to xec uncompiled code
 
 	PATCH(cp1);
@@ -2073,7 +1968,6 @@ macmcal(void)
 	mem(Stw, O(REG,FP),RREG, RFP);	// R.FP = RFP
 	mem(Stw, O(REG,PC),RREG, RA0);	// R.PC = RPC
 	mem(Ldw, O(REG, xpc), RREG, RLINK);
-	RESTORE_REGS();
 	RETURN;		// return to xec uncompiled code
 	flushcon(0);
 }
@@ -2135,7 +2029,6 @@ macrelq(void)
 	mem(Stw, O(REG,FP),RREG, RFP);	// R.FP = RFP
 	mem(Stw, O(REG,PC),RREG, RLINK);	// R.PC = RLINK
 	mem(Ldw, O(REG, xpc), RREG, RLINK);
-	RESTORE_REGS();
 	RETURN;
 }
 

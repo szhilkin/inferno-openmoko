@@ -1,6 +1,6 @@
 <../../../mkconfig
 
-LIBNAME=libflate.a
+LIB=libflate.a
 OFILES=\
 	deflate.$O\
 	deflatezlib.$O\

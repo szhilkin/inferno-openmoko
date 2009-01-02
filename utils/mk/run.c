@@ -29,7 +29,7 @@ run(Job *j)
 		for(jj = jobs; jj->next; jj = jj->next)
 			;
 		jj->next = j;
-	} else
+	} else 
 		jobs = j;
 	j->next = 0;
 	/* this code also in waitup after parse redirect */
@@ -278,7 +278,7 @@ static long tick;
 void
 usage(void)
 {
-	time_t t;
+	long t;
 
 	time(&t);
 	if(tick)

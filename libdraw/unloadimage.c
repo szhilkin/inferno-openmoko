@@ -1,11 +1,10 @@
-#include <lib9.h>
-#include <draw.h>
-#include <kernel.h>
-#include <isa.h>
-#include <interp.h>
+#include "lib9.h"
+#include "draw.h"
+#include "kernel.h"
+#include "interp.h"
 
 int
-unloadimage(Image *i, Rectangle r, char *data, int ndata)
+unloadimage(Image *i, Rectangle r, uchar *data, int ndata)
 {
 	int bpl, n, ntot, dy;
 	uchar *a;

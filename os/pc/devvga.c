@@ -35,12 +35,11 @@ enum {
 };
 
 static Dirtab vgadir[Qmax] = {
-	".",		{ Qdir, 0, QTDIR },	0,	0550,
-	"vgactl",	{ Qvgactl, 0 },		0,	0660,
-	"vgaovl",	{ Qvgaovl, 0 },		0,	0660,
+	".",	{ Qdir, 0, QTDIR },		0,	0550,
+	"vgactl",		{ Qvgactl, 0 },		0,	0660,
+	"vgaovl",		{ Qvgaovl, 0 },		0,	0660,
 	"vgaovlctl",	{ Qvgaovlctl, 0 },	0, 	0660,
 	/* dynamically-created memory segments are added here */
-	/* MAYBE: cgamem, cgacaret(pos,size,blink), cgaborder */
 };
 
 static Vgaseg vgasegs[Nvgaseg];
@@ -55,7 +54,7 @@ enum {
 	CMhwaccel,
 	CMhwblank,
 	CMhwgc,
-	CMlinear,   /* to be removed: assume it is always linear */
+	CMlinear,
 	CMpalettedepth,
 	CMpanning,
 	CMsize,
@@ -84,9 +83,9 @@ vgareset(void)
 {
 	/* reserve the 'standard' vga registers */
 	if(ioalloc(0x2b0, 0x2df-0x2b0+1, 0, "vga") < 0)
-		panic("vga ports already allocated");
+		panic("vga ports already allocated"); 
 	if(ioalloc(0x3c0, 0x3da-0x3c0+1, 0, "vga") < 0)
-		panic("vga ports already allocated");
+		panic("vga ports already allocated"); 
 	conf.monitor = 1;
 }
 
@@ -253,7 +252,7 @@ vgaopen(Chan* c, int omode)
 	if ((ulong)c->qid.path == Qvgaovlctl) {
 		if (scr->dev && scr->dev->ovlctl)
 			scr->dev->ovlctl(scr, c, openctl, strlen(openctl));
-		else
+		else 
 			error(Enonexist);
 	}
 	return devopen(c, omode, vgadir, nvgadir, devgen);
@@ -327,7 +326,7 @@ vgaread(Chan* c, void* a, long n, vlong off)
 				scr->gscreen->r.max.x, scr->gscreen->r.max.y,
 				scr->gscreen->depth, chantostr(chbuf, scr->gscreen->chan));
 
-			if(Dx(scr->gscreen->r) != Dx(physgscreenr)
+			if(Dx(scr->gscreen->r) != Dx(physgscreenr) 
 			|| Dy(scr->gscreen->r) != Dy(physgscreenr))
 				len += snprint(p+len, READSTR-len, "actualsize %dx%d\n",
 					physgscreenr.max.x, physgscreenr.max.y);
@@ -397,21 +396,12 @@ vgactl(Cmdbuf *cb)
 			scr->cur = vgacur[i];
 			if(scr->cur->enable)
 				scr->cur->enable(scr);
-			setcursor(&arrow); /* perhaps there is a better place to upload cursor */
 			unlock(&cursor);
 			return;
 		}
 		break;
 
 	case CMtype:
-		 /* echo 'type cga' > '#v/vgactl' */
-		if(!strcmp(cb->f[1], "cga")) {
-			if(scr->dev && scr->dev->disable)
-				scr->dev->disable(scr);
-			scr->dev = 0;
-			screeninit();
-			return;
-		}
 		for(i = 0; vgadev[i]; i++){
 			if(strcmp(cb->f[1], vgadev[i]->name))
 				continue;
@@ -419,12 +409,7 @@ vgactl(Cmdbuf *cb)
 				scr->dev->disable(scr);
 			scr->dev = vgadev[i];
 			if(scr->dev->enable)
-				if(scr->dev->enable(scr))
-				{
-					scr->dev = 0;
-					screeninit();
-					cmderror(cb, "error setting type");
-				}
+				scr->dev->enable(scr);
 			return;
 		}
 		break;
@@ -432,9 +417,6 @@ vgactl(Cmdbuf *cb)
 	case CMsize:
 		if(drawhasclients())
 			error(Ebusy);
-
-		if(!scr->dev)
-			error(Ebadarg);
 
 		x = strtoul(cb->f[1], &p, 0);
 		if(x == 0 || x > 2048)
@@ -485,7 +467,7 @@ vgactl(Cmdbuf *cb)
 		physgscreenr = Rect(0,0,x,y);
 		scr->gscreen->clipr = physgscreenr;
 		return;
-
+	
 	case CMpalettedepth:
 		x = strtoul(cb->f[1], &p, 0);
 		if(x != 8 && x != 6)
@@ -495,13 +477,11 @@ vgactl(Cmdbuf *cb)
 		return;
 
 	case CMdrawinit:
-		if(!scr || !scr->dev)
-			error(Ebadarg);
 		memimagedraw(scr->gscreen, scr->gscreen->r, memblack, ZP, nil, ZP, S);
 		if(scr && scr->dev && scr->dev->drawinit)
 			scr->dev->drawinit(scr);
 		return;
-
+	
 	case CMlinear:
 		if(cb->nf!=2 && cb->nf!=3)
 			error(Ebadarg);
@@ -517,11 +497,11 @@ vgactl(Cmdbuf *cb)
 	case CMblank:
 		drawblankscreen(1);
 		return;
-
+	
 	case CMunblank:
 		drawblankscreen(0);
 		return;
-
+	
 	case CMblanktime:
 		blanktime = strtoul(cb->f[1], 0, 0);
 		return;
@@ -550,7 +530,7 @@ vgactl(Cmdbuf *cb)
 		else
 			break;
 		return;
-
+	
 	case CMhwblank:
 		if(strcmp(cb->f[1], "on") == 0)
 			hwblank = 1;

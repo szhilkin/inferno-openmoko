@@ -20,14 +20,12 @@
 #define __SFOBJS_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_SFNT_H
+#include FT_INTERNAL_OBJECTS_H
 
-#include <freetype/internal/sfnt.h>
-#include <freetype/internal/ftobjs.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_LOCAL( FT_Error )
@@ -48,9 +46,7 @@ extern "C" {
   sfnt_done_face( TT_Face  face );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __SFDRIVER_H__ */
 

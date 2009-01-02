@@ -2,7 +2,7 @@
 static char t16e[] = "0123456789ABCDEF";
 
 int
-dec16(uchar *out, int lim, const char *in, int n)
+dec16(uchar *out, int lim, char *in, int n)
 {
 	int c, w = 0, i = 0;
 	uchar *start = out;
@@ -33,7 +33,7 @@ exhausted:
 }
 
 int
-enc16(char *out, int lim, const uchar *in, int n)
+enc16(char *out, int lim, uchar *in, int n)
 {
 	uint c;
 	char *eout = out + lim;

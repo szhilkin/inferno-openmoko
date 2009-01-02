@@ -1,12 +1,12 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <sysmod.h>
-#include <raise.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "runt.h"
+#include "sysmod.h"
+#include "raise.h"
 
 
-static	int		utfnleng(const char*, int, int*);
+static	int		utfnleng(char*, int, int*);
 
 void
 sysmodinit(void)
@@ -16,21 +16,22 @@ sysmodinit(void)
 }
 
 int
-xprint(Prog *xp, const void* vfp, const void* vva, String *s1, char *buf, int n)
+xprint(Prog *xp, void *vfp, void *vva, String *s1, char *buf, int n)
 {
-	DISINT i;
+	WORD i;
 	void *p;
-	DISBIG bg;
+	LONG bg;
 	Type *t;
 	double d;
 	String *ss;
 	ulong *ptr;
+	uchar *fp, *va;
 	int nc, c, isbig, isr, sip;
 	char *b, *eb, *f, fmt[32];
 	Rune r;
 
-	const char *fp = vfp;
-	const char *va = vva;
+	fp = vfp;
+	va = vva;
 
 	sip = 0;
 	isr = 0;
@@ -68,10 +69,10 @@ xprint(Prog *xp, const void* vfp, const void* vva, String *s1, char *buf, int n)
 			default:
 				continue;
 			case '*':
-				i = *(DISINT*)va;
+				i = *(WORD*)va;
 				f--;
 				f += snprint(f, sizeof(fmt)-(f-fmt), "%d", i);
-				va += sizeof(DISINT);
+				va += IBY2WD;
 				continue;
 			case 'b':
 				f[-1] = 'l';
@@ -86,7 +87,7 @@ xprint(Prog *xp, const void* vfp, const void* vva, String *s1, char *buf, int n)
 			case 'q':
 			case 's':
 				ss = *(String**)va;
-				va += sizeof(String*);
+				va += IBY2WD;
 				if(ss == H)
 					p = "";
 				else
@@ -111,11 +112,11 @@ xprint(Prog *xp, const void* vfp, const void* vva, String *s1, char *buf, int n)
 			case 'f':
 			case 'g':
 			case 'G':
-				while((va - fp) & (sizeof(DISREAL)-1))
+				while((va - fp) & (sizeof(REAL)-1))
 					va++;
-				d = *(DISREAL*)va;
+				d = *(REAL*)va;
 				b += snprint(b, eb-b, fmt, d);
-				va += sizeof(DISREAL);
+				va += sizeof(REAL);
 				break;
 			case 'd':
 			case 'o':
@@ -123,19 +124,19 @@ xprint(Prog *xp, const void* vfp, const void* vva, String *s1, char *buf, int n)
 			case 'X':
 			case 'c':
 				if(isbig) {
-					while((va - fp) & (sizeof(DISBIG)-1)) /* WTF */
+					while((va - fp) & (IBY2LG-1))
 						va++;
-					bg = *(DISBIG*)va;
+					bg = *(LONG*)va;
 					b += snprint(b, eb-b, fmt, bg);
-					va += sizeof(DISBIG);
+					va += IBY2LG;
 				}
 				else {
-					i = *(DISINT*)va;
+					i = *(WORD*)va;
 					/* always a unicode character */
 					if(c == 'c')
 						f[-1] = 'C';
 					b += snprint(b, eb-b, fmt, i);
-					va += sizeof(DISINT);
+					va += IBY2WD;
 				}
 				break;
 			case 'r':
@@ -150,8 +151,8 @@ xprint(Prog *xp, const void* vfp, const void* vva, String *s1, char *buf, int n)
 					c = D2H(ptr)->ref;
 					t = D2H(ptr)->t;
 				}
-				b += snprint(b, eb-b, "%d.%.8p", c, t);
-				va += sizeof(void*);
+				b += snprint(b, eb-b, "%d.%.8lux", c, (ulong)t);
+				va += IBY2WD;
 				break;
 			}
 			break;
@@ -161,7 +162,7 @@ xprint(Prog *xp, const void* vfp, const void* vva, String *s1, char *buf, int n)
 }
 
 int
-bigxprint(Prog *xp, const void *vfp, const void *vva, String *s1, char **buf, int s)
+bigxprint(Prog *xp, void *vfp, void *vva, String *s1, char **buf, int s)
 {
 	char *b;
 	int m, n;
@@ -169,7 +170,7 @@ bigxprint(Prog *xp, const void *vfp, const void *vva, String *s1, char **buf, in
 	m = s;
 	for (;;) {
 		m *= 2;
-		b = (char*)malloc(m);
+		b = malloc(m);
 		if (b == nil)
 			error(exNomem);
 		n = xprint(xp, vfp, vva, s1, b, m);
@@ -181,11 +182,14 @@ bigxprint(Prog *xp, const void *vfp, const void *vva, String *s1, char **buf, in
 	return n;
 }
 
-DISAPI(Sys_sprint)
+void
+Sys_sprint(void *fp)
 {
 	int n;
-	char buf[256], *b = buf; /* FIXME: small buffer */
+	char buf[256], *b = buf;
+	F_Sys_sprint *f;
 
+	f = fp;
 	n = xprint(currun(), f, &f->vargs, f->s, buf, sizeof(buf));
 	if (n >= sizeof(buf)-UTFmax-2)
 		n = bigxprint(currun(), f, &f->vargs, f->s, &b, sizeof(buf));
@@ -195,25 +199,29 @@ DISAPI(Sys_sprint)
 		free(b);
 }
 
-DISAPI(Sys_aprint)
+void
+Sys_aprint(void *fp)
 {
 	int n;
-	char buf[256], *b = buf; /* FIXME: small buffer */
+	char buf[256], *b = buf;
+	F_Sys_aprint *f;
 
+	f = fp;
 	n = xprint(currun(), f, &f->vargs, f->s, buf, sizeof(buf));
 	if (n >= sizeof(buf)-UTFmax-2)
 		n = bigxprint(currun(), f, &f->vargs, f->s, &b, sizeof(buf));
-	ASSIGN(*f->ret, mem2array(b, n));
+	destroy(*f->ret);
+	*f->ret = mem2array(b, n);
 	if (b != buf)
 		free(b);
 }
 
 static int
-tokdelim(int c, const String *d)
+tokdelim(int c, String *d)
 {
 	int l;
-	const char *p;
-	const Rune *r;
+	char *p;
+	Rune *r;
 
 	l = d->len;
 	if(l < 0) {
@@ -229,21 +237,27 @@ tokdelim(int c, const String *d)
 	return 0;
 }
 
-DISAPI(Sys_tokenize)
+void
+Sys_tokenize(void *fp)
 {
-	const String * const s = f->s;
-	const String * const d = f->delim;
+	String *s, *d;
 	List **h, *l, *nl;
+	F_Sys_tokenize *f;
 	int n, c, nc, first, last, srune;
+
+	f = fp;
+	s = f->s;
+	d = f->delim;
 
 	if(s == H || d == H) {
 		f->ret->t0 = 0;
-		ASSIGN(f->ret->t1, (List*)H);
+		destroy(f->ret->t1);
+		f->ret->t1 = H;
 		return;
 	}
 
 	n = 0;
-	l = (List*)H;
+	l = H;
 	h = &l;
 	first = 0;
 	srune = 0;
@@ -258,7 +272,7 @@ DISAPI(Sys_tokenize)
 		while(first < nc) {
 			c = srune ? s->Srune[first] : s->Sascii[first];
 			if(tokdelim(c, d) == 0)
-				break;
+				break;	
 			first++;
 		}
 
@@ -267,18 +281,18 @@ DISAPI(Sys_tokenize)
 		while(last < nc) {
 			c = srune ? s->Srune[last] : s->Sascii[last];
 			if(tokdelim(c, d) != 0)
-				break;
+				break;	
 			last++;
 		}
 
 		if(first == last)
 			break;
 
-		nl = cons(sizeof(String*), h);
-		nl->tail = (List*)H;
+		nl = cons(IBY2WD, h);
+		nl->tail = H;
 		nl->t = &Tptr;
 		Tptr.ref++;
-		nl->data.pstring = slicer(first, last, s);
+		*(String**)nl->data = slicer(first, last, s);
 		h = &nl->tail;
 
 		first = last;
@@ -286,32 +300,40 @@ DISAPI(Sys_tokenize)
 	}
 
 	f->ret->t0 = n;
-	ASSIGN(f->ret->t1, l);
+	destroy(f->ret->t1);
+	f->ret->t1 = l;
 }
 
-DISAPI(Sys_utfbytes)
+void
+Sys_utfbytes(void *fp)
 {
-	Array * const a = f->buf;
+	Array *a;
 	int nbyte;
+	F_Sys_utfbytes *f;
 
-	if(a == H || f->n<0 || f->n >= a->len)
+	f = fp;
+	a = f->buf;
+	if(a == H || (UWORD)f->n > a->len)
 		error(exBounds);
 
-	utfnleng(a->data, f->n, &nbyte);
+	utfnleng((char*)a->data, f->n, &nbyte);
 	*f->ret = nbyte;
 }
 
-DISAPI(Sys_byte2char)
+void
+Sys_byte2char(void *fp)
 {
-	Array * const a = f->buf;
-	const int n = f->n;
 	Rune r;
-	const char *p;
-	int w;
+	char *p;
+	int n, w;
+	Array *a;
+	F_Sys_byte2char *f;
 
-	if(a == H || n<0 || n >= a->len)
+	f = fp;
+	a = f->buf;
+	n = f->n;
+	if(a == H || (UWORD)n >= a->len)
 		error(exBounds);
-
 	r = a->data[n];
 	if(r < Runeself){
 		f->ret->t0 = r;
@@ -319,7 +341,7 @@ DISAPI(Sys_byte2char)
 		f->ret->t2 = 1;
 		return;
 	}
-	p = a->data + n;
+	p = (char*)a->data+n;
 	if(n+UTFmax <= a->len || fullrune(p, a->len-n))
 		w = chartorune(&r, p);
 	else {
@@ -340,16 +362,20 @@ DISAPI(Sys_byte2char)
 	f->ret->t2 = 1;
 }
 
-DISAPI(Sys_char2byte)
+void
+Sys_char2byte(void *fp)
 {
-	Array * const a = f->buf;
-	const int n = f->n;
-	int c = f->c;
+	F_Sys_char2byte *f;
+	Array *a;
+	int n, c;
 	Rune r;
 
-	if(a == H || n<0 || n>=a->len)
+	f = fp;
+	a = f->buf;
+	n = f->n;
+	c = f->c;
+	if(a == H || (UWORD)n>=a->len)
 		error(exBounds);
-
 	if(c<0 || c>=(1<<16))
 		c = Runeerror;
 	if(c < Runeself){
@@ -366,9 +392,9 @@ DISAPI(Sys_char2byte)
 }
 
 Module *
-builtinmod(const char *name, const Runtab *vr, int rlen)
+builtinmod(char *name, void *vr, int rlen)
 {
-	const Runtab *r = vr;
+	Runtab *r = vr;
 	Type *t;
 	Module *m;
 	Link *l;
@@ -387,8 +413,7 @@ builtinmod(const char *name, const Runtab *vr, int rlen)
 		return nil;
 	}
 	while(r->name) {
-		t = dtype(freeheap, r->size, r->map, r->np, r->name); /* Frame of function r->name */
-		/* BUG: t may be nil */
+		t = dtype(freeheap, r->size, r->map, r->np);
 		runtime(m, l, r->name, r->sig, r->fn, t);
 		r++;
 		l++;
@@ -398,42 +423,46 @@ builtinmod(const char *name, const Runtab *vr, int rlen)
 }
 
 void
-retnstr(const char *s, int n, String **d)
+retnstr(char *s, int n, String **d)
 {
-	String *s1 = (String *)H;
+	String *s1;
 
+	s1 = H;
 	if(n != 0)
 		s1 = c2string(s, n);
-	ASSIGN(*d, s1);
+	destroy(*d);
+	*d = s1;
 }
 
 void
-retstr(const char *s, String **d)
+retstr(char *s, String **d)
 {
-	String *s1 = (String *)H;
+	String *s1;
 
+	s1 = H;
 	if(s != nil)
 		s1 = c2string(s, strlen(s));
-	ASSIGN(*d, s1);
+	destroy(*d);
+	*d = s1;
 }
 
 Array*
-mem2array(const void *va, int n)
+mem2array(void *va, int n)
 {
 	Heap *h;
 	Array *a;
 
 	if(n < 0)
 		n = 0;
-	h = nheap(sizeof(Array)+n); /* FIXME: make function createarray() */
+	h = nheap(sizeof(Array)+n);
 	h->t = &Tarray;
 	h->t->ref++;
 	a = H2D(Array*, h);
 	a->t = &Tbyte;
 	Tbyte.ref++;
 	a->len = n;
-	a->root = (Array*)H;
-	a->data = (char*)a+sizeof(Array);
+	a->root = H;
+	a->data = (uchar*)a+sizeof(Array);
 	if(va != 0)
 		memmove(a->data, va, n);
 
@@ -441,12 +470,12 @@ mem2array(const void *va, int n)
 }
 
 static int
-utfnleng(const char *s, int nb, int *ngood)
+utfnleng(char *s, int nb, int *ngood)
 {
 	int c;
 	long n;
 	Rune rune;
-	const char *es, *starts;
+	char *es, *starts;
 
 	starts = s;
 	es = s+nb;

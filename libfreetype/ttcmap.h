@@ -20,13 +20,11 @@
 #define __TTCMAP_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_TRUETYPE_TYPES_H
 
-#include <freetype/internal/tttypes.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_LOCAL( FT_Error )
@@ -39,9 +37,7 @@ extern "C" {
                         TT_CMapTable  cmap );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __TTCMAP_H__ */
 

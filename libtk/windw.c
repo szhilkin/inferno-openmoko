@@ -1,20 +1,15 @@
-#include <lib9.h>
-#include <draw.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
-#include <textw.h>
-#include <kernel.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
+#include "textw.h"
+#include "kernel.h"
 
 TkCtxt*
 tknewctxt(Display *d)
 {
 	TkCtxt *c;
-	c = (TkCtxt *)malloc(sizeof(TkCtxt));
+	c = malloc(sizeof(TkCtxt));
 	if(c == nil)
 		return nil;
 	c->lock = libqlalloc();
@@ -63,7 +58,7 @@ tkitmp(TkEnv *e, Point p, int fillcol)
 	Rectangle r;
 	ulong pix;
 	int alpha;
-
+	
 	t = e->top;
 	ti = t->ctxt;
 	d = t->display;
@@ -305,7 +300,7 @@ tkdrawslaves1(Tk *tk, Point orig, Image *dst, int *dirty)
 		replclipr(dst, 0, oclip);
 	return e;
 }
-
+	
 char*
 tkdrawslaves(Tk *tk, Point orig, int *dirty)
 {
@@ -494,11 +489,10 @@ tktopopt(Tk *tk, char *opt)
 }
 
 /* general compare - compare top-left corners, y takes priority */
-static int __cdecl
-tkfcmpgen(const void *ap, const void *bp)
+static int
+tkfcmpgen(void *ap, void *bp)
 {
-	const TkWinfo *a = (const TkWinfo *)ap;
-	const TkWinfo *b = (const TkWinfo *)bp;
+	TkWinfo *a = ap, *b = bp;
 
 	if (a->r.min.y > b->r.min.y)
 		return 1;
@@ -512,20 +506,18 @@ tkfcmpgen(const void *ap, const void *bp)
 }
 
 /* compare x-coords only */
-static int __cdecl
-tkfcmpx(const void *ap, const void *bp)
+static int
+tkfcmpx(void *ap, void *bp)
 {
-	const TkWinfo *a = (const TkWinfo *)ap;
-	const TkWinfo *b = (const TkWinfo *)bp;
+	TkWinfo *a = ap, *b = bp;
 	return a->r.min.x - b->r.min.x;
 }
 
 /* compare y-coords only */
-static int __cdecl
-tkfcmpy(const void *ap, const void *bp)
+static int
+tkfcmpy(void *ap, void *bp)
 {
-	const TkWinfo *a = (const TkWinfo *)ap;
-	const TkWinfo *b = (const TkWinfo *)bp;
+	TkWinfo *a = ap, *b = bp;
 	return a->r.min.y - b->r.min.y;
 }
 
@@ -548,7 +540,7 @@ tksortfocusorder(TkWinfo *inf, int n)
 {
 	int i;
 	Rectangle overlap, r;
-	int (__cdecl *cmpfn)(const void*, const void*);
+	int (*cmpfn)(void*, void*);
 
 	overlap = inf[0].r;
 	for (i = 0; i < n; i++) {
@@ -597,7 +589,7 @@ tkbuildfocusorder(TkTop *tkt)
 		return;
 	}
 
-	tkt->focusorder = (Tk**)malloc(sizeof(*tkt->focusorder) * n);
+	tkt->focusorder = malloc(sizeof(*tkt->focusorder) * n);
 	tkt->nfocus = 0;
 	if (tkt->focusorder == nil)
 		return;
@@ -613,6 +605,9 @@ tkdirtyfocusorder(TkTop *tkt)
 	tkt->nfocus = 0;
 }
 
+#define	O(t, e)		((long)(&((t*)0)->e))
+#define OA(t, e)	((long)(((t*)0)->e))
+
 typedef struct TkSee TkSee;
 struct TkSee {
 	int r[4];
@@ -622,9 +617,9 @@ struct TkSee {
 
 static
 TkOption seeopts[] = {
-	{"rectangle",		OPTfrac,	offsetof(TkSee, r),	{(TkStab*)4}},
-	{"point",		OPTfrac,	offsetof(TkSee, p),	{(TkStab*)2}},
-	{"where",		OPTbool,	offsetof(TkSee, query)	},
+	{"rectangle",		OPTfrac,	OA(TkSee, r),	IAUX(4)},
+	{"point",			OPTfrac,	OA(TkSee, p),	IAUX(2)},
+	{"where",			OPTbool,	O(TkSee, query),	nil},
 	{nil}
 };
 
