@@ -1,6 +1,6 @@
 <../mkconfig
 
-LIBNAME=libdraw.a
+LIB=libdraw.a
 
 OFILES=	alloc.$O\
 	allocimagemix.$O\
@@ -51,3 +51,4 @@ HFILES=\
 	$ROOT/include/interp.h\
 
 <$ROOT/mkfiles/mksyslib-$SHELLTYPE
+

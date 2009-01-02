@@ -11,8 +11,8 @@
  * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
-#include <lib9.h>
-#include <fmtdef.h>
+#include "lib9.h"
+#include "fmtdef.h"
 
 enum
 {
@@ -34,28 +34,28 @@ struct
 } fmtalloc;
 
 static Convfmt knownfmt[] = {
-    {' ',    _flagfmt},
-    {'#',    _flagfmt},
-    {'%',    _percentfmt},
-    {'+',    _flagfmt},
-    {',',    _flagfmt},
-    {'-',    _flagfmt},
-    {'C',    _runefmt},
-    {'S',    _runesfmt},
-    {'X',    _ifmt},
-    {'b',    _ifmt},
-    {'c',    _charfmt},
-    {'d',    _ifmt},
-    {'h',    _flagfmt},
-    {'l',    _flagfmt},
-    {'n',    _countfmt},
-    {'o',    _ifmt},
-    {'p',    _ifmt},
-    {'r',    errfmt},
-    {'s',    _strfmt},
-    {'u',    _flagfmt},
-    {'x',    _ifmt},
-    {0,  	nil},
+	' ',	_flagfmt,
+	'#',	_flagfmt,
+	'%',	_percentfmt,
+	'+',	_flagfmt,
+	',',	_flagfmt,
+	'-',	_flagfmt,
+	'C',	_runefmt,
+	'S',	_runesfmt,
+	'X',	_ifmt,
+	'b',	_ifmt,
+	'c',	_charfmt,
+	'd',	_ifmt,
+	'h',	_flagfmt,
+	'l',	_flagfmt,
+	'n',	_countfmt,
+	'o',	_ifmt,
+	'p',	_ifmt,
+	'r',	errfmt,
+	's',	_strfmt,
+	'u',	_flagfmt,
+	'x',	_ifmt,
+	0,	nil,
 };
 
 int	(*doquote)(int);
@@ -115,8 +115,8 @@ fmtinstall(int c, Fmts f)
 	return 0;
 }
 
-const void*
-_fmtdispatch(Fmt *f, const void *fmt, int isrunes)
+void*
+_fmtdispatch(Fmt *f, void *fmt, int isrunes)
 {
 	Rune rune, r;
 	int i, n;

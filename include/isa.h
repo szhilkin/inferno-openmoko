@@ -216,31 +216,27 @@ enum
 
 	DADEPTH = 4,		/* Array address stack size */
 
-	IBY2WD  = 4,    // sizeof DISINT
-	IBY2FT  = 8,    // sizeof DISREAL
-	IBY2LG  = 8,    // sizeof DISBIG
-};
+	REGLINK	= 0,
+	REGFRAME= 1,
+	REGMOD	= 2,
+	REGTYP	= 3,
+	REGRET	= 4,
+	NREG	= 5,
 
-enum ModRtFlags
-{
+	IBY2WD	= 4,
+	IBY2FT	= 8,
+	IBY2LG	= 8,
+
 	MUSTCOMPILE	= (1<<0),
 	DONTCOMPILE	= (1<<1),
 	SHAREMP		= (1<<2),
 	DYNMOD		= (1<<3),
-	HASLDT0		= (1<<4),
+	HASLDT0	= (1<<4),
 	HASEXCEPT	= (1<<5),
-	HASLDT		= (1<<6),
+	HASLDT	= (1<<6),
 };
 
-
-//#define REGLINK	 (offsetof(Frame,lr)/IBY2WD)
-//#define REGFRAME (offsetof(Frame,fp)/IBY2WD)
-//#define REGMOD	 (offsetof(Frame,mr)/IBY2WD)
-//#define REGTYP	 (offsetof(Frame,t)/IBY2WD)
-#define REGRET	 4
-#define NREG	 5
-
-#define DTYPE(x)	(((x)>>4)&0x0F)
+#define DTYPE(x)	(x>>4)
 #define DBYTE(x, l)	((x<<4)|l)
 #define DMAX		(1<<4)
 #define DLEN(x)		(x& (DMAX-1))

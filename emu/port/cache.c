@@ -1,5 +1,5 @@
-#include <dat.h>
-#include <fns.h>
+#include "dat.h"
+#include "fns.h"
 
 /*
  * no cache in hosted mode
@@ -16,7 +16,7 @@ copen(Chan *c)
 }
 
 int
-cread(Chan *c, char *b, int n, vlong off)
+cread(Chan *c, uchar *b, int n, vlong off)
 {
 	USED(c);
 	USED(b);
@@ -26,7 +26,7 @@ cread(Chan *c, char *b, int n, vlong off)
 }
 
 void
-cwrite(Chan *c, char *buf, int n, vlong off)
+cwrite(Chan *c, uchar *buf, int n, vlong off)
 {
 	USED(c);
 	USED(buf);
@@ -35,10 +35,11 @@ cwrite(Chan *c, char *buf, int n, vlong off)
 }
 
 void
-cupdate(Chan *c, char *buf,  int n, vlong off)
+cupdate(Chan *c, uchar *buf,  int n, vlong off)
 {
 	USED(c);
 	USED(buf);
 	USED(n);
 	USED(off);
 }
+

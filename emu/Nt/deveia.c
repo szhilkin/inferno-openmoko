@@ -5,18 +5,19 @@
  *	scan the registry for serial ports?
  */
 
-#include <windows.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <lm.h>
-#include <direct.h>
-
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#define Unknown win_Unknown
+#include	<windows.h>
+#undef Unknown
+#undef	Sleep
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	<sys/types.h>
+#include	<sys/stat.h>
+#include	<fcntl.h>
+#include	<stdio.h>
+#include	<lm.h>
+#include	<direct.h>
 
 // local fcts
 static void openport(int);
@@ -43,7 +44,7 @@ enum
 /*
  *  Macros to manage QIDs
  */
-#define NETTYPE(x)	((x)&0x0F) /* *differs from devpipe.c */
+#define NETTYPE(x)	((x)&0x0F)
 #define NETID(x)	((x)>>4)
 #define NETQID(i,t)	(((i)<<4)|(t))
 
@@ -54,7 +55,7 @@ typedef struct Eia Eia;
 struct Eia {
 	Ref	r;
 	HANDLE      comfh;          //handle to open port
-	int		restore;       //flag to restore prev. states
+	int		restore;       //flag to restore prev. states 
 	DCB		dcb;           //win32 device control block used for restore
 	int		id;            //index to host port name in sysdev
 };
@@ -62,8 +63,8 @@ struct Eia {
 // the same timeouts are used for all ports
 // currently there is no Inferno interface to
 // change the timeouts.
-static COMMTIMEOUTS  timeouts;
-
+static COMMTIMEOUTS  timeouts;  
+                   
 // std win32 serial port names are COM1..COM4
 // however there can be more and they can be
 // named anything. we should be more flexible
@@ -80,7 +81,7 @@ static char* sysdev[] = {
 	"COM8:",
 	NULL
 };
-
+    
 static Eia *eia;
 
 typedef struct OptTable OptTable;
@@ -109,7 +110,7 @@ static OptTable stopbits[] = {
 };
 
 // valid parity settings
-static OptTable cparity[] = {
+static OptTable parity[] = {
 	{"o",    ODDPARITY},
 	{"e",    EVENPARITY},
 	{"s",    SPACEPARITY},
@@ -141,7 +142,7 @@ static void
 eiainit(void)
 {
 	int     i,x;
-	int/*byte*/    ports;   //bitmask of active host ports
+	int     ports;   //bitmask of active host ports
 	int     nports;  //number of active host ports
 	int     max;     //number of highest port
 	Dirtab *dp;
@@ -161,7 +162,7 @@ eiainit(void)
 			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 		if(comfh != INVALID_HANDLE_VALUE) {
-			ports |= 1<<i;
+			ports |= 1<<i;   
 			CloseHandle(comfh);
 			nports++;
 			max = i;
@@ -174,10 +175,10 @@ eiainit(void)
 	// allocate directory table and eia structure
 	// for each active port.
 	ndir = Nqid*nports+1;
-	dp = eiadir = (Dirtab*)calloc(ndir, sizeof(Dirtab));
+	dp = eiadir = malloc(ndir*sizeof(Dirtab));
 	if(dp == 0)
 		panic("eiainit");
-	eia = (Eia*)calloc(nports, sizeof(Eia));
+	eia = malloc(nports*sizeof(Eia));
 	if(eia == 0) {
 		free(dp);
 		panic("eiainit");
@@ -214,7 +215,7 @@ eiainit(void)
 }
 
 static Chan*
-eiaattach(const char *spec)
+eiaattach(char *spec)
 {
 	if(eiadir == nil)
 		error(Enodev);
@@ -223,13 +224,13 @@ eiaattach(const char *spec)
 }
 
 static Walkqid*
-eiawalk(Chan *c, Chan *nc, const char **name, int nname)
+eiawalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	return devwalk(c, nc, name, nname, eiadir, ndir, devgen);
 }
 
 static int
-eiastat(Chan *c, char *db, int n)
+eiastat(Chan *c, uchar *db, int n)
 {
 	return devstat(c, db, n, eiadir, ndir, devgen);
 }
@@ -281,7 +282,7 @@ eiaclose(Chan *c)
 }
 
 static long
-eiaread(Chan *c, char *buf, long n, vlong offset)
+eiaread(Chan *c, void *buf, long n, vlong offset)
 {
 	DWORD cnt;
 	int port = NETID(c->qid.path);
@@ -297,9 +298,9 @@ eiaread(Chan *c, char *buf, long n, vlong offset)
 		// this will give osleave() a chance to detect an
 		// interruption (i.e. killprog)
 		while(cnt==0) {
-  			osenter();
+  			osenter(); 
 			good = ReadFile(eia[port].comfh, buf, n, &cnt, NULL);
-			Sleep(0);  //allow another thread access to port
+			SleepEx(0,FALSE);  //allow another thread access to port
 			osleave();
 			if(!good)
 				oserror();
@@ -315,13 +316,13 @@ eiaread(Chan *c, char *buf, long n, vlong offset)
 }
 
 static long
-eiawrite(Chan *c, const char *buf, long n, vlong offset)
+eiawrite(Chan *c, void *buf, long n, vlong offset)
 {
 	DWORD cnt;
 	char cmd[Maxctl];
 	int port = NETID(c->qid.path);
 	BOOL good;
-	const char *data;
+	uchar *data;
 
 	if(c->qid.type & QTDIR)
 		error(Eperm);
@@ -329,20 +330,20 @@ eiawrite(Chan *c, const char *buf, long n, vlong offset)
 	switch(NETTYPE(c->qid.path)) {
 	case Ndataqid:
 		cnt = 0;
-		data = buf;
+		data = (uchar*)buf;
 		// if WriteFile times out (i.e. return true; cnt<n) then
 		// allow osleave() to check for an interrupt otherwise try
 		// to send the unsent data.
 		while(n>0) {
-	  		osenter();
+	  		osenter(); 
 			good = WriteFile(eia[port].comfh, data, n, &cnt, NULL);
-			osleave();
+			osleave(); 
 			if(!good)
 				oserror();
 			data += cnt;
 			n -= cnt;
 		}
-		return data-buf;
+		return (data-(uchar*)buf);
 	case Nctlqid:
 		if(n >= sizeof(cmd))
 			n = sizeof(cmd)-1;
@@ -355,7 +356,7 @@ eiawrite(Chan *c, const char *buf, long n, vlong offset)
 }
 
 static int
-eiawstat(Chan *c, char *dp, int n)
+eiawstat(Chan *c, uchar *dp, int n)
 {
 	Dir d;
 	int i;
@@ -373,10 +374,6 @@ eiawstat(Chan *c, char *dp, int n)
 		eiadir[i+1].perm = d.mode&0666;
 	return n;
 }
-
-#undef NETID
-#undef NETTYPE
-#undef NETQID
 
 Dev eiadevtab = {
         Devchar,
@@ -403,7 +400,7 @@ Dev eiadevtab = {
 //
 
 /*
- * open the indicated comm port and then set
+ * open the indicated comm port and then set 
  * the default settings for the port.
  */
 static void
@@ -443,7 +440,7 @@ openport(int port)
 		p->dcb.Parity = NOPARITY;
 		p->dcb.StopBits = ONESTOPBIT;
 		p->dcb.fInX = 0;  //default to xoff
-		p->dcb.fOutX = 0;
+		p->dcb.fOutX = 0;  
 		p->dcb.fAbortOnError = 1; //read/write abort on err
 	}
 
@@ -470,7 +467,7 @@ rdstat(int port, void *buf, long n, ulong offset)
 	int frame, overrun, i;
 
 	// valid line control ids
-	enum {
+	static enum {
 		L_CTS, L_DSR, L_RING, L_DCD, L_DTR, L_RTS, L_MAX
 	};
 	int status[L_MAX];
@@ -506,14 +503,14 @@ rdstat(int port, void *buf, long n, ulong offset)
 
 	/* TO DO: mimic native eia driver's first line */
 
-	s = seprint(str, str+sizeof(str), "opens %d ferr %d oerr %d baud %d",
-		    eia[port].r.ref-1,
-			frame,
+	s = seprint(str, str+sizeof(str), "opens %d ferr %d oerr %d baud %d", 
+		    eia[port].r.ref-1, 
+			frame, 
 			overrun,
 		    dcb.BaudRate);
 
 	// add line settings
-	for(i=0; i < L_MAX; i++)
+	for(i=0; i < L_MAX; i++) 
 		if(status[i])
 			s = seprint(s, str+sizeof(str), " %s", lines[i]);
 	seprint(s, str+sizeof(str), "\n");
@@ -545,7 +542,7 @@ wrctl(int port, char *cmd)
 		if(strcmp(f[i], "break") == 0){
 			if(!SetCommBreak(comfh))
 				oserror();
-			Sleep(300);
+			SleepEx((DWORD)300, FALSE);
 			if(!ClearCommBreak(comfh))
 				oserror();
 			continue;
@@ -576,7 +573,7 @@ wrctl(int port, char *cmd)
 			break;
 		case 'F':
 		case 'f':	// flush any untransmitted data
-			if(!PurgeComm(comfh, PURGE_TXCLEAR))
+			if(!PurgeComm(comfh, PURGE_TXCLEAR)) 
 				oserror();
 			break;
 		case 'H':
@@ -593,12 +590,12 @@ wrctl(int port, char *cmd)
 			/* send a break */
 			if(!SetCommBreak(comfh))
 				oserror();
-			Sleep(300);
+			SleepEx((DWORD)300, FALSE);
 			if(!ClearCommBreak(comfh))
 				oserror();
 			break;
 		case 'L':
-		case 'l':	// set bits per byte
+		case 'l':	// set bits per byte 
 			flag = stof(size, f[0]+1);
 			if(flag == BAD)
 				error(Ebadarg);
@@ -616,7 +613,7 @@ wrctl(int port, char *cmd)
 			break;
 		case 'P':
 		case 'p':	// set parity -- even or odd
-			flag = stof(cparity, f[0]+1);
+			flag = stof(parity, f[0]+1);
 			if(flag==BAD)
 				error(Ebadarg);
 			dcb.Parity = (BYTE)flag;

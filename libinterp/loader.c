@@ -1,16 +1,16 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <loadermod.h>
-#include <raise.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "runt.h"
+#include "loadermod.h"
+#include "raise.h"
 #include <kernel.h>
 
-static char	Instmap[] = Loader_Inst_map;
+static uchar	Instmap[] = Loader_Inst_map;
 static Type*	Tinst;
-static char	Tdescmap[] = Loader_Typedesc_map;
+static uchar	Tdescmap[] = Loader_Typedesc_map;
 static Type*	Tdesc;
-static char	Tlinkmap[] = Loader_Link_map;
+static uchar	Tlinkmap[] = Loader_Link_map;
 static Type*	Tlink;
 
 void
@@ -18,9 +18,9 @@ loadermodinit(void)
 {
 	sysinit();
 	builtinmod("$Loader", Loadermodtab, Loadermodlen);
-	Tinst = dtype(freeheap, sizeof(Loader_Inst), Instmap, sizeof(Instmap), "Loader->inst");
-	Tdesc = dtype(freeheap, sizeof(Loader_Typedesc), Tdescmap, sizeof(Tdescmap), "Loader->desc");
-	Tlink = dtype(freeheap, sizeof(Loader_Link), Tlinkmap, sizeof(Tlinkmap), "Loader->link");
+	Tinst = dtype(freeheap, sizeof(Loader_Inst), Instmap, sizeof(Instmap));
+	Tdesc = dtype(freeheap, sizeof(Loader_Typedesc), Tdescmap, sizeof(Tdescmap));
+	Tlink = dtype(freeheap, sizeof(Loader_Link), Tlinkmap, sizeof(Tlinkmap));
 }
 
 static void
@@ -65,15 +65,19 @@ brunpatch(Loader_Inst *ip, Module *m)
 	}
 }
 
-DISAPI(Loader_ifetch)
+void
+Loader_ifetch(void *a)
 {
 	Heap *h;
 	Array *ar;
 	Module *m;
 	Inst *i, *ie;
 	Loader_Inst *li;
+	F_Loader_ifetch *f;
 
-	ASSIGN(*f->ret, H);
+	f = a;
+	destroy(*f->ret);
+	*f->ret = H;
 
 	if(f->mp == H)
 		return;
@@ -92,8 +96,8 @@ DISAPI(Loader_ifetch)
 	ar->t = Tinst;
 	Tinst->ref++;
 	ar->len = m->nprog;
-	ar->root = (Array*)H;
-	ar->data = (char*)ar+sizeof(Array);
+	ar->root = H;
+	ar->data = (uchar*)ar+sizeof(Array);
 
 	li = (Loader_Inst*)ar->data;
 	i = m->prog;
@@ -113,7 +117,8 @@ DISAPI(Loader_ifetch)
 	*f->ret = ar;
 }
 
-DISAPI(Loader_link)
+void
+Loader_link(void *a)
 {
 	Link *p;
 	Heap *h;
@@ -122,8 +127,11 @@ DISAPI(Loader_link)
 	Module *m;
 	Array *ar;
 	Loader_Link *ll;
-
-	ASSIGN(*f->ret, H);
+	F_Loader_link *f;
+	
+	f = a;
+	destroy(*f->ret);
+	*f->ret = H;
 
 	if(f->mp == H)
 		return;
@@ -142,8 +150,8 @@ DISAPI(Loader_link)
 	ar->t = Tlink;
 	Tlink->ref++;
 	ar->len = nlink;
-	ar->root = (Array*)H;
-	ar->data = (char*)ar+sizeof(Array);
+	ar->root = H;
+	ar->data = (uchar*)ar+sizeof(Array);
 
 	ll = (Loader_Link*)ar->data + nlink;
 	for(p = m->ext; p->name; p++) {
@@ -164,16 +172,20 @@ DISAPI(Loader_link)
 	*f->ret = ar;
 }
 
-DISAPI(Loader_tdesc)
+void
+Loader_tdesc(void *a)
 {
 	int i;
 	Heap *h;
 	Type *t;
 	Array *ar;
 	Module *m;
+	F_Loader_tdesc *f;
 	Loader_Typedesc *lt;
 
-	ASSIGN(*f->ret, H);
+	f = a;
+	destroy(*f->ret);
+	*f->ret = H;
 
 	if(f->mp == H)
 		return;
@@ -188,14 +200,14 @@ DISAPI(Loader_tdesc)
 	ar->t = Tdesc;
 	Tdesc->ref++;
 	ar->len = m->ntype;
-	ar->root = (Array *)H;
-	ar->data = (char*)ar+sizeof(Array);
+	ar->root = H;
+	ar->data = (uchar*)ar+sizeof(Array);
 
 	lt = (Loader_Typedesc*)ar->data;
 	for(i = 0; i < m->ntype; i++) {
 		t = m->type[i];
 		lt->size = t->size;
-		lt->map = (Array*)H;
+		lt->map = H;
 		if(t->np != 0)
 			lt->map = mem2array(t->map, t->np);
 		lt++;
@@ -204,15 +216,20 @@ DISAPI(Loader_tdesc)
 	*f->ret = ar;
 }
 
-DISAPI(Loader_newmod)
+void
+Loader_newmod(void *a)
 {
+	Heap *h;
 	Module *m;
 	Array *ia;
 	Modlink *ml;
 	Inst *i, *ie;
 	Loader_Inst *li;
+	F_Loader_newmod *f;
 
-	ASSIGN(*f->ret, H);
+	f = a;
+	destroy(*f->ret);
+	*f->ret = H;
 
 	if(f->inst == H || f->data == H) {
 		kwerrstr("nil parameters");
@@ -223,31 +240,32 @@ DISAPI(Loader_newmod)
 		return;
 	}
 
-	m = (Module *)malloc(sizeof(Module));
+	m = malloc(sizeof(Module));
 	if(m == nil) {
 		kwerrstr(exNomem);
 		return;
 	}
-	m->origmp = (char*)H;
+	m->origmp = H;
 	m->ref = 1;
-	/*m->ss = f->ss;*/
+	m->ss = f->ss;
 	m->name = strdup(string2c(f->name));
 	m->path = strdup(m->name);
 	m->ntype = 1;
-	m->type = (Type**)malloc(sizeof(Type*));
+	m->type = malloc(sizeof(Type*));
 	if(m->name == nil || m->path == nil || m->type == nil) {
 		kwerrstr(exNomem);
 		goto bad;
 	}
-	m->origmp = (char*)f->data;
-	ADDREF(f->data);
-	Setmark(D2H(f->data));
-	m->type[0] = D2H(f->data)->t;
-	D2H(f->data)->t->ref++;
+	m->origmp = (uchar*)f->data;
+	h = D2H(f->data);
+	h->ref++;
+	Setmark(h);
+	m->type[0] = h->t;
+	h->t->ref++;
 
 	ia = f->inst;
 	m->nprog = ia->len;
-	m->prog = (Inst*)malloc(m->nprog*sizeof(Inst));
+	m->prog = malloc(m->nprog*sizeof(Inst));
 	if(m->prog == nil)
 		goto bad;
 	i = m->prog;
@@ -271,22 +289,25 @@ DISAPI(Loader_newmod)
 
 	ml = mklinkmod(m, f->nlink);
 	ml->MP = m->origmp;
-	m->origmp = (char*)H;
+	m->origmp = H;
 	m->pctab = nil;
 	*f->ret = ml;
 	return;
 bad:
-	ASSIGN(m->origmp, H);
+	destroy(m->origmp);
 	freemod(m);
 }
 
-DISAPI(Loader_tnew)
+void
+Loader_tnew(void *a)
 {
 	int mem;
 	Module *m;
 	Type *t, **nt;
 	Array *ar, az;
+	F_Loader_tnew *f;
 
+	f = a;
 	*f->ret = -1;
 	if(f->mp == H)
 		return;
@@ -305,7 +326,7 @@ DISAPI(Loader_tnew)
 		ar->data = nil;
 	}
 
-	t = dtype(freeheap, f->size, ar->data, ar->len, "(Loader_tnew)");
+	t = dtype(freeheap, f->size, ar->data, ar->len);
 	if(t == nil)
 		return;
 
@@ -315,7 +336,7 @@ DISAPI(Loader_tnew)
 		m->type[m->ntype++] = t;
 		return;
 	}
-	nt = (Type**)realloc(m->type, mem);
+	nt = realloc(m->type, mem);
 	if(nt == nil) {
 		kwerrstr(exNomem);
 		return;
@@ -326,12 +347,15 @@ DISAPI(Loader_tnew)
 	m->type[m->ntype++] = t;
 }
 
-DISAPI(Loader_ext)
+void
+Loader_ext(void *a)
 {
 	Modl *l;
 	Module *m;
 	Modlink *ml;
+	F_Loader_ext *f;
 
+	f = a;
 	*f->ret = -1;
 	if(f->mp == H) {
 		kwerrstr("nil mp");
@@ -357,13 +381,16 @@ DISAPI(Loader_ext)
 	*f->ret = 0;
 }
 
-DISAPI(Loader_dnew)
+void
+Loader_dnew(void *a)
 {
+	F_Loader_dnew *f;
 	Heap *h;
 	Array *ar, az;
 	Type *t;
-
-        *f->ret = (Loader_Niladt*)H;
+ 
+        f = a;
+        *f->ret = H;
         if(f->map == H)
                 return;
         ar = f->map;
@@ -372,7 +399,7 @@ DISAPI(Loader_dnew)
                 ar->len = 0;
                 ar->data = nil;
         }
-        t = dtype(freeheap, f->size, ar->data, ar->len, "(Loader_dnew)");
+        t = dtype(freeheap, f->size, ar->data, ar->len);
         if(t == nil) {
                 kwerrstr(exNomem);
                 return;
@@ -384,14 +411,17 @@ DISAPI(Loader_dnew)
 		kwerrstr(exNomem);
 		return;
         }
-
+		
 	*f->ret=H2D(Loader_Niladt*, h);
 }
 
-DISAPI(Loader_compile)
+void
+Loader_compile(void *a)
 {
 	Module *m;
+	F_Loader_compile *f;
 
+	f = a;
 	*f->ret = -1;
 	if(f->mp == H) {
 		kwerrstr("nil mp");
@@ -410,5 +440,5 @@ DISAPI(Loader_compile)
 		f->mp->compiled = 1;
 	} else
 		*f->ret = -1;
-	m->origmp = (char*)H;
+	m->origmp = H;
 }

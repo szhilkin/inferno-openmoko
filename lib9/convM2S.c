@@ -1,4 +1,4 @@
-#include <lib9.h>
+#include	"lib9.h"
 #include	"fcall.h"
 
 static
@@ -46,11 +46,11 @@ gqid(uchar *p, uchar *ep, Qid *q)
  * main switch statement checks range and also can fall through
  * to test at end of routine.
  */
-size_t
-convM2S(char *ap, size_t nap, Fcall *f)
+uint
+convM2S(uchar *ap, uint nap, Fcall *f)
 {
-	char *p, *ep;
-	size_t i, size;
+	uchar *p, *ep;
+	uint i, size;
 
 	p = ap;
 	ep = p + nap;

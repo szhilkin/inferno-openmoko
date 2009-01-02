@@ -1,12 +1,7 @@
-#include <lib9.h>
-#include <draw.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <textw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "textw.h"
 
 #define istring u.string
 #define iwin u.win
@@ -26,37 +21,55 @@ static char* tkttagraise(Tk*, char*, char**);
 static char* tkttagranges(Tk*, char*, char**);
 static char* tkttagremove(Tk*, char*, char**);
 
-#define TKTEO		(offsetof(TkTtaginfo, env))
-static
+#define	O(t, e)		((long)(&((t*)0)->e))
+
+#define TKTEO		(O(TkTtaginfo, env))
+static 
 TkOption tagopts[] =
 {
-	{"borderwidth",	OPTnndist,	offsetof(TkTtaginfo, opts[TkTborderwidth])	},
-	{"justify",	OPTstab,	offsetof(TkTtaginfo, opts[TkTjustify]),		{tkjustify}},
-	{"lineheight",	OPTnndist,	offsetof(TkTtaginfo, opts[TkTlineheight]),	{(TkStab*)TKTEO}},
-	{"lmargin1",	OPTdist,	offsetof(TkTtaginfo, opts[TkTlmargin1]),	{(TkStab*)TKTEO}},
-	{"lmargin2",	OPTdist,	offsetof(TkTtaginfo, opts[TkTlmargin2]),	{(TkStab*)TKTEO}},
-	{"lmargin3",	OPTdist,	offsetof(TkTtaginfo, opts[TkTlmargin3]),	{(TkStab*)TKTEO}},
-	{"rmargin",	OPTdist,	offsetof(TkTtaginfo, opts[TkTrmargin]),		{(TkStab*)TKTEO}},
-	{"spacing1",	OPTnndist,	offsetof(TkTtaginfo, opts[TkTspacing1]),	{(TkStab*)TKTEO}},
-	{"spacing2",	OPTnndist,	offsetof(TkTtaginfo, opts[TkTspacing2]),	{(TkStab*)TKTEO}},
-	{"spacing3",	OPTnndist,	offsetof(TkTtaginfo, opts[TkTspacing3]),	{(TkStab*)TKTEO}},
-	{"offset",	OPTdist,	offsetof(TkTtaginfo, opts[TkToffset]),		{(TkStab*)TKTEO}},
-	{"underline",	OPTstab,	offsetof(TkTtaginfo, opts[TkTunderline]),	{tkbool}},
-	{"overstrike",	OPTstab,	offsetof(TkTtaginfo, opts[TkToverstrike]),	{tkbool}},
-	{"relief",	OPTstab,	offsetof(TkTtaginfo, opts[TkTrelief]),		{tkrelief}},
-	{"tabs",	OPTtabs,	offsetof(TkTtaginfo, tabs),			{(TkStab*)TKTEO}},
-	{"wrap",	OPTstab,	offsetof(TkTtaginfo, opts[TkTwrap]),		{tkwrap}},
-	{nil}
+	{"borderwidth",
+		OPTnndist, O(TkTtaginfo, opts[TkTborderwidth]),	nil},
+	{"justify",
+		OPTstab, O(TkTtaginfo, opts[TkTjustify]),	tkjustify},
+	{"lineheight",
+		OPTnndist, O(TkTtaginfo, opts[TkTlineheight]),	IAUX(TKTEO)},
+	{"lmargin1",
+		OPTdist, O(TkTtaginfo, opts[TkTlmargin1]),	IAUX(TKTEO)},
+	{"lmargin2",
+		OPTdist, O(TkTtaginfo, opts[TkTlmargin2]),	IAUX(TKTEO)},
+	{"lmargin3",
+		OPTdist, O(TkTtaginfo, opts[TkTlmargin3]),	IAUX(TKTEO)},
+	{"rmargin",
+		OPTdist, O(TkTtaginfo, opts[TkTrmargin]),	IAUX(TKTEO)},
+	{"spacing1",
+		OPTnndist, O(TkTtaginfo, opts[TkTspacing1]),	IAUX(TKTEO)},
+	{"spacing2",
+		OPTnndist, O(TkTtaginfo, opts[TkTspacing2]),	IAUX(TKTEO)},
+	{"spacing3",
+		OPTnndist, O(TkTtaginfo, opts[TkTspacing3]),	IAUX(TKTEO)},
+	{"offset",	
+		OPTdist, O(TkTtaginfo, opts[TkToffset]),	IAUX(TKTEO)},
+	{"underline",
+		OPTstab, O(TkTtaginfo, opts[TkTunderline]),	tkbool},
+	{"overstrike",
+		OPTstab, O(TkTtaginfo, opts[TkToverstrike]),	tkbool},
+	{"relief",
+		OPTstab, O(TkTtaginfo, opts[TkTrelief]),	tkrelief},
+	{"tabs",	
+		OPTtabs, O(TkTtaginfo, tabs),			IAUX(TKTEO)},
+	{"wrap",
+		OPTstab, O(TkTtaginfo, opts[TkTwrap]),		tkwrap},
+	{nil},
 };
 
-static
+static 
 TkOption tagenvopts[] =
 {
-	{"foreground",	OPTcolr,	offsetof(TkTtaginfo, env),	{(TkStab*)TkCforegnd}},
-	{"background",	OPTcolr,	offsetof(TkTtaginfo, env),	{(TkStab*)TkCbackgnd}},
-	{"fg",		OPTcolr,	offsetof(TkTtaginfo, env),	{(TkStab*)TkCforegnd}},
-	{"bg",		OPTcolr,	offsetof(TkTtaginfo, env),	{(TkStab*)TkCbackgnd}},
-	{"font",	OPTfont,	offsetof(TkTtaginfo, env)	},
+	{"foreground",	OPTcolr,	O(TkTtaginfo, env),	IAUX(TkCforegnd)},
+	{"background",	OPTcolr,	O(TkTtaginfo, env),	IAUX(TkCbackgnd)},
+	{"fg",		OPTcolr,	O(TkTtaginfo, env),	IAUX(TkCforegnd)},
+	{"bg",		OPTcolr,	O(TkTtaginfo, env),	IAUX(TkCbackgnd)},
+	{"font",		OPTfont,	O(TkTtaginfo, env),	nil},
 	{nil}
 };
 
@@ -191,7 +204,7 @@ tktaddtaginfo(Tk *tk, char *name, TkTtaginfo **ret)
 	TkText *tkt, *tktshare;
 
 	tkt = TKobj(TkText, tk);
-	ti = (TkTtaginfo *)malloc(sizeof(TkTtaginfo));
+	ti = malloc(sizeof(TkTtaginfo));
 	if(ti == nil)
 		return TkNomem;
 
@@ -371,7 +384,7 @@ tkttagparse(Tk *tk, char **parg, TkTtaginfo **ret)
 	char *e, *buf;
 	TkText *tkt = TKobj(TkText, tk);
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	*parg = tkword(tk->env->top, *parg, buf, buf+Tkmaxitem, nil);
@@ -514,7 +527,7 @@ tkttagchange(Tk *tk, int tid, TkTindex *i1, TkTindex *i2, int add)
 	while(i1->item != i2->item) {
 		if(i1->item->kind != TkTmark && i1->item->kind != TkTcontline) {
 			if(tid >= 32 && i1->item->tagextra < nextra) {
-				nit = (TkTitem *)realloc(i1->item, sizeof(TkTitem) + nextra * sizeof(long));
+				nit = realloc(i1->item, sizeof(TkTitem) + nextra * sizeof(long));
 				if(nit == nil)
 					return TkNomem;
 				for(j = nit->tagextra+1; j <= nextra; j++)
@@ -654,7 +667,7 @@ tkttagbind(Tk *tk, char *arg, char **val)
 		for(a = ti->binds; a; a = a->link)
 				if(event == a->event)
 					return tkvalue(val, "%s", a->arg);
-		return nil;
+		return nil;		
 	}
 
 	mode = TkArepl;

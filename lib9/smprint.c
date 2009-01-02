@@ -11,10 +11,10 @@
  * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
-#include <lib9.h>
+#include "lib9.h"
 
 char*
-smprint(const char *fmt, ...)
+smprint(char *fmt, ...)
 {
 	va_list args;
 	char *p;

@@ -31,14 +31,12 @@
 #define __AHLOADER_H__
 
 
+#include <ft2build.h>
 
 
+FT_BEGIN_HEADER
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <freetype/internal/ftgloadr.h>
+#include FT_INTERNAL_GLYPH_LOADER_H
 
   #define AH_Load    FT_GlyphLoad
   #define AH_Loader  FT_GlyphLoader
@@ -55,9 +53,7 @@ extern "C" {
   #define ah_loader_copy_points      FT_GlyphLoader_CopyPoints
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __AHLOADER_H__ */
 

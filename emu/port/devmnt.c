@@ -1,6 +1,6 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 /*
  * References are managed as follows:
@@ -23,8 +23,8 @@ struct Mntrpc
 	Fcall 	reply;		/* Incoming reply */
 	Mnt*	m;		/* Mount device during rpc */
 	Rendez	r;		/* Place to hang out */
-	char*	rpc;		/* I/O Data buffer */
-	size_t	rpclen;	/* len of buffer */
+	uchar*	rpc;		/* I/O Data buffer */
+	uint		rpclen;	/* len of buffer */
 	Block	*b;		/* reply blocks */
 	char	done;		/* Rpc completed */
 	uvlong	stime;		/* start time for mnt statistics */
@@ -54,15 +54,15 @@ struct Mntalloc
 
 void	mattach(Mnt*, Chan*, char*);
 Mnt*	mntchk(Chan*);
-void	mntdirfix(char*, Chan*);
+void	mntdirfix(uchar*, Chan*);
 Mntrpc*	mntflushalloc(Mntrpc*, ulong);
 void	mntflushfree(Mnt*, Mntrpc*);
 void	mntfree(Mntrpc*);
 void	mntgate(Mnt*);
 void	mntpntfree(Mnt*);
 void	mntqrm(Mnt*, Mntrpc*);
-Mntrpc*	mntralloc(Chan*, size_t);
-long	mntrdwr(int, Chan*, char*, long, vlong);
+Mntrpc*	mntralloc(Chan*, ulong);
+long	mntrdwr(int, Chan*, void*, long, vlong);
 int	mntrpcread(Mnt*, Mntrpc*);
 void	mountio(Mnt*, Mntrpc*);
 void	mountmux(Mnt*, Mntrpc*);
@@ -96,7 +96,7 @@ long
 mntversion(Chan *c, char *version, int msize, int returnlen)
 {
 	Fcall f;
-	char *msg;
+	uchar *msg;
 	Mnt *m;
 	char *v;
 	long k, l;
@@ -148,7 +148,7 @@ mntversion(Chan *c, char *version, int msize, int returnlen)
 	f.tag = NOTAG;
 	f.msize = msize;
 	f.version = v;
-	msg = (char*)malloc(8192+IOHDRSZ);
+	msg = malloc(8192+IOHDRSZ);
 	if(msg == nil)
 		exhausted("version memory");
 	if(waserror()){
@@ -203,7 +203,7 @@ mntversion(Chan *c, char *version, int msize, int returnlen)
 	if(m != 0)
 		mntalloc.mntfree = m->list;
 	else {
-		m = (Mnt*)malloc(sizeof(Mnt));
+		m = malloc(sizeof(Mnt));
 		if(m == 0) {
 			unlock(&mntalloc.l);
 			exhausted("mount devices");
@@ -296,7 +296,7 @@ mntauth(Chan *c, char *spec)
 }
 
 static Chan*
-mntattach(const char *muxattach)
+mntattach(char *muxattach)
 {
 	Mnt *m;
 	Chan *c;
@@ -377,7 +377,7 @@ mntchan(void)
 }
 
 static Walkqid*
-mntwalk(Chan *c, Chan *nc, const char **name, int nname)
+mntwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	volatile int alloc;
 	int i;
@@ -390,7 +390,7 @@ mntwalk(Chan *c, Chan *nc, const char **name, int nname)
 	if(nname > MAXWELEM)
 		error("devmnt: too many name elements");
 	alloc = 0;
-	wq = (Walkqid*)smalloc(sizeof(Walkqid)+(nname-1)*sizeof(Qid));
+	wq = smalloc(sizeof(Walkqid)+(nname-1)*sizeof(Qid));
 	if(waserror()){
 		if(alloc && wq->clone!=nil)
 			cclose(wq->clone);
@@ -459,7 +459,7 @@ mntwalk(Chan *c, Chan *nc, const char **name, int nname)
 }
 
 static int
-mntstat(Chan *c, char *dp, int n)
+mntstat(Chan *c, uchar *dp, int n)
 {
 	Mnt *m;
 	Mntrpc *r;
@@ -478,7 +478,7 @@ mntstat(Chan *c, char *dp, int n)
 
 	if(r->reply.nstat > n){
 		/* doesn't fit; just patch the count and return */
-		PBIT16(dp, r->reply.nstat);
+		PBIT16((uchar*)dp, r->reply.nstat);
 		n = BIT16SZ;
 	}else{
 		n = r->reply.nstat;
@@ -492,7 +492,7 @@ mntstat(Chan *c, char *dp, int n)
 }
 
 static Chan*
-mntopencreate(int type, Chan *c, const char *name, int omode, ulong perm)
+mntopencreate(int type, Chan *c, char *name, int omode, ulong perm)
 {
 	Mnt *m;
 	Mntrpc *r;
@@ -508,7 +508,7 @@ mntopencreate(int type, Chan *c, const char *name, int omode, ulong perm)
 	r->request.mode = omode;
 	if(type == Tcreate){
 		r->request.perm = perm;
-		r->request.name = (char*)name; /* XXX */
+		r->request.name = name;
 	}
 	mountrpc(m, r);
 
@@ -535,7 +535,7 @@ mntopen(Chan *c, int omode)
 }
 
 static void
-mntcreate(Chan *c, const char *name, int omode, ulong perm)
+mntcreate(Chan *c, char *name, int omode, ulong perm)
 {
 	mntopencreate(Tcreate, c, name, omode, perm);
 }
@@ -611,7 +611,7 @@ mntremove(Chan *c)
 }
 
 static int
-mntwstat(Chan *c, char *dp, int n)
+mntwstat(Chan *c, uchar *dp, int n)
 {
 	Mnt *m;
 	Mntrpc *r;
@@ -633,10 +633,9 @@ mntwstat(Chan *c, char *dp, int n)
 }
 
 static long
-mntread(Chan *c, char *buf, long n, vlong off)
+mntread(Chan *c, void *buf, long n, vlong off)
 {
-	char *p = buf;
-	char *e;
+	uchar *p, *e;
 	int nc, cache, isdir, dirlen;
 
 	isdir = 0;
@@ -646,8 +645,9 @@ mntread(Chan *c, char *buf, long n, vlong off)
 		isdir = 1;
 	}
 
+	p = buf;
 	if(cache) {
-		nc = cread(c, p, n, off);
+		nc = cread(c, buf, n, off);
 		if(nc > 0) {
 			n -= nc;
 			if(n == 0)
@@ -676,22 +676,22 @@ mntread(Chan *c, char *buf, long n, vlong off)
 }
 
 static long
-mntwrite(Chan *c, const char *buf, long n, vlong off)
+mntwrite(Chan *c, void *buf, long n, vlong off)
 {
-	return mntrdwr(Twrite, c, (char*)buf, n, off); /* BUG BUG? */
+	return mntrdwr(Twrite, c, buf, n, off);
 }
 
 long
-mntrdwr(int type, Chan *c, char *buf, long n, vlong off)
+mntrdwr(int type, Chan *c, void *buf, long n, vlong off)
 {
 	Mnt *m;
  	Mntrpc *r;	/* TO DO: volatile struct { Mntrpc *r; } r; */
- 	/*const uchar *uba = (const uchar *)buf;*/
- 	char *p=buf;
+	char *uba;
 	int cache;
 	ulong cnt, nr, nreq;
 
 	m = mntchk(c);
+	uba = buf;
 	cnt = 0;
 	cache = c->flag & CCACHE;
 	if(c->qid.type & QTDIR)
@@ -705,7 +705,7 @@ mntrdwr(int type, Chan *c, char *buf, long n, vlong off)
 		r->request.type = type;
 		r->request.fid = c->fid;
 		r->request.offset = off;
-		r->request.data = p;
+		r->request.data = uba;
 		nr = n;
 		if(nr > m->msize-IOHDRSZ)
 			nr = m->msize-IOHDRSZ;
@@ -717,14 +717,14 @@ mntrdwr(int type, Chan *c, char *buf, long n, vlong off)
 			nr = nreq;
 
 		if(type == Tread)
-			r->b = bl2mem(p, r->b, nr);
+			r->b = bl2mem((uchar*)uba, r->b, nr);
 		else if(cache)
-			cwrite(c, p, nr, off);
+			cwrite(c, (uchar*)uba, nr, off);
 
 		poperror();
 		mntfree(r);
 		off += nr;
-		p += nr;
+		uba += nr;
 		cnt += nr;
 		n -= nr;
 		if(nr != nreq || n == 0 || up->killed)
@@ -805,7 +805,7 @@ mountio(Mnt *m, Mntrpc *r)
 		if(m->rip == 0)
 			break;
 		unlock(&m->l);
-		sleep9(&r->r, rpcattn, r);
+		Sleep(&r->r, rpcattn, r);
 		if(r->done){
 			poperror();
 			mntflushfree(m, r);
@@ -923,7 +923,7 @@ mntgate(Mnt *m)
 	m->rip = 0;
 	for(q = m->queue; q; q = q->list) {
 		if(q->done == 0)
-		if(wakeup9(&q->r))
+		if(Wakeup(&q->r))
 			break;
 	}
 	unlock(&m->l);
@@ -956,7 +956,7 @@ mountmux(Mnt *m, Mntrpc *r)
 					m->c, q->stime,
 					q->reqlen + r->replen);
 			if(q != r)
-				wakeup9(&q->r);
+				Wakeup(&q->r);
 			return;
 		}
 		l = &q->list;
@@ -1040,14 +1040,14 @@ freetag(int t)
 }
 
 Mntrpc*
-mntralloc(Chan *c, size_t msize)
+mntralloc(Chan *c, ulong msize)
 {
 	Mntrpc *new;
 
 	lock(&mntalloc.l);
 	new = mntalloc.rpcfree;
 	if(new == nil){
-		new = (Mntrpc*)malloc(sizeof(Mntrpc));
+		new = malloc(sizeof(Mntrpc));
 		if(new == nil) {
 			unlock(&mntalloc.l);
 			exhausted("mount rpc header");
@@ -1056,7 +1056,7 @@ mntralloc(Chan *c, size_t msize)
 		 * The header is split from the data buffer as
 		 * mountmux may swap the buffer with another header.
 		 */
-		new->rpc = (char*)mallocz(msize, 0);
+		new->rpc = mallocz(msize, 0);
 		if(new->rpc == nil){
 			free(new);
 			unlock(&mntalloc.l);
@@ -1075,7 +1075,7 @@ mntralloc(Chan *c, size_t msize)
 		mntalloc.nrpcfree--;
 		if(new->rpclen < msize){
 			free(new->rpc);
-			new->rpc = (char*)mallocz(msize, 0);
+			new->rpc = mallocz(msize, 0);
 			if(new->rpc == nil){
 				free(new);
 				mntalloc.nrpcused--;
@@ -1163,7 +1163,7 @@ mntchk(Chan *c)
  * the first two in the Dir encoding after the count.
  */
 void
-mntdirfix(char *dirbuf, Chan *c)
+mntdirfix(uchar *dirbuf, Chan *c)
 {
 	uint r;
 
@@ -1177,8 +1177,9 @@ mntdirfix(char *dirbuf, Chan *c)
 int
 rpcattn(void *v)
 {
-	Mntrpc *r = (Mntrpc *)v;
+	Mntrpc *r;
 
+	r = v;
 	return r->done || r->m->rip == 0;
 }
 

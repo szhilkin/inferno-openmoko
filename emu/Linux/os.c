@@ -16,6 +16,10 @@
 #include	<sys/syscall.h>
 #define	getpid()	syscall(SYS_getpid)
 
+/* temporarily suppress CLONE_PTRACE so it works on broken Linux kernels */
+#undef CLONE_PTRACE
+#define	CLONE_PTRACE	0
+
 enum
 {
 	DELETE	= 0x7f,
@@ -124,11 +128,7 @@ kproc(char *name, void (*func)(void*), void *arg, int flags)
 
 	if(flags & KPX11){
 		p->kstack = nil;	/* never freed; also up not defined */
-#if defined(LINUX_ARM) && defined(__GNUC__)
-		tos = (char*)mallocz(X11STACK, 0) + X11STACK - 2*sizeof(void*);
-#else
 		tos = (char*)mallocz(X11STACK, 0) + X11STACK - sizeof(void*);
-#endif
 	}else
 		p->kstack = stackalloc(p, &tos);
 
@@ -187,42 +187,6 @@ trapSEGV(int signo)
 	USED(signo);
 	disfault(nil, "Segmentation violation");
 }
-
-#ifdef LINUX_ARM
-static void
-actSEGV(int signo, struct siginfo* si, struct sigcontext* sc)
-{
-	int i;
-	void** sp;
-
-	USED(signo);
-	print("R0  %08uX    R1  %08uX    R2  %08uX    R3  %08uX\n", sc->arm_r0, sc->arm_r1, sc->arm_r2, sc->arm_r3 );
-	print("R4  %08uX    R5  %08uX    R6  %08uX    R7  %08uX\n", sc->arm_r4, sc->arm_r5, sc->arm_r6, sc->arm_r7 );
-	print("R8  %08uX    R9  %08uX    R10 %08uX    FP  %08uX\n", sc->arm_r8, sc->arm_r9, sc->arm_r10,sc->arm_fp );
-	print("IP  %08uX    SP  %08uX    LR  %08uX    PC  %08uX\n", sc->arm_ip, sc->arm_sp, sc->arm_lr, sc->arm_pc );
-	print("CPSR%08uX\n", sc->arm_cpsr );
-	print("AT  %08uX\n", sc->fault_address );
-	print("\n");
-/*
-	if(sc->arm_sp>0x10)
-	{
-		print("STACK:\n");
-		sp = (void**)sc->arm_sp;
-		for(i=0; i<1024; i+=16)
-		{
-			print("%08uX: %08uX %08uX %08uX %08uX  ", sp+i, sp[i+0], sp[i+1], sp[i+2], sp[i+3] );
-			print(       "%08uX %08uX %08uX %08uX  ", sp+i, sp[i+4], sp[i+5], sp[i+6], sp[i+7] );
-			print(       "%08uX %08uX %08uX %08uX  ", sp+i, sp[i+8], sp[i+9], sp[i+10], sp[i+11] );
-			print(       "%08uX %08uX %08uX %08uX\n", sp+i, sp[i+12], sp[i+13], sp[i+14], sp[i+15] );
-		}
-		print("\n");
-	}
-*/
-	das(((int*)sc->fault_address)-4, 16);
-
-	disfault(nil, "Segmentation violation");
-}
-#endif
 
 #include <fpuctl.h>
 static void
@@ -304,9 +268,6 @@ termset(void)
 static void
 termrestore(void)
 {
-#ifdef OPENMOKO
-	framebuffer_deinit ();
-#endif
 	tcsetattr(0, TCSANOW, &tinit);
 }
 
@@ -330,10 +291,6 @@ cleanexit(int x)
 void
 osreboot(char *file, char **argv)
 {
-	if(dflag == 0)
-		termrestore();
-	execvp(file, argv);
-	error("reboot failure");
 }
 
 void
@@ -390,18 +347,10 @@ libinit(char *imod)
 		sigaction(SIGBUS, &act, nil);
 		act.sa_handler = trapILL;
 		sigaction(SIGILL, &act, nil);
-#ifndef LINUX_ARM
 		act.sa_handler = trapSEGV;
 		sigaction(SIGSEGV, &act, nil);
-#endif
 		act.sa_handler = trapFPE;
 		sigaction(SIGFPE, &act, nil);
-#ifdef LINUX_ARM
-		act.sa_handler = trapSEGV;
-		act.sa_flags |= SA_SIGINFO;
-		act.sa_sigaction = actSEGV;
-		sigaction(SIGSEGV, &act, nil);
-#endif
 	}
 
 	p = newproc();
@@ -568,11 +517,7 @@ stackalloc(Proc *p, void **tos)
 	rv = stacklist.free;
 	stacklist.free = *(void **)rv;
 	unlock(&stacklist.l);
-#if defined(LINUX_ARM) && defined(__GNUC__)
-	*tos = rv + KSTACK - 2*sizeof(void *);
-#else
 	*tos = rv + KSTACK - sizeof(void *);
-#endif
 	*(Proc **)rv = p;
 	return rv;
 }
@@ -584,7 +529,7 @@ int
 segflush(void *a, ulong n)
 {
 	if(n)
-		syscall(SYS_cacheflush, a, (char*)a+n-1, 0);
+		syscall(SYS_cacheflush, a, (char*)a+n-1, 1);
 	return 0;
 }
 #endif

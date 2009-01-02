@@ -1,13 +1,10 @@
 #include <lib9.h>
-#include <draw.h>
 #include <kernel.h>
+#include "draw.h"
+#include "tk.h"
+#include "keyboard.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <keyboard.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 typedef struct TkScale TkScale;
 struct TkScale
@@ -40,28 +37,28 @@ struct TkScale
 
 enum {
 	Dragging = (1<<0),
-	Autorepeat_scale = (1<<1),
+	Autorepeat = (1<<1),
 };
 
 static
-TkOption opts_scale[] =
+TkOption opts[] =
 {
-	{"bigincrement",	OPTnnfrac,	offsetof(TkScale, bigi)		},
-	{"digits",		OPTdist,	offsetof(TkScale, digits)	},
-	{"from",		OPTfrac,	offsetof(TkScale, from)		},
-	{"to",			OPTfrac,	offsetof(TkScale, to)		},
-	{"length",		OPTdist,	offsetof(TkScale, len)		},
-	{"resolution",		OPTnnfrac,	offsetof(TkScale, res)		},
-	{"showrange",		OPTignore,	0				},
-	{"showvalue",		OPTstab,	offsetof(TkScale, sv),		{tkbool}},
-	{"jump",		OPTstab, 	offsetof(TkScale, jump),	{tkbool}},
-	{"sliderlength",	OPTdist,	offsetof(TkScale, sl),		},
-	{"sliderrelief",	OPTstab,	offsetof(TkScale, relief),	{tkrelief}},
-	{"tickinterval",	OPTfrac,	offsetof(TkScale, tick)		},
-	{"tick",		OPTfrac,	offsetof(TkScale, tick)		},
-	{"label",		OPTtext,	offsetof(TkScale, label)	},
-	{"command",		OPTtext,	offsetof(TkScale, command)	},
-	{"orient",		OPTstab,	offsetof(TkScale, orient),	{tkorient}},
+	{"bigincrement",		OPTnnfrac,	O(TkScale, bigi),	nil},
+	{"digits",		OPTdist,	O(TkScale, digits),	nil},
+	{"from",			OPTfrac,	O(TkScale, from),	nil},
+	{"to",			OPTfrac,	O(TkScale, to),		nil},
+	{"length",		OPTdist,	O(TkScale, len),	nil},
+	{"resolution",		OPTnnfrac,	O(TkScale, res),	nil},
+	{"showrange",	OPTignore,	0,	nil},
+	{"showvalue",		OPTstab,	O(TkScale, sv),		tkbool},
+	{"jump",		OPTstab, O(TkScale, jump),	tkbool},
+	{"sliderlength",		OPTdist,	O(TkScale, sl),		nil},
+	{"sliderrelief",		OPTstab,	O(TkScale, relief),	tkrelief},
+	{"tickinterval",		OPTfrac,	O(TkScale, tick),	nil},
+	{"tick",		OPTfrac,	O(TkScale, tick),	nil},
+	{"label",		OPTtext,	O(TkScale, label),	nil},
+	{"command",		OPTtext,	O(TkScale, command),	nil},
+	{"orient",		OPTstab,	O(TkScale, orient),	tkorient},
 	{nil}
 };
 
@@ -70,14 +67,14 @@ static char trough2[] = "trough2";
 static char slider[]  = "slider";
 
 static
-TkEbind b_scale[] =
+TkEbind b[] = 
 {
 	{TkMotion,		"%W tkScaleMotion %x %y"},
 	{TkButton1P|TkMotion,	"%W tkScaleDrag %x %y"},
 	{TkButton1P,		"%W tkScaleMotion %x %y; %W tkScaleBut1P %x %y"},
 	{TkButton1P|TkDouble,	"%W tkScaleMotion %x %y; %W tkScaleBut1P %x %y"},
 	{TkButton1R,		"%W tkScaleDrag %x %y; %W tkScaleBut1R; %W tkScaleMotion %x %y"},
-	{TkKey,			"%W tkScaleKey 0x%K"},
+	{TkKey,		"%W tkScaleKey 0x%K"},
 };
 
 enum
@@ -91,7 +88,7 @@ enum
 };
 
 static int
-maximum_scale(int a, int b) /*XXX*/
+maximum(int a, int b)
 {
 	if (a > b)
 		return a;
@@ -112,12 +109,12 @@ tksizescale(Tk *tk)
 	if(digits <= 0) {
 		digits = tkfprint(buf, tks->from) - buf;
 		digits2 = tkfprint(buf, tks->to) - buf;
-		digits = maximum_scale(digits, digits2);
+		digits = maximum(digits, digits2);
 		if (tks->res > 0) {
 			digits2 = tkfprint(buf, tks->from + tks->res) - buf;
-			digits = maximum_scale(digits, digits2);
+			digits = maximum(digits, digits2);
 			digits2 = tkfprint(buf, tks->to - tks->res) - buf;
-			digits = maximum_scale(digits, digits2);
+			digits = maximum(digits, digits2);
 		}
 	}
 
@@ -137,7 +134,7 @@ tksizescale(Tk *tk)
 			w += digits + ScalePad;
 	}
 	else {
-		w = maximum_scale(p.x, tks->len + ScaleBW + 2*ScalePad);
+		w = maximum(p.x, tks->len + ScaleBW + 2*ScalePad);
 		h = Scalewidth + 2*ScalePad + 2*ScaleBW;
 		fh = tk->env->font->height;
 		if(tks->label != nil)
@@ -216,7 +213,7 @@ tkscale(TkTop *t, char *arg, char **ret)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tks;
-	tko[1].optab = opts_scale;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	names = nil;
@@ -230,7 +227,7 @@ tkscale(TkTop *t, char *arg, char **ret)
 	tksizescale(tk);
 	if (tks->bigi == 0)
 		tks->bigi = TKI2F(TKF2I(tks->to - tks->from) / 10);
-	e = tkbindings(t, tk, b_scale, nelem(b_scale));
+	e = tkbindings(t, tk, b, nelem(b));
 
 	if(e != nil) {
 		tkfreeobj(tk);
@@ -257,7 +254,7 @@ tkscalecget(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tks;
-	tko[1].optab = opts_scale;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, tk->env->top);
@@ -350,7 +347,7 @@ tkscalehoriz(Tk *tk, Image *i)
 	p.y = sr.min.y;
 	q = p;
 	q.x += tks->sl/2 + 1;
-	q.y++;
+	q.y++; 
 	if(tk->flag & Tkactivated) {
 		r2.min = p;
 		r2.max.x = p.x+sl;
@@ -385,7 +382,7 @@ tkscalehoriz(Tk *tk, Image *i)
 		p.x = tks->pixmin;
 	if(p.x+w > tks->pixmax)
 		p.x = tks->pixmax - w;
-
+	
 	string(i, p, tkgc(e, fgnd), ZP, e->font, sv);
 }
 
@@ -564,7 +561,7 @@ tkscaleconf(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tks;
-	tko[1].optab = opts_scale;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	if(*arg == '\0')
@@ -720,7 +717,7 @@ tkscaleset(Tk *tk, char *arg, char **val)
 		return e;
 	tkscalecheckvalue(tk);
 	tk->dirty = tkrect(tk, 1);
-	return nil;
+	return nil;		
 }
 
 /* tkScaleMotion %x %y */
@@ -759,7 +756,7 @@ tkscaledrag(Tk *tk, char *arg, char **val)
 	USED(val);
 	if((tks->flag & Dragging) == 0)
 		return nil;
-	if(tks->flag & Autorepeat_scale)
+	if(tks->flag & Autorepeat)
 		return nil;
 
 	e = tkfracword(tk->env->top, &arg, &x, tk->env);
@@ -806,7 +803,7 @@ sgn(int v)
 }
 
 static char*
-stepscale(Tk *tk, const char *pos, int *end)
+stepscale(Tk *tk, char *pos, int *end)
 {
 	TkScale *tks = TKobj(TkScale, tk);
 	char *e, buf[Tkmaxitem], f[32];
@@ -833,20 +830,20 @@ stepscale(Tk *tk, const char *pos, int *end)
 }
 
 static void
-screpeat(Tk *tk, const char *pos, int cancelled)
+screpeat(Tk *tk, void *v, int cancelled)
 {
-	char *e; //, *pos;
+	char *e, *pos;
 	int repeat;
 	TkScale *tks = TKobj(TkScale, tk);
 
-	//pos = v;
+	pos = v;
 	if (cancelled) {
-		tks->flag &= ~Autorepeat_scale;
+		tks->flag &= ~Autorepeat;
 		return;
 	}
 	e = stepscale(tk, pos, &repeat);
 	if(e != nil || !repeat) {
-		tks->flag &= ~Autorepeat_scale;
+		tks->flag &= ~Autorepeat;
 		tkcancelrepeat(tk);
 	}
 	tk->dirty = tkrect(tk, 1);
@@ -878,7 +875,7 @@ tkscalebut1p(Tk *tk, char *arg, char **val)
 	} else  {
 		e = stepscale(tk, v, &repeat);
 		if (e == nil && repeat) {
-			tks->flag |= Autorepeat_scale;
+			tks->flag |= Autorepeat;
 			tkrepeat(tk, screpeat, v, TkRptpause, TkRptinterval);
 		}
 	}
@@ -894,9 +891,9 @@ tkscalebut1r(Tk *tk, char *arg, char **val)
 	char *e, buf[Tkmaxitem], f[32];
 	USED(val);
 	USED(arg);
-	if(tks->flag & Autorepeat_scale) {
+	if(tks->flag & Autorepeat) {
 		tkcancelrepeat(tk);
-		tks->flag &= ~Autorepeat_scale;
+		tks->flag &= ~Autorepeat;
 	}
 	e = nil;
 	if (tks->flag & Dragging) {

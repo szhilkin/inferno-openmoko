@@ -40,12 +40,10 @@
   *
   */
 
+#include <ft2build.h>
+#include FT_INTERNAL_OBJECT_H
 
-#include <freetype/internal/ftobject.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
  /*@*******************************************************************
   *
@@ -192,8 +190,6 @@ extern "C" {
  /*                                                                 */
   FT_APIVAR( FT_Type )   ft_stream_default_type;
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FT_SYSTEM_STREAM_H__ */

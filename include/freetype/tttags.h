@@ -20,13 +20,11 @@
 #define __TTAGS_H__
 
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-#include <freetype/freetype.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 #define TTAG_cmap  FT_MAKE_TAG( 'c', 'm', 'a', 'p' )
@@ -68,9 +66,7 @@ extern "C" {
 #define TTAG_vmtx  FT_MAKE_TAG( 'v', 'm', 't', 'x' )
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __TTAGS_H__ */
 

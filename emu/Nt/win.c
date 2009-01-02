@@ -1,36 +1,60 @@
+#define Unknown WUnknown
+#define Colormap	WColormap
+#define Cursor		WCursor
+#define Display		WDisplay
+#define Drawable	WDrawable
+#define Font		WFont
+#define GC		WGC
+#define Point		WPoint
 #define Rectangle	WRectangle
-#include <windows.h>
-#undef Rectangle
+#define Screen		WScreen
+#define Visual		WVisual
+#define Window		WWindow
 
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <draw.h>
-#include <keyboard.h>
-#include <cursor.h>
+#include	<windows.h>
+
+#undef Colormap
+#undef Cursor
+#undef Display
+#undef XDrawable
+#undef Font
+#undef GC
+#undef Point
+#undef Rectangle
+#undef Screen
+#undef Visual
+#undef Window
+#undef Unknown
+
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	<draw.h>
+#include	"keyboard.h"
+#include	"cursor.h"
 
 extern ulong displaychan;
 
-extern	char*	runestoutf(char*, const Rune*, int);
+extern	char*	runestoutf(char*, Rune*, int);
 extern	int	bytesperline(Rectangle, int);
-extern	NORETURN main(int argc, char **argv);
+extern	int	main(int argc, char **argv);
 static	void	dprint(char*, ...);
 static	DWORD WINAPI	winproc(LPVOID);
 
-static	HINSTANCE	inst = 0;
-static	HINSTANCE	previnst = 0;
+static	HINSTANCE	inst;
+static	HINSTANCE	previnst;
 static	int		cmdshow = SW_SHOW;
-static	HWND		window = 0;
-static	HDC		screen = 0;
-static	HPALETTE	palette = 0;
-static	int		maxxsize = 0;
-static	int		maxysize = 0;
-static	int		attached = 0;
+static	HWND		window;
+static	HDC		screen;
+static	HPALETTE	palette;
+static	int		maxxsize;
+static	int		maxysize;
+static	int		attached;
 static	int		isunicode = 1;
-static	HCURSOR		hcursor = 0;
+static	HCURSOR		hcursor;
 
 char	*argv0 = "inferno";
-static	VOID *	data = 0;
+static	ulong	*data;
 
 extern	DWORD	PlatformId;
 char*	gkscanid = "emu_win32vk";
@@ -158,7 +182,7 @@ attachscreen(Rectangle *r, ulong *chan, int *d, int *width, int *softscreen)
 	if(Ysize > sy)
 		Ysize = sy;
 
-	logpal = (LOGPALETTE*)malloc(sizeof(LOGPALETTE) + 256*sizeof(PALETTEENTRY));
+	logpal = malloc(sizeof(LOGPALETTE) + 256*sizeof(PALETTEENTRY));
 	if(logpal == nil)
 		return nil;
 	logpal->palVersion = 0x300;
@@ -187,9 +211,9 @@ attachscreen(Rectangle *r, ulong *chan, int *d, int *width, int *softscreen)
 	palette = CreatePalette(logpal);
 
 	if(k == 8)
-		bmi = (BITMAPINFO*)malloc(sizeof(BITMAPINFOHEADER) + 256*sizeof(RGBQUAD));
+		bmi = malloc(sizeof(BITMAPINFOHEADER) + 256*sizeof(RGBQUAD));
 	else
-		bmi = (BITMAPINFO*)malloc(sizeof(BITMAPINFOHEADER));
+		bmi = malloc(sizeof(BITMAPINFOHEADER));
 	if(bmi == nil)
 		return nil;
 	bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -417,7 +441,7 @@ WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 				wparam = '\t';
 			break;
 		}
-		if(lparam & KF_ALTDOWN)
+		if(lparam & KF_ALTDOWN) 
 		    	wparam = APP | (wparam & 0xFF);
 		gkbdputc(gkbdq, wparam);
 		break;
@@ -493,7 +517,7 @@ winproc(LPVOID x)
 		wc.hInstance = inst;
 		wc.hIcon = LoadIcon(inst, MAKEINTRESOURCE(100));
 		wc.hCursor = NULL;
-		wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+		wc.hbrBackground = GetStockObject(WHITE_BRUSH);
 
 		wc.lpszMenuName = 0;
 		wc.lpszClassName = L"inferno";
@@ -512,11 +536,7 @@ winproc(LPVOID x)
 			wca.lpszClassName = "inferno";
 			isunicode = 0;
 
-			if(RegisterClassA(&wca) == 0)
-			{
-				fprint(2, "can't register class\n"); /* TODO: oserror */
-				ExitThread(0);
-			}
+			RegisterClassA(&wca);
 		}
 	}
 
@@ -568,7 +588,7 @@ winproc(LPVOID x)
 	}
 
 	if(window == nil){
-		fprint(2, "can't make window\n"); /* TODO: oserror */
+		fprint(2, "can't make window\n");
 		ExitThread(0);
 	}
 
@@ -596,8 +616,8 @@ winproc(LPVOID x)
 void
 setpointer(int x, int y)
 {
-	POINT pt;
-
+	POINT pt; 
+ 
 	pt.x = x; pt.y = y;
 	ClientToScreen(window, &pt);
 	SetCursorPos(pt.x, pt.y);
@@ -634,7 +654,7 @@ drawcursor(Drawcursor* c)
 	cw = (GetSystemMetrics(SM_CXCURSOR)+7)/8;
 
 	i = ch*cw;
-	and = (uchar*)malloc(2*i);
+	and = malloc(2*i);
 	if(and == nil)
 		return;
 	xor = and + i;
@@ -644,7 +664,7 @@ drawcursor(Drawcursor* c)
 	cand = and;
 	cxor = xor;
 	bc = c->data;
-	bs = c->data + h*bpl;
+	bs = c->data + h*bpl;	
 
 	for(i = 0; i < ch && i < h; i++) {
 		for(j = 0; j < cw && j < bpl; j++) {
@@ -681,10 +701,10 @@ clipreadunicode(HANDLE h)
 	Rune *p;
 	int n;
 	char *q;
-
-	p = (Rune*)GlobalLock(h);
+	
+	p = GlobalLock(h);
 	n = runenlen(p, runestrlen(p)+1);
-	q = (char*)malloc(n);
+	q = malloc(n);
 	if(q != nil)
 		runestoutf(q, p, n);
 	GlobalUnlock(h);
@@ -697,9 +717,9 @@ clipreadunicode(HANDLE h)
 static char *
 clipreadutf(HANDLE h)
 {
-	char *p;
+	uchar *p;
 
-	p = (char*)GlobalLock(h);
+	p = GlobalLock(h);
 	p = strdup(p);
 	GlobalUnlock(h);
 
@@ -723,7 +743,7 @@ clipread(void)
 		p = clipreadutf(h);
 	else
 		p = strdup("");
-
+	
 	CloseClipboard();
 	return p;
 }
@@ -750,7 +770,7 @@ clipwrite(char *buf)
 	h = GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, (n+1)*sizeof(Rune));
 	if(h == NULL)
 		error(Enovmem);
-	rp = (Rune *)GlobalLock(h);
+	rp = GlobalLock(h);
 	p = buf;
 	e = p+n;
 	while(p<e)
@@ -763,11 +783,11 @@ clipwrite(char *buf)
 	h = GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, n+1);
 	if(h == NULL)
 		error(Enovmem);
-	p = (char*)GlobalLock(h);
+	p = GlobalLock(h);
 	memmove(p, buf, n);
 	p[n] = 0;
 	GlobalUnlock(h);
-
+	
 	SetClipboardData(CF_TEXT, h);
 
 	CloseClipboard();

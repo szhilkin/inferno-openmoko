@@ -1,4 +1,4 @@
-#include <lib9.h>
+#include "lib9.h"
 
 static char qsep[] = " \t\r\n";
 
@@ -44,6 +44,7 @@ int
 tokenize(char *s, char **args, int maxargs)
 {
 	int nargs;
+
 	for(nargs=0; nargs<maxargs; nargs++){
 		while(*s!='\0' && utfrune(qsep, *s)!=nil)
 			s++;

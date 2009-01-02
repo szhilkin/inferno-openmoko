@@ -1,21 +1,21 @@
 #include <lib9.h>
 #include <kernel.h>
 #include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <mp.h>
-#include <libsec.h>
-#include <keys.h>
+#include "interp.h"
+#include "../libinterp/runt.h"
+#include "mp.h"
+#include "libsec.h"
+#include "keys.h"
 
-static char* rsa_pkattr[] = { "n", "ek", nil };
-static char* rsa_skattr[] = { "n", "ek", "!dk", "!p", "!q", "!kp", "!kq", "!c2", nil };
-static char* rsa_sigattr[] = { "val", nil };
+static char*	pkattr[] = { "n", "ek", nil };
+static char*	skattr[] = { "n", "ek", "!dk", "!p", "!q", "!kp", "!kq", "!c2", nil };
+static char*	sigattr[] = { "val", nil };
 
 static void*
-rsa_str2sk(const char *str, const char **strp)
+rsa_str2sk(char *str, char **strp)
 {
 	RSApriv *rsa;
-	const char *p;
+	char *p;
 
 	rsa = rsaprivalloc();
 	rsa->pub.n = base64tobig(str, &p);
@@ -33,10 +33,10 @@ rsa_str2sk(const char *str, const char **strp)
 }
 
 static void*
-rsa_str2pk(const char *str, const char **strp)
+rsa_str2pk(char *str, char **strp)
 {
 	RSApub *rsa;
-	const char *p;
+	char *p;
 
 	rsa = rsapuballoc();
 	rsa->n = base64tobig(str, &p);
@@ -48,10 +48,10 @@ rsa_str2pk(const char *str, const char **strp)
 }
 
 static void*
-rsa_str2sig(const char *str, const char **strp)
+rsa_str2sig(char *str, char **strp)
 {
 	mpint *rsa;
-	const char *p;
+	char *p;
 
 	rsa = base64tobig(str, &p);
 	if(strp)
@@ -191,9 +191,9 @@ rsainit(void)
 
 	vec->name = "rsa";
 
-	vec->pkattr = rsa_pkattr;
-	vec->skattr = rsa_skattr;
-	vec->sigattr = rsa_sigattr;
+	vec->pkattr = pkattr;
+	vec->skattr = skattr;
+	vec->sigattr = sigattr;
 
 	vec->str2sk = rsa_str2sk;
 	vec->str2pk = rsa_str2pk;

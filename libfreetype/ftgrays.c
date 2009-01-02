@@ -116,6 +116,8 @@
 #define ErrRaster_Invalid_Mode     -2
 #define ErrRaster_Invalid_Outline  -1
 
+#define FT_BEGIN_HEADER
+#define FT_END_HEADER
 
 #include "ftimage.h"
 #include "ftgrays.h"
@@ -140,11 +142,11 @@
 #else /* _STANDALONE_ */
 
 
-
+#include <ft2build.h>
 #include "ftgrays.h"
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/ftoutln.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_DEBUG_H
+#include FT_OUTLINE_H
 
 #include "ftsmerrs.h"
 
@@ -856,7 +858,7 @@
         if ( y > max ) max = y;
 
         if ( TRUNC( min ) >= ras.max_ey || TRUNC( max ) < 0 )
-          goto _draw;
+          goto Draw;
 
         gray_split_conic( arc );
         arc += 2;
@@ -865,7 +867,7 @@
         continue;
       }
 
-    _draw:
+    Draw:
       {
         TPos  to_x, to_y, mid_x, mid_y;
 
@@ -1006,7 +1008,7 @@
         if ( y < min ) min = y;
         if ( y > max ) max = y;
         if ( TRUNC( min ) >= ras.max_ey || TRUNC( max ) < 0 )
-          goto _draw;
+          goto Draw;
         gray_split_cubic( arc );
         arc += 3;
         top ++;
@@ -1014,7 +1016,7 @@
         continue;
       }
 
-    _draw:
+    Draw:
       {
         TPos  to_x, to_y, mid_x, mid_y;
 
@@ -1784,11 +1786,11 @@
 #endif /* _STANDALONE_ */
 
 
-  typedef struct  TBand1_
+  typedef struct  TBand_
   {
     TPos  min, max;
 
-  } TBand1;
+  } TBand;
 
 
   static int
@@ -1824,8 +1826,8 @@
   static int
   gray_convert_glyph( RAS_ARG )
   {
-    TBand1           bands[40];
-    volatile TBand1* band;
+    TBand            bands[40];
+    volatile TBand*  band;
     volatile int     n, num_bands;
     volatile TPos    min, max, max_y;
     FT_BBox*         clip;
@@ -2153,11 +2155,5 @@
     (FT_Raster_Done_Func)    gray_raster_done
   };
 
-
-#undef RAS_ARG
-#undef TRUNC
-#undef FLOOR
-#undef CEILING
-#undef SCALED
 
 /* END */

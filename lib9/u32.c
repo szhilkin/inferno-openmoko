@@ -1,7 +1,7 @@
 #include <lib9.h>
 
 int
-dec32(uchar *dest, int ndest, const char *src, int nsrc)
+dec32(uchar *dest, int ndest, char *src, int nsrc)
 {
 	char *s, *tab;
 	uchar *start;
@@ -47,7 +47,7 @@ out:
 }
 
 int
-enc32(char *dest, int ndest, const uchar *src, int nsrc)
+enc32(char *dest, int ndest, uchar *src, int nsrc)
 {
 	char *tab, *start;
 	int j;

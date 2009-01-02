@@ -1,10 +1,10 @@
-#include <lib9.h>
-#include <draw.h>
-#include <memdraw.h>
-#include <pool.h>
-#include <memlayer.h>
+#include "lib9.h"
+#include "draw.h"
+#include "memdraw.h"
+#include "memlayer.h"
+#include "pool.h"
 
-struct Draw2
+struct Draw
 {
 	Point	deltas;
 	Point	deltam;
@@ -18,7 +18,7 @@ static
 void
 ldrawop(Memimage *dst, Rectangle screenr, Rectangle clipr, void *etc, int insave)
 {
-	struct Draw2 *d;
+	struct Draw *d;
 	Point p0, p1;
 	Rectangle oclipr, srcr, r, mr;
 	int ok;
@@ -53,7 +53,7 @@ ldrawop(Memimage *dst, Rectangle screenr, Rectangle clipr, void *etc, int insave
 void
 memdraw(Memimage *dst, Rectangle r, Memimage *src, Point p0, Memimage *mask, Point p1, int op)
 {
-	struct Draw2 d;
+	struct Draw d;
 	Rectangle srcr, tr, mr;
 	Memlayer *dl, *sl;
 

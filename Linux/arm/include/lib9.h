@@ -247,11 +247,11 @@ struct Tm {
 };
 extern	vlong	osnsec(void);
 #define	nsec	osnsec
-
+	
 /*
  * one-of-a-kind
  */
-extern	void	_assert(char*, ...);
+extern	void	_assert(char*);
 extern	double	charstod(int(*)(void*), void*);
 extern	char*	cleanname(char*);
 //extern	ulong	getcallerpc(void*);
@@ -455,18 +455,11 @@ extern char *argv0;
 /* need the inline because the link register is not saved in a known location */
 static __inline ulong getcallerpc(void* dummy) {
 	ulong lr;
- 	__asm__(	"mov	%0, %%lr;"
- 			: "=r" (lr)
- 	);
+ 	__asm__(	"mov	%0, %%lr;" 
+ 			: "=r" (lr) 
+ 	); 
 	return lr;
 }
-
-// stack alignment needs to be checked inside functions called from jitted code
-#if defined(__GNUC__) && defined(LINUX_ARM)
-#define CHECK_STACK_ALIGN() { long long b; if( ((uintptr)&b)&~7 !=0 ) { panic("stack misalign in %s", __FUNCTION__); } }
-#else
-#error
-#endif
 
 /*
  *	Extensions for emu kernel emulation
@@ -491,9 +484,9 @@ struct FPU
 
 static __inline Proc *getup(void) {
 	Proc* p;
- 	__asm__(	"mov	%0, %%sp;"
- 			: "=r" (p)
- 	);
+ 	__asm__(	"mov	%0, %%sp;" 
+ 			: "=r" (p) 
+ 	); 
         return *(Proc **)((unsigned long)p & ~(KSTACK - 1));
 };
 

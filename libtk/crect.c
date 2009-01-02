@@ -1,14 +1,10 @@
 #include <lib9.h>
-#include <draw.h>
 #include <kernel.h>
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
-
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Rectangle Options (+ means implemented)
 	+fill
@@ -28,17 +24,17 @@ struct TkCrect
 static
 TkOption rectopts[] =
 {
-	{"width",	OPTnnfrac,	offsetof(TkCrect, width)	},
-	{"stipple",	OPTbmap,	offsetof(TkCrect, stipple)	},
+	{"width",	OPTnnfrac,	O(TkCrect, width),	nil},
+	{"stipple",	OPTbmap,	O(TkCrect, stipple),	nil},
 	{nil}
 };
 
 static
-TkOption itemopts_crect[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
-	{"fill",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCfill}},
-	{"outline",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCforegnd}},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill)},
+	{"outline",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
 	{nil}
 };
 
@@ -99,7 +95,7 @@ tkcvsrectcreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = r;
 	tko[0].optab = rectopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_crect;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
@@ -135,7 +131,7 @@ tkcvsrectcget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = r;
 	tko[0].optab = rectopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_crect;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -151,7 +147,7 @@ tkcvsrectconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = r;
 	tko[0].optab = rectopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_crect;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);

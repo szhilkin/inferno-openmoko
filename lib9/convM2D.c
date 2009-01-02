@@ -1,10 +1,10 @@
-#include <lib9.h>
+#include	"lib9.h"
 #include	"fcall.h"
 
 int
-statcheck(const char *buf, size_t nbuf)
+statcheck(uchar *buf, uint nbuf)
 {
-	const char *ebuf;
+	uchar *ebuf;
 	int i;
 
 	ebuf = buf + nbuf;
@@ -28,15 +28,15 @@ statcheck(const char *buf, size_t nbuf)
 
 static char nullstring[] = "";
 
-size_t
-convM2D(const char *buf, size_t nbuf, Dir *d, char *strs)
+uint
+convM2D(uchar *buf, uint nbuf, Dir *d, char *strs)
 {
-	const char *p, *ebuf;
+	uchar *p, *ebuf;
 	char *sv[4];
 	int i, ns;
 
 	if(nbuf < STATFIXLEN)
-		return 0;
+		return 0; 
 
 	p = buf;
 	ebuf = buf + nbuf;
@@ -88,6 +88,6 @@ convM2D(const char *buf, size_t nbuf, Dir *d, char *strs)
 		d->gid = nullstring;
 		d->muid = nullstring;
 	}
-
+	
 	return p - buf;
 }

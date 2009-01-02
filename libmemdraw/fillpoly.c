@@ -1,7 +1,7 @@
-#include <lib9.h>
-#include <draw.h>
-#include <memdraw.h>
-#include <memlayer.h>
+#include "lib9.h"
+#include "draw.h"
+#include "memdraw.h"
+#include "memlayer.h"
 
 typedef struct Seg	Seg;
 
@@ -19,9 +19,9 @@ struct Seg
 };
 
 static	void	zsort(Seg **seg, Seg **ep);
-static	int	__cdecl ycompare(const void*, const void*);
-static	int	__cdecl xcompare(const void*, const void*);
-static	int	__cdecl zcompare(const void*, const void*);
+static	int	ycompare(void*, void*);
+static	int	xcompare(void*, void*);
+static	int	zcompare(void*, void*);
 static	void	xscan(Memimage *dst, Seg **seg, Seg *segtab, int nseg, int wind, Memimage *src, Point sp, int, int, int, int);
 static	void	yscan(Memimage *dst, Seg **seg, Seg *segtab, int nseg, int wind, Memimage *src, Point sp, int, int);
 
@@ -119,7 +119,7 @@ _memfillpolysc(Memimage *dst, Point *vert, int nvert, int w, Memimage *src, Poin
 }
 
 static long
-_mod(long x, long y)
+mod(long x, long y)
 {
 	long z;
 
@@ -197,16 +197,16 @@ xscan(Memimage *dst, Seg **seg, Seg *segtab, int nseg, int wind, Memimage *src, 
 		s->num = s->p1.x - s->p0.x;
 		s->den = s->p1.y - s->p0.y;
 		s->dz = sdiv(s->num, s->den) << fixshift;
-		s->dzrem = _mod(s->num, s->den) << fixshift;
+		s->dzrem = mod(s->num, s->den) << fixshift;
 		s->dz += sdiv(s->dzrem, s->den);
-		s->dzrem = _mod(s->dzrem, s->den);
+		s->dzrem = mod(s->dzrem, s->den);
 		p++;
 	}
 	n = p-seg;
 	if(n == 0)
 		return;
 	*p = 0;
-	qsort(seg, p-seg , sizeof(Seg*), ycompare);
+	qsort(seg, p-seg , sizeof(Seg*), (int(*)(const void*,const void*))ycompare);
 
 	onehalf = 0;
 	if(fixshift)
@@ -327,16 +327,16 @@ yscan(Memimage *dst, Seg **seg, Seg *segtab, int nseg, int wind, Memimage *src, 
 		s->num = s->p1.y - s->p0.y;
 		s->den = s->p1.x - s->p0.x;
 		s->dz = sdiv(s->num, s->den) << fixshift;
-		s->dzrem = _mod(s->num, s->den) << fixshift;
+		s->dzrem = mod(s->num, s->den) << fixshift;
 		s->dz += sdiv(s->dzrem, s->den);
-		s->dzrem = _mod(s->dzrem, s->den);
+		s->dzrem = mod(s->dzrem, s->den);
 		p++;
 	}
 	n = p-seg;
 	if(n == 0)
 		return;
 	*p = 0;
-	qsort(seg, n , sizeof(Seg*), xcompare);
+	qsort(seg, n , sizeof(Seg*), (int(*)(const void*,const void*))xcompare);
 
 	onehalf = 0;
 	if(fixshift)
@@ -460,20 +460,23 @@ zsort(Seg **seg, Seg **ep)
 		q = ep-1;
 		for(p = seg; p < q; p++) {
 			if(p[0]->z > p[1]->z) {
-				qsort(seg, ep-seg, sizeof(Seg*), zcompare);
+				qsort(seg, ep-seg, sizeof(Seg*), (int(*)(const void*,const void*))zcompare);
 				break;
 			}
 		}
 	}
 }
 
-static int __cdecl
-ycompare(const void *a, const void *b)
+static int
+ycompare(void *a, void *b)
 {
-	const Seg **s0 = ((const Seg **)a);
-	const Seg **s1 = ((const Seg **)b);
-	long y0 = (*s0)->p0.y;
-	long y1 = (*s1)->p0.y;
+	Seg **s0, **s1;
+	long y0, y1;
+
+	s0 = a;
+	s1 = b;
+	y0 = (*s0)->p0.y;
+	y1 = (*s1)->p0.y;
 
 	if(y0 < y1)
 		return -1;
@@ -482,13 +485,16 @@ ycompare(const void *a, const void *b)
 	return 1;
 }
 
-static int __cdecl
-xcompare(const void *a, const void *b)
+static int
+xcompare(void *a, void *b)
 {
-	const Seg **s0 = ((const Seg **)a);
-	const Seg **s1 = ((const Seg **)b);
-	long x0 = (*s0)->p0.x;
-	long x1 = (*s1)->p0.x;
+	Seg **s0, **s1;
+	long x0, x1;
+
+	s0 = a;
+	s1 = b;
+	x0 = (*s0)->p0.x;
+	x1 = (*s1)->p0.x;
 
 	if(x0 < x1)
 		return -1;
@@ -497,13 +503,16 @@ xcompare(const void *a, const void *b)
 	return 1;
 }
 
-static int __cdecl
-zcompare(const void *a, const void *b)
+static int
+zcompare(void *a, void *b)
 {
-	const Seg **s0 = ((const Seg **)a);
-	const Seg **s1 = ((const Seg **)b);
-	long z0 = (*s0)->z;
-	long z1 = (*s1)->z;
+	Seg **s0, **s1;
+	long z0, z1;
+
+	s0 = a;
+	s1 = b;
+	z0 = (*s0)->z;
+	z1 = (*s1)->z;
 
 	if(z0 < z1)
 		return -1;

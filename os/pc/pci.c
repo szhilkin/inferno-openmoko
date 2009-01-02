@@ -102,7 +102,7 @@ tbdffmt(Fmt* fmt)
 
 	if((p = malloc(READSTR)) == nil)
 		return fmtstrcpy(fmt, "(tbdfconv)");
-
+		
 	switch(fmt->r){
 	case 'T':
 		tbdf = va_arg(fmt->args, int);
@@ -183,7 +183,7 @@ pcibusmap(Pcidev *root, ulong *pmema, ulong *pioa, int wrreg)
 	ioa = *pioa;
 	mema = *pmema;
 
-	DBG("pcibusmap wr=%d %T mem=%luX io=%luX\n",
+	DBG("pcibusmap wr=%d %T mem=%luX io=%luX\n", 
 		wrreg, root->tbdf, mema, ioa);
 
 	ntb = 0;
@@ -384,7 +384,6 @@ pcilscan(int bno, Pcidev** list)
 			p->tbdf = tbdf;
 			p->vid = l;
 			p->did = l>>16;
-			print("PCI: %ux %ux %ux\n", p->tbdf, p->vid, p->did);
 
 			if(pcilist != nil)
 				pcitail->list = p;
@@ -509,7 +508,7 @@ pciscan(int bno, Pcidev **list)
 	return ubn;
 }
 
-static uchar
+static uchar 
 pIIxget(Pcidev *router, uchar link)
 {
 	uchar pirq;
@@ -519,13 +518,13 @@ pIIxget(Pcidev *router, uchar link)
 	return (pirq < 16)? pirq: 0;
 }
 
-static void
+static void 
 pIIxset(Pcidev *router, uchar link, uchar irq)
 {
 	pcicfgw8(router, link, irq);
 }
 
-static uchar
+static uchar 
 viaget(Pcidev *router, uchar link)
 {
 	uchar pirq;
@@ -536,7 +535,7 @@ viaget(Pcidev *router, uchar link)
 	return (link & 1)? (pirq >> 4): (pirq & 15);
 }
 
-static void
+static void 
 viaset(Pcidev *router, uchar link, uchar irq)
 {
 	uchar pirq;
@@ -547,7 +546,7 @@ viaset(Pcidev *router, uchar link, uchar irq)
 	pcicfgw8(router, 0x55 + (link>>1), pirq);
 }
 
-static uchar
+static uchar 
 optiget(Pcidev *router, uchar link)
 {
 	uchar pirq = 0;
@@ -558,7 +557,7 @@ optiget(Pcidev *router, uchar link)
 	return (link & 0x10)? (pirq >> 4): (pirq & 15);
 }
 
-static void
+static void 
 optiset(Pcidev *router, uchar link, uchar irq)
 {
 	uchar pirq;
@@ -569,7 +568,7 @@ optiset(Pcidev *router, uchar link, uchar irq)
 	pcicfgw8(router, 0xb8 + (link >> 5), pirq);
 }
 
-static uchar
+static uchar 
 aliget(Pcidev *router, uchar link)
 {
 	/* No, you're not dreaming */
@@ -581,7 +580,7 @@ aliget(Pcidev *router, uchar link)
 	return (link & 1)? map[pirq&15]: map[pirq>>4];
 }
 
-static void
+static void 
 aliset(Pcidev *router, uchar link, uchar irq)
 {
 	/* Inverse of map in aliget */
@@ -594,7 +593,7 @@ aliset(Pcidev *router, uchar link, uchar irq)
 	pcicfgw8(router, 0x48 + ((link-1)>>1), pirq);
 }
 
-static uchar
+static uchar 
 cyrixget(Pcidev *router, uchar link)
 {
 	uchar pirq;
@@ -604,7 +603,7 @@ cyrixget(Pcidev *router, uchar link)
 	return ((link & 1)? pirq >> 4: pirq & 15);
 }
 
-static void
+static void 
 cyrixset(Pcidev *router, uchar link, uchar irq)
 {
 	uchar pirq;
@@ -621,7 +620,7 @@ struct Bridge
 	ushort	vid;
 	ushort	did;
 	uchar	(*get)(Pcidev *, uchar);
-	void	(*set)(Pcidev *, uchar, uchar);
+	void	(*set)(Pcidev *, uchar, uchar);	
 };
 
 static Bridge southbridges[] = {
@@ -738,7 +737,7 @@ pcirouting(void)
 			if(pci == nil)
 				continue;
 			pin = pcicfgr8(pci, PciINTP);
-			if(pin == 0 || pin == 0xff)
+			if(pin == 0 || pin == 0xff) 
 				continue;
 
 			map = &e->maps[(pin - 1) * 3];
@@ -818,7 +817,7 @@ pcicfginit(void)
 			outb(PciCSE, n);
 		}
 	}
-
+	
 	if(pcicfgmode < 0)
 		goto out;
 
@@ -848,7 +847,7 @@ pcicfginit(void)
 
 			/*
 			  * If we have found a PCI-to-Cardbus bridge, make sure
-			  * it has no valid mappings anymore.
+			  * it has no valid mappings anymore.  
 			  */
 			pci = pciroot;
 			while (pci) {
@@ -878,7 +877,7 @@ pcicfginit(void)
 
 		DBG("Sizes: mem=%8.8lux size=%8.8lux io=%8.8lux\n",
 			mema, pcimask(mema), ioa);
-
+	
 		/*
 		 * Align the windows and map it
 		 */
@@ -889,7 +888,7 @@ pcicfginit(void)
 
 		pcibusmap(pciroot, &mema, &ioa, 1);
 		DBG("Sizes2: mem=%lux io=%lux\n", mema, ioa);
-
+	
 		unlock(&pcicfginitlock);
 		return;
 	}
@@ -1163,7 +1162,7 @@ pcilhinv(Pcidev* p)
 		if(p->bridge != nil)
 			pcilhinv(p->bridge);
 		p = p->link;
-	}
+	}	
 }
 
 void

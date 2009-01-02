@@ -1,6 +1,5 @@
-
-//#include FT_EXCEPT_H
-#error
+#include <ft2build.h>
+#include FT_EXCEPT_H
 
 
   FT_BASE_DEF( void )
@@ -195,4 +194,4 @@
 
     xhandler->error = error;
     longmp( xhandler->jump_buffer, 1 );
-  }
+  }                    

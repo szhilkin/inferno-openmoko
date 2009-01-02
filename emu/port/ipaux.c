@@ -1,7 +1,7 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <ip.h>
+#include        "dat.h"
+#include        "fns.h"
+#include        "ip.h"
+#include        "error.h"
 
 /*
  *  well known IP addresses
@@ -257,15 +257,15 @@ common:
 
 #define CLASS(p) ((*(uchar*)(p))>>6)
 
-const char*
-v4parseip(uchar to[4], const char *from)
+char*
+v4parseip(uchar *to, char *from)
 {
 	int i;
-	const char *p;
+	char *p;
 
 	p = from;
 	for(i = 0; i < 4 && *p; i++){
-		to[i] = strtoul(p, (char**)&p, 0);
+		to[i] = strtoul(p, &p, 0);
 		if(*p == '.')
 			p++;
 	}
@@ -292,7 +292,7 @@ v4parseip(uchar to[4], const char *from)
 }
 
 int
-isv4(const uchar ip[16])
+isv4(uchar *ip)
 {
 	return memcmp(ip, v4prefix, IPv4off) == 0;
 }
@@ -303,7 +303,7 @@ isv4(const uchar ip[16])
  *  up the usual case
  */
 void
-v4tov6(uchar v6[16], const uchar v4[4])
+v4tov6(uchar *v6, uchar *v4)
 {
 	v6[0] = 0;
 	v6[1] = 0;
@@ -324,7 +324,7 @@ v4tov6(uchar v6[16], const uchar v4[4])
 }
 
 int
-v6tov4(uchar v4[4], const uchar v6[16])
+v6tov4(uchar *v4, uchar *v6)
 {
 	if(v6[0] == 0
 	&& v6[1] == 0
@@ -351,17 +351,17 @@ v6tov4(uchar v4[4], const uchar v6[16])
 }
 
 ulong
-parseip(uchar to[16], const char *from)
+parseip(uchar *to, char *from)
 {
 	int i, elipsis = 0, v4 = 1;
 	ulong x;
-	const char *p, *op;
+	char *p, *op;
 
 	memset(to, 0, IPaddrlen);
 	p = from;
 	for(i = 0; i < 16 && *p; i+=2){
 		op = p;
-		x = strtoul(p, (char**)&p, 16);
+		x = strtoul(p, &p, 16);
 		if(*p == '.' || (*p == 0 && i == 0)){
 			p = v4parseip(to+i, op);
 			i += 4;
@@ -386,7 +386,7 @@ parseip(uchar to[16], const char *from)
 		to[10] = to[11] = 0xff;
 		return nhgetl(to+12);
 	} else
-		return 6; /* FIXME: not a good magic */
+		return 6;
 }
 
 /*
@@ -394,7 +394,7 @@ parseip(uchar to[16], const char *from)
  *  style
  */
 ulong
-parseipmask(uchar *to, const char *from)
+parseipmask(uchar *to, char *from)
 {
 	ulong x;
 	int i;
@@ -423,7 +423,7 @@ parseipmask(uchar *to, const char *from)
 }
 
 void
-maskip(const uchar *from, const uchar *mask, uchar *to)
+maskip(uchar *from, uchar *mask, uchar *to)
 {
 	int i;
 
@@ -461,11 +461,11 @@ defmask(uchar *ip)
 /*
  *  parse a hex mac address
  */
-size_t
-parsemac(uchar *to, const char *from, size_t len)
+int
+parsemac(uchar *to, char *from, int len)
 {
 	char nip[4];
-	const char *p;
+	char *p;
 	int i;
 
 	p = from;
@@ -484,4 +484,42 @@ parsemac(uchar *to, const char *from, size_t len)
 			p++;
 	}
 	return i;
+}
+
+void
+hnputl(void *p, unsigned long v)
+{
+	unsigned char *a;
+
+	a = p;
+	a[0] = v>>24;
+	a[1] = v>>16;
+	a[2] = v>>8;
+	a[3] = v;
+}
+
+void
+hnputs(void *p, unsigned short v)
+{
+	unsigned char *a;
+
+	a = p;
+	a[0] = v>>8;
+	a[1] = v;
+}
+
+unsigned long
+nhgetl(void *p)
+{
+	unsigned char *a;
+	a = p;
+	return (a[0]<<24)|(a[1]<<16)|(a[2]<<8)|(a[3]<<0);
+}
+
+unsigned short
+nhgets(void *p)
+{
+	unsigned char *a;
+	a = p;
+	return (a[0]<<8)|(a[1]<<0);
 }

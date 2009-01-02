@@ -24,8 +24,8 @@
 #define __AHTYPES_H__
 
 
-
-#include <freetype/internal/ftobjs.h>
+#include <ft2build.h>
+#include FT_INTERNAL_OBJECTS_H
 
 #ifdef DEBUG_HINTER
 #include <../src/autohint/ahloader.h>
@@ -49,9 +49,7 @@
 #endif /* AH_DEBUG */
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -512,9 +510,7 @@ extern "C" {
 #endif /* DEBUG_HINTER */
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __AHTYPES_H__ */
 

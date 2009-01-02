@@ -1,13 +1,9 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
-
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Line Options (+ means implemented)
 	+arrow
@@ -44,21 +40,21 @@ TkStab tkcapstyle[] =
 static
 TkOption lineopts[] =
 {
-	{"arrow",	OPTstab,	offsetof(TkCline, arrow),	{tklines}},
-	{"arrowshape",	OPTfrac,	offsetof(TkCline, shape[0]),	{(TkStab*)3}},
-	{"width",	OPTnnfrac,	offsetof(TkCline, width)	},
-	{"stipple",	OPTbmap,	offsetof(TkCline, stipple)	},
-	{"smooth",	OPTstab,	offsetof(TkCline, smooth),	{tkbool}},
-	{"splinesteps",	OPTdist,	offsetof(TkCline, steps)	},
-	{"capstyle",	OPTstab,	offsetof(TkCline, capstyle),	{tkcapstyle}},
+	{"arrow",	OPTstab,	O(TkCline, arrow),	tklines},
+	{"arrowshape",	OPTfrac,	O(TkCline, shape[0]),	IAUX(3)},
+	{"width",	OPTnnfrac,	O(TkCline, width),	nil},
+	{"stipple",	OPTbmap,	O(TkCline, stipple),	nil},
+	{"smooth",	OPTstab,	O(TkCline, smooth),	tkbool},
+	{"splinesteps",	OPTdist,	O(TkCline, steps),	nil},
+	{"capstyle",	OPTstab,	O(TkCline, capstyle),	tkcapstyle},
 	{nil}
 };
 
 static
-TkOption itemopts_cline[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
-	{"fill",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCforegnd}},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
 	{nil}
 };
 
@@ -123,7 +119,7 @@ tkcvslinecreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = l;
 	tko[0].optab = lineopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cline;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
@@ -160,7 +156,7 @@ tkcvslinecget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = l;
 	tko[0].optab = lineopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cline;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -176,7 +172,7 @@ tkcvslineconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = l;
 	tko[0].optab = lineopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cline;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);

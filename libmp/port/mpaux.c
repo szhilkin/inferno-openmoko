@@ -1,6 +1,6 @@
-#include <os.h>
+#include "os.h"
 #include <mp.h>
-#include "mpdat.h"
+#include "dat.h"
 
 static mpdigit _mptwodata[1] = { 2 };
 static mpint _mptwo =
@@ -48,7 +48,7 @@ mpsetminbits(int n)
 	mpmindigits = DIGITS(n);
 }
 
-// allocate an n bit 0'd number
+// allocate an n bit 0'd number 
 mpint*
 mpnew(int n)
 {
@@ -186,3 +186,4 @@ mplowbits0(mpint *n)
 	}
 	return k;
 }
+

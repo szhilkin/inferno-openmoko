@@ -62,7 +62,7 @@ readdirect(char *path)
 	HANDLE h;
 	Direntry *d;
 	char fullpath[MAX_PATH];
-	WIN32_FIND_DATAA data; // TODO: unicode
+	WIN32_FIND_DATAA data;
 
 	snprint(fullpath, MAX_PATH, "%s\\*.*", path);
 
@@ -120,6 +120,7 @@ static int
 tas(int *p)
 {
 	int v;
+
 #ifdef _MSC_VER
 	_asm {
 		mov	eax, p
@@ -128,13 +129,14 @@ tas(int *p)
 		mov	v, ebx
 	}
 #else
-	asm("xchgl %0,%1" : "=r" (v), "=m" (*p) : "0"(1));
+	__asm__ ("xchgl %0,%1" : "=r" (v), "=m" (*p) : "0"(1));
 #endif
+
 	return v;
 }
 
 static void
-lock(Lock *lk)
+_lock(Lock *lk)
 {
 	int i;
 
@@ -160,7 +162,7 @@ lock(Lock *lk)
 }
 
 static void
-unlock(Lock *lk)
+_unlock(Lock *lk)
 {
 	lk->val = 0;
 }
@@ -170,10 +172,10 @@ refinc(Ref *r)
 {
 	int i;
 
-	lock(&r->lk);
+	_lock(&r->lk);
 	i = r->ref;
 	r->ref++;
-	unlock(&r->lk);
+	_unlock(&r->lk);
 	return i;
 }
 
@@ -182,10 +184,10 @@ refdec(Ref *r)
 {
 	int i;
 
-	lock(&r->lk);
+	_lock(&r->lk);
 	r->ref--;
 	i = r->ref;
-	unlock(&r->lk);
+	_unlock(&r->lk);
 
 	return i;
 }
@@ -429,8 +431,7 @@ int
 procwait(uint pid)
 {
 	HANDLE h;
-	int i;
-	DWORD dwExitCode;
+	int i, exit;
 
 	if(pid == 0)
 		return 0;
@@ -456,17 +457,17 @@ procwait(uint pid)
 		fatal("procwait: ");
 	}
 
-	if(!GetExitCodeProcess(h, &dwExitCode)) {
+	if(!GetExitCodeProcess(h, &exit)) {
 		winerror();
-		dwExitCode = 1;
+		exit = 1;
 	}
 
 	CloseHandle(h);
-	return dwExitCode;
+	return exit;
 }
 
 uint
-proc(char **argv, int _stdin, int _stdout, int _stderr)
+proc(char **argv, int stdin, int stdout, int stderr)
 {
 	char *p, *arg0, *q, buf[MAX_PATH], path[MAX_PATH], *cmd, *eb;
 	STARTUPINFOA si;
@@ -512,9 +513,9 @@ proc(char **argv, int _stdin, int _stdout, int _stderr)
 	si.cb = sizeof(si);
 	si.dwFlags = STARTF_USESHOWWINDOW|STARTF_USESTDHANDLES;
 	si.wShowWindow = SW_SHOW;
-	si.hStdInput = fdexport(_stdin);
-	si.hStdOutput = fdexport(_stdout);
-	si.hStdError = fdexport(_stderr);
+	si.hStdInput = fdexport(stdin);
+	si.hStdOutput = fdexport(stdout);
+	si.hStdError = fdexport(stderr);
 
 	eb = exportenv(_environ);
 

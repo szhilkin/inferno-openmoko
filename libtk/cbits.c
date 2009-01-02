@@ -1,13 +1,9 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
-
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Bitmap Options (+ means implemented)
 	+anchor
@@ -25,17 +21,17 @@ struct TkCbits
 static
 TkOption bitopts[] =
 {
-	{"anchor",	OPTstab,	offsetof(TkCbits, anchor),	{tkanchor}},
-	{"bitmap",	OPTbmap,	offsetof(TkCbits, bitmap)	},
+	{"anchor",	OPTstab,	O(TkCbits, anchor),	tkanchor},
+	{"bitmap",	OPTbmap,	O(TkCbits, bitmap),	nil},
 	{nil}
 };
 
 static
-TkOption itemopts_cbits[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
-	{"background",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCbackgnd}},
-	{"foreground",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCforegnd}},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"background",	OPTcolr,	O(TkCitem, env),	IAUX(TkCbackgnd)},
+	{"foreground",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
 	{nil}
 };
 
@@ -93,14 +89,14 @@ tkcvsbitcreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = b;
 	tko[0].optab = bitopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cbits;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
 		tkcvsfreeitem(i);
 		return e;
 	}
-
+	
 	e = tkcaddtag(tk, i, 1);
 	if(e != nil) {
 		tkcvsfreeitem(i);
@@ -124,7 +120,7 @@ tkcvsbitcget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = b;
 	tko[0].optab = bitopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cbits;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -140,7 +136,7 @@ tkcvsbitconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = b;
 	tko[0].optab = bitopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cbits;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);

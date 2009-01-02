@@ -76,8 +76,8 @@ doc(char *m)
 {
 	int i;
 	print("%s...\n", m);
-/*	for(i = 0; i < 100*1024*1024; i++)
-		i++;*/
+	for(i = 0; i < 100*1024*1024; i++)
+		i++;
 }
 
 void
@@ -128,7 +128,7 @@ main(void)
 	doc("schedinit");
 	active.thunderbirdsarego = 1;
 	schedinit();
-
+	
 }
 
 void
@@ -456,6 +456,10 @@ isaconfig(char *class, int ctlrno, ISAConf *isa)
 	return 1;
 }
 
+/*
+ *  put the processor in the halt state if we've no processes to run.
+ *  an interrupt will get us going again.
+ */
 void
 idlehands(void)
 {

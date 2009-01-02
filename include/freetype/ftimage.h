@@ -30,13 +30,11 @@
 
 /* _STANDALONE_ is from ftgrays.c */
 #ifndef _STANDALONE_
-
+#include <ft2build.h>
 #endif
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -1235,9 +1233,7 @@ extern "C" {
   /* */
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FTIMAGE_H__ */
 

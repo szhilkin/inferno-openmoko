@@ -37,11 +37,11 @@
   /*************************************************************************/
 
 
-
-#include <freetype/config/ftconfig.h>
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/ftmodule.h>
+#include <ft2build.h>
+#include FT_CONFIG_CONFIG_H
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_DEBUG_H
+#include FT_MODULE_H
 
 
   /*************************************************************************/
@@ -55,22 +55,22 @@
 
 #undef  FT_USE_MODULE
 #ifdef __cplusplus
-#define FT_USE_MODULE( t, x )  extern "C" const t  x;
+#define FT_USE_MODULE( x )  extern "C" const FT_Module_Class*  x;
 #else
-#define FT_USE_MODULE( t, x )  extern const t  x;
+#define FT_USE_MODULE( x )  extern const FT_Module_Class*  x;
 #endif
 
 
-#include <freetype/config/ftmodule.h>
+#include FT_CONFIG_MODULES_H
 
 
 #undef  FT_USE_MODULE
-#define FT_USE_MODULE( t, x )  (const FT_Module_Class*)&x,
+#define FT_USE_MODULE( x )  (const FT_Module_Class*)&x,
 
   static
   const FT_Module_Class*  const ft_default_modules[] =
   {
-#include <freetype/config/ftmodule.h>
+#include FT_CONFIG_MODULES_H
     0
   };
 

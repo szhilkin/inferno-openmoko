@@ -27,14 +27,14 @@
 /* This is the Inferno version */
 
 
+#include <ft2build.h>
+#include FT_CONFIG_CONFIG_H
+#include FT_INTERNAL_DEBUG_H
+#include FT_SYSTEM_H
+#include FT_ERRORS_H
+#include FT_TYPES_H
 
-#include <freetype/config/ftconfig.h>
-#include <freetype/internal/ftdebug.h>
-#include <freetype/ftsystem.h>
-#include <freetype/fterrors.h>
-#include <freetype/fttypes.h>
-
-//#include <kernel.h> /* ??? */
+#include "kernel.h"
 
 /*#include <stdio.h>*/
 /*#include <stdlib.h>*/
@@ -281,9 +281,9 @@ FT_Stream_Open( FT_Stream stream, const char*  filepathname)
     if ( memory )
     {
       memory->user    = 0;
-      memory->fnalloc   = ft_alloc;
-      memory->fnrealloc = ft_realloc;
-      memory->fnfree    = ft_free;
+      memory->alloc   = ft_alloc;
+      memory->realloc = ft_realloc;
+      memory->free    = ft_free;
 #ifdef FT_DEBUG_MEMORY
       ft_mem_debug_init( memory );
 #endif
@@ -301,7 +301,7 @@ FT_Stream_Open( FT_Stream stream, const char*  filepathname)
 #ifdef FT_DEBUG_MEMORY
     ft_mem_debug_done( memory );
 #endif
-    memory->fnfree( memory, memory );
+    memory->free( memory, memory );
   }
 
 

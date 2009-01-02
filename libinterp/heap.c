@@ -1,58 +1,55 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
-#include <pool.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "pool.h"
+#include "raise.h"
 
 void	freearray(Heap*, int);
-void	free_list(Heap*, int);
+void	freelist(Heap*, int);
 void	freemodlink(Heap*, int);
 void	freechan(Heap*, int);
-/**
- * Dis types
- */
-Type	Tarray = { 1, "array", freearray, (TypeMark)markarray, sizeof(Array) };
-Type	Tstring = { 1, "string", freestring, noptrs, sizeof(String) };
-Type	Tlist = { 1, "list", free_list, (TypeMark)marklist, sizeof(List) };
-Type	Tmodlink = { 1, "modlink", freemodlink, markheap, -1, 1, 0, 0, { 0x80 } };
-Type	Tchannel = { 1, "channel", freechan, markheap, sizeof(Channel), 1,0,0,{0x80} };
-Type	Tptr = { 1, "ptr", 0, markheap, sizeof(DISINT*), 1, 0, 0, { 0x80 } };
-Type	Tbyte = { 1, "byte", 0, 0, 1 };
-Type	Tword = { 1, "word", 0, 0, sizeof(DISINT) };
-Type	Tlong = { 1, "long", 0, 0, sizeof(DISBIG) };
-Type	Treal = { 1, "real", 0, 0, sizeof(DISREAL) };
+Type	Tarray = { 1, freearray, markarray, sizeof(Array) };
+Type	Tstring = { 1, freestring, noptrs, sizeof(String) };
+Type	Tlist = { 1, freelist, marklist, sizeof(List) };
+Type	Tmodlink = { 1, freemodlink, markheap, -1, 1, 0, 0, { 0x80 } };
+Type	Tchannel = { 1, freechan, markheap, sizeof(Channel), 1,0,0,{0x80} };
+Type	Tptr = { 1, 0, markheap, sizeof(WORD*), 1, 0, 0, { 0x80 } };
+Type	Tbyte = { 1, 0, 0, 1 };
+Type Tword = { 1, 0, 0, sizeof(WORD) };
+Type Tlong = { 1, 0, 0, sizeof(LONG) };
+Type Treal = { 1, 0, 0, sizeof(REAL) };
 
 extern	Pool*	heapmem;
 extern	int	mutator;
 
-void	(*heapmonitor)(int, void*, ulong) = 0;
+void	(*heapmonitor)(int, void*, ulong);
 
 #define	BIT(bt, nb)	(bt & (1<<nb))
 
 void
-freeptrs(void *v, Type *t /* usually =D2H(v)->t */)
+freeptrs(void *v, Type *t)
 {
 	int c;
-	DISINT **w, *x;
-	char *p, *ep;
+	WORD **w, *x;
+	uchar *p, *ep;
 
 	if(t->np == 0)
 		return;
 
-	w = (DISINT**)v;
+	w = (WORD**)v;
 	p = t->map;
 	ep = p + t->np;
 	while(p < ep) {
 		c = *p;
 		if(c != 0) {
- 			if(BIT(c, 0) && (x = w[7]) != H) ASSIGN(x, H);
-			if(BIT(c, 1) && (x = w[6]) != H) ASSIGN(x, H);
- 			if(BIT(c, 2) && (x = w[5]) != H) ASSIGN(x, H);
-			if(BIT(c, 3) && (x = w[4]) != H) ASSIGN(x, H);
-			if(BIT(c, 4) && (x = w[3]) != H) ASSIGN(x, H);
-			if(BIT(c, 5) && (x = w[2]) != H) ASSIGN(x, H);
-			if(BIT(c, 6) && (x = w[1]) != H) ASSIGN(x, H);
-			if(BIT(c, 7) && (x = w[0]) != H) ASSIGN(x, H);
+ 			if(BIT(c, 0) && (x = w[7]) != H) destroy(x);
+			if(BIT(c, 1) && (x = w[6]) != H) destroy(x);
+ 			if(BIT(c, 2) && (x = w[5]) != H) destroy(x);
+			if(BIT(c, 3) && (x = w[4]) != H) destroy(x);
+			if(BIT(c, 4) && (x = w[3]) != H) destroy(x);
+			if(BIT(c, 5) && (x = w[2]) != H) destroy(x);
+			if(BIT(c, 6) && (x = w[1]) != H) destroy(x);
+			if(BIT(c, 7) && (x = w[0]) != H) destroy(x);
 		}
 		p++;
 		w += 8;
@@ -89,12 +86,12 @@ freechan(Heap *h, int swept)
 
 	USED(swept);
 	c = H2D(Channel*, h);
-	if(c->mover == movertmp)
+	if(c->mover == movtmp)
 		freetype(c->mid.t);
 	killcomm(&c->send);
 	killcomm(&c->recv);
 	if (!swept && c->buf != H)
-		ASSIGN(c->buf, H);
+		destroy(c->buf);
 }
 
 void
@@ -112,15 +109,18 @@ void
 freearray(Heap *h, int swept)
 {
 	int i;
-	char *v;
-	Array *a = H2D(Array*, h);
-	Type *t = a->t;
+	Type *t;
+	uchar *v;
+	Array *a;
+
+	a = H2D(Array*, h);
+	t = a->t;
 
 	if(!swept) {
-		if(a->root != H) {
-			ASSIGN(a->root, H);
-		}
-		else if(t->np != 0) {
+		if(a->root != H)
+			destroy(a->root);
+		else
+		if(t->np != 0) {
 			v = a->data;
 			for(i = 0; i < a->len; i++) {
 				freeptrs(v, t);
@@ -135,15 +135,18 @@ freearray(Heap *h, int swept)
 }
 
 void
-free_list(Heap *h, int swept)
+freelist(Heap *h, int swept)
 {
+	Type *t;
+	List *l;
 	Heap *th;
-	List *l = H2D(List*, h);
-	Type *t = l->t;
+
+	l = H2D(List*, h);
+	t = l->t;
 
 	if(t != nil) {
 		if(!swept && t->np)
-			freeptrs(&l->data, t); /*?*/
+			freeptrs(l->data, t);
 		t->ref--;
 		if(t->ref == 0) {
 			free(t->initialize);
@@ -155,13 +158,13 @@ free_list(Heap *h, int swept)
 	l = l->tail;
 	while(l != (List*)H) {
 		t = l->t;
-		th = D2H(l);
+		th = D2H((ulong)l);
 		if(th->ref-- != 1)
 			break;
 		th->t->ref--;	/* should be &Tlist and ref shouldn't go to 0 here nor be 0 already */
 		if(t != nil) {
 			if (t->np)
-				freeptrs(&l->data, t);
+				freeptrs(l->data, t);
 			t->ref--;
 			if(t->ref == 0) {
 				free(t->initialize);
@@ -178,24 +181,22 @@ free_list(Heap *h, int swept)
 void
 freemodlink(Heap *h, int swept)
 {
-	Modlink *ml = H2D(Modlink*, h);
+	Modlink *ml;
 
+	ml = H2D(Modlink*, h);
 	if(ml->m->rt == DYNMOD)
 		freedyndata(ml);
 	else if(!swept)
-		ASSIGN(ml->MP, H);
+		destroy(ml->MP);
 	unload(ml->m);
 }
-/*
+
 int
 heapref(void *v)
 {
 	return D2H(v)->ref;
 }
-*/
-/**
- * Default destructor for heap objects
- */
+
 void
 freeheap(Heap *h, int swept)
 {
@@ -205,44 +206,31 @@ freeheap(Heap *h, int swept)
 		return;
 
 	t = h->t;
-	/*print("Free:\t");PRINT_TYPE(t);print("\n");*/
 	if (t->np)
 		freeptrs(H2D(void*, h), t);
 }
 
 void
 destroy(void *v)
-//destroyxx(void**pp, void*new)
 {
 	Heap *h;
 	Type *t;
-//	void* v = *pp; /*XCHG*/
-//	*pp = new;
 
 	if(v == H)
 		return;
 
-	if(v == nil)
-		panic("destroy nil");
-
 	h = D2H(v);
-	assert(poolmsize(heapmem, h)>0);	/* consistency check */
+	{ Bhdr *b; D2B(b, h); }		/* consistency check */
 
-	if(--h->ref > 0)
+	if(--h->ref > 0 || gchalt > 64) 	/* Protect 'C' thread stack */
 		return;
-
-	if(gchalt > 64) 	/* Protect 'C' thread stack */
-	{
-		print("destroy was not done for gchalt=%d\n", gchalt);
-		return;
-	}
 
 	if(heapmonitor != nil)
 		heapmonitor(1, h, 0);
 	t = h->t;
 	if(t != nil) {
 		gclock();
-		t->destructor(h, 0);
+		t->free(h, 0);
 		gcunlock();
 		freetype(t);
 	}
@@ -260,13 +248,14 @@ freetype(Type *t)
 }
 
 void
-incmem(const void *vw, Type *t)
+incmem(void *vw, Type *t)
 {
-	char *p;
+	Heap *h;
+	uchar *p;
 	int i, c, m;
-	DISINT **w, **q, *wp;
+	WORD **w, **q, *wp;
 
-	w = (DISINT**)vw;
+	w = (WORD**)vw;
 	p = t->map;
 	for(i = 0; i < t->np; i++) {
 		c = *p++;
@@ -274,8 +263,9 @@ incmem(const void *vw, Type *t)
 			q = w;
 			for(m = 0x80; m != 0; m >>= 1) {
 				if((c & m) && (wp = *q) != H) {
-					ADDREF(wp);
-					Setmark(D2H(wp));
+					h = D2H(wp);
+					h->ref++;
+					Setmark(h);
 				}
 				q++;
 			}
@@ -287,11 +277,11 @@ incmem(const void *vw, Type *t)
 void
 scanptrs(void *vw, Type *t, void (*f)(void*))
 {
-	char *p;
+	uchar *p;
 	int i, c, m;
-	DISINT **w, **q, *wp;
+	WORD **w, **q, *wp;
 
-	w = (DISINT**)vw;
+	w = (WORD**)vw;
 	p = t->map;
 	for(i = 0; i < t->np; i++) {
 		c = *p++;
@@ -307,17 +297,14 @@ scanptrs(void *vw, Type *t, void (*f)(void*))
 	}
 }
 
-/**
- * Set pointers to H accorting to type map
- */
 void
-initmem(const Type *t, void *vw)
+initmem(Type *t, void *vw)
 {
 	int c;
-	void **w;
-	const char *p, *ep;
+	WORD **w;
+	uchar *p, *ep;
 
-	w = (void**)vw;
+	w = (WORD**)vw;
 	p = t->map;
 	ep = p + t->np;
 	while(p < ep) {
@@ -337,29 +324,14 @@ initmem(const Type *t, void *vw)
 	}
 }
 
-/**
- * Alloc n bytes on heap (with Heap header)
- */
 Heap*
-v_nheap(int n, const char*file, int line, const char*function)
+nheap(int n)
 {
 	Heap *h;
 
-	h = (Heap *)v_poolalloc(heapmem, sizeof(Heap)+n, file, line, function);
+	h = poolalloc(heapmem, sizeof(Heap)+n);
 	if(h == nil)
 		error(exHeap);
-
-	{
-	Prog *p=currun();
-	if(p==nil) {
-		setmemcomment(h, "nil");
-	}
-	else{
-		char* sz = malloc(32);
-		sprint(sz, "pid=%d", p->pid);
-		setmemcomment(h, sz);
-	}
-	}
 
 	h->t = nil;
 	h->ref = 1;
@@ -371,82 +343,60 @@ v_nheap(int n, const char*file, int line, const char*function)
 }
 
 Heap*
-v_heapz(Type *t, const char*file, int line, const char*function)
+heapz(Type *t)
 {
 	Heap *h;
 
-	h = (Heap *)v_poolalloc(heapmem, sizeof(Heap)+t->size, file, line, function);
+	h = poolalloc(heapmem, sizeof(Heap)+t->size);
 	if(h == nil)
 		error(exHeap);
-
-	{
-	Prog *p=currun();
-	if(p==nil) {
-		setmemcomment(h, "nil");
-	}
-	else{
-		char* sz = malloc(32);
-		sprint(sz, "pid=%d", p->pid);
-		setmemcomment(h, sz);
-	}
-	}
 
 	h->t = t;
 	t->ref++;
 	h->ref = 1;
 	h->color = mutator;
 	memset(H2D(void*, h), 0, t->size);
-	initmem(t, H2D(void*, h));
+	if(t->np)
+		initmem(t, H2D(void*, h));
 	if(heapmonitor != nil)
 		heapmonitor(0, h, t->size);
 	return h;
 }
 
 Heap*
-v_heap(Type *t, const char*file, int line, const char*function)
+heap(Type *t)
 {
 	Heap *h;
 
-	h = (Heap *)v_poolalloc(heapmem, sizeof(Heap)+t->size, file, line, function);
+	h = poolalloc(heapmem, sizeof(Heap)+t->size);
 	if(h == nil)
 		error(exHeap);
-
-	{
-	Prog *p=currun();
-	if(p==nil) {
-		setmemcomment(h, "nil");
-	}
-	else{
-		char* sz = malloc(32);
-		sprint(sz, "pid=%d", p->pid);
-		setmemcomment(h, sz);
-	}
-	}
 
 	h->t = t;
 	t->ref++;
 	h->ref = 1;
 	h->color = mutator;
-	initmem(t, H2D(void*, h));
+	if(t->np)
+		initmem(t, H2D(void*, h));
 	if(heapmonitor != nil)
 		heapmonitor(0, h, t->size);
 	return h;
 }
 
 Heap*
-v_heaparray(Type *t, int sz, const char*file, int line, const char*function)
+heaparray(Type *t, int sz)
 {
 	Heap *h;
 	Array *a;
 
-	h = v_nheap(sizeof(Array) + (t->size*sz), file, line, function);
+	h = nheap(sizeof(Array) + (t->size*sz));
 	h->t = &Tarray;
 	Tarray.ref++;
 	a = H2D(Array*, h);
 	a->t = t;
 	a->len = sz;
-	a->root = (Array*)H;
-	a->data = (char*)a + sizeof(Array);
+	a->root = H;
+	a->data = (uchar*)a + sizeof(Array);
 	initarray(t, a);
 	return h;
 }
@@ -461,7 +411,7 @@ void
 initarray(Type *t, Array *a)
 {
 	int i;
-	char *p;
+	uchar *p;
 
 	t->ref++;
 	if(t->np == 0)
@@ -474,18 +424,17 @@ initarray(Type *t, Array *a)
 	}
 }
 
-Array*
+void*
 arraycpy(Array *sa)
 {
 	int i;
 	Heap *dh;
 	Array *da;
-	char *elemp;
-	Array **sp;
-	Array **dp;
+	uchar *elemp;
+	void **sp, **dp;
 
 	if(sa == H)
-		return (Array*)H;
+		return H;
 
 	dh = nheap(sizeof(Array) + sa->t->size*sa->len);
 	dh->t = &Tarray;
@@ -494,20 +443,20 @@ arraycpy(Array *sa)
 	da->t = sa->t;
 	da->t->ref++;
 	da->len = sa->len;
-	da->root = (Array*)H;
-	da->data = (char*)da + sizeof(Array);
+	da->root = H;
+	da->data = (uchar*)da + sizeof(Array);
 	if(da->t == &Tarray) {
-		dp = (Array**)da->data;
-		sp = (Array**)sa->data;
+		dp = (void**)da->data;
+		sp = (void**)sa->data;
 		/*
 		 * Maximum depth of this recursion is set by DADEPTH
 		 * in include/isa.h
 		 */
 		for(i = 0; i < sa->len; i++)
-			dp[i] = arraycpy(sp[i]);
+			dp[i] = arraycpy(sp[i]);			
 	}
 	else {
-		memcpy(da->data, sa->data, da->len*sa->t->size);
+		memmove(da->data, sa->data, da->len*sa->t->size);
 		elemp = da->data;
 		for(i = 0; i < sa->len; i++) {
 			incmem(elemp, da->t);
@@ -522,26 +471,29 @@ newmp(void *dst, void *src, Type *t)
 {
 	Heap *h;
 	int c, i, m;
-	void **uld, *wp;
+	void **uld, *wp, **q;
 
 	memmove(dst, src, t->size);
-	uld = (void **)dst;
+	uld = dst;
 	for(i = 0; i < t->np; i++) {
 		c = t->map[i];
 		if(c != 0) {
-			for(m = 0x80; m !=0; m >>= 1) {
-				if((m & c) && (wp = *uld) != H) {
+			m = 0x80;
+			q = uld;
+			while(m != 0) {
+				if((m & c) && (wp = *q) != H) {
 					h = D2H(wp);
-					if(h->t == &Tarray){
-						*uld = arraycpy((Array*)wp);
-					}else {
-						ADDREF(wp);
+					if(h->t == &Tarray)
+						*q = arraycpy(wp);
+					else {
+						h->ref++;
 						Setmark(h);
 					}
 				}
-				uld++;
+				m >>= 1;
+				q++;
 			}
-		} else
-			uld += 8;
+		}
+		uld += 8;
 	}
 }

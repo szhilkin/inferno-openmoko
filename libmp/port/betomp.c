@@ -1,10 +1,10 @@
-#include <os.h>
+#include "os.h"
 #include <mp.h>
-#include "mpdat.h"
+#include "dat.h"
 
 // convert a big-endian byte array (most significant byte first) to an mpint
 mpint*
-betomp(const uchar *p, uint n, mpint *b)
+betomp(uchar *p, uint n, mpint *b)
 {
 	int m, s;
 	mpdigit x;

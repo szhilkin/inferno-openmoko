@@ -1,13 +1,13 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
-#include <pool.h>
-#include <kernel.h>
-#include <dynld.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
+#include "pool.h"
+#include "kernel.h"
+#include "dynld.h"
 
 Module*
-newdyncode(int fd, const char *path, Dir *dir)
+newdyncode(int fd, char *path, Dir *dir)
 {
 	USED(fd);
 	USED(path);

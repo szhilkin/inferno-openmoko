@@ -1,5 +1,5 @@
-#include <dat.h>
-#include <fns.h>
+#include	"dat.h"
+#include	"fns.h"
 
 static struct
 {
@@ -44,7 +44,7 @@ rbnotempty(void *v)
  *  spin counting up
  */
 static void
-_genrandom(void *v)
+genrandom(void *v)
 {
 	USED(v);
 	oslopri();
@@ -53,14 +53,14 @@ _genrandom(void *v)
 			if(++rb.randomcount > 65535)
 				break;
 		if(rb.filled || !rbnotfull(0))
-			sleep9(&rb.producer, rbnotfull, 0);
+			Sleep(&rb.producer, rbnotfull, 0);
 	}
 }
 
 /*
  *  produce random bits in a circular buffer
  */
-static NORETURN
+static void
 randomclock(void *v)
 {
 	uchar *p;
@@ -69,7 +69,7 @@ randomclock(void *v)
 	for(;; osmillisleep(20)){
 		while(!rbnotfull(0)){
 			rb.filled = 1;
-			sleep9(&rb.clock, rbnotfull, 0);
+			Sleep(&rb.clock, rbnotfull, 0);
 		}
 		if(rb.randomcount == 0)
 			continue;
@@ -89,7 +89,7 @@ randomclock(void *v)
 		rb.wp = p;
 
 		if(rb.wakeme)
-			wakeup9(&rb.consumer);
+			Wakeup(&rb.consumer);
 	}
 }
 
@@ -105,14 +105,15 @@ randominit(void)
  *  consume random bytes from a circular buffer
  */
 ulong
-randomread(char *p, ulong n)
+randomread(void *xp, ulong n)
 {
-	char *e;
-	uchar*r;
+	uchar *e, *p, *r;
 	ulong x;
 	int i;
 
-/*if(0)print("A%ld.%d.%lux|", n, rb.target, getcallerpc(&xp));*/
+	p = xp;
+
+if(0)print("A%ld.%d.%lux|", n, rb.target, getcallerpc(&xp));
 	if(waserror()){
 		qunlock(&rb.l);
 		nexterror();
@@ -121,17 +122,17 @@ randomread(char *p, ulong n)
 	qlock(&rb.l);
 	if(!rb.kprocstarted){
 		rb.kprocstarted = 1;
-		kproc("genrand", _genrandom, 0, 0);  /* BUG: check return value */
-		kproc("randomclock", randomclock, 0, 0);  /* BUG: check return value */
+		kproc("genrand", genrandom, 0, 0);
+		kproc("randomclock", randomclock, 0, 0);
 	}
 
 	for(e = p + n; p < e; ){
 		r = rb.rp;
 		if(r == rb.wp){
 			rb.wakeme = 1;
-			wakeup9(&rb.clock);
-			wakeup9(&rb.producer);
-			sleep9(&rb.consumer, rbnotempty, 0);
+			Wakeup(&rb.clock);
+			Wakeup(&rb.producer);
+			Sleep(&rb.consumer, rbnotempty, 0);
 			rb.wakeme = 0;
 			continue;
 		}
@@ -158,8 +159,8 @@ randomread(char *p, ulong n)
 	qunlock(&rb.l);
 	poperror();
 
-	wakeup9(&rb.clock);
-	wakeup9(&rb.producer);
+	Wakeup(&rb.clock);
+	Wakeup(&rb.producer);
 
 if(0)print("B");
 	return n;

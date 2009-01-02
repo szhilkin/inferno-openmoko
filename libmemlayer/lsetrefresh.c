@@ -1,10 +1,10 @@
-#include <lib9.h>
-#include <draw.h>
-#include <memdraw.h>
-#include <memlayer.h>
+#include "lib9.h"
+#include "draw.h"
+#include "memdraw.h"
+#include "memlayer.h"
 
 int
-memlsetrefresh(Memimage *i, Refreshfn fn, Refx *ptr)
+memlsetrefresh(Memimage *i, Refreshfn fn, void *ptr)
 {
 	Memlayer *l;
 

@@ -1,13 +1,13 @@
 #include <lib9.h>
 #include <kernel.h>
-#include <interp.h>
-#include <isa.h>
-#include <runt.h>
-#include <prefabmod.h>
-#include <draw.h>
-#include <drawif.h>
-#include <prefab.h>
-#include <raise.h>
+#include "interp.h"
+#include "isa.h"
+#include "runt.h"
+#include "prefabmod.h"
+#include "draw.h"
+#include "drawif.h"
+#include "prefab.h"
+#include "raise.h"
 
 uchar elementmap[] = Prefab_Element_map;
 uchar compoundmap[] = Prefab_Compound_map;
@@ -33,9 +33,9 @@ enum
 void
 prefabmodinit(void)
 {
-	TElement = dtype(freeheap, sizeof(PElement), elementmap, sizeof(elementmap), "Prefab->Element");
-	TLayout = dtype(freeheap, Prefab_Layout_size, layoutmap, sizeof(layoutmap), "Prefab->Layout");
-	TCompound = dtype(freeprefabcompound, sizeof(PCompound), compoundmap, sizeof(compoundmap), "Prefab->Compound");
+	TElement = dtype(freeheap, sizeof(PElement), elementmap, sizeof(elementmap));
+	TLayout = dtype(freeheap, Prefab_Layout_size, layoutmap, sizeof(layoutmap));
+	TCompound = dtype(freeprefabcompound, sizeof(PCompound), compoundmap, sizeof(compoundmap));
 	builtinmod("$Prefab", Prefabmodtab, Prefabmodlen);
 }
 
@@ -149,17 +149,20 @@ bad:
 }
 
 void
-Element_iconseparator(F_Element_icon *f, int kind)
+Element_iconseparator(void *fp, int kind)
 {
+	F_Element_icon *f;
 	PElement *e;
 	Image *icon;
 	int locked;
 
+	f = fp;
 	badenviron(f->env, 1);
 	checkimage(f->mask);
 	icon = checkimage(f->icon);
 	locked = lockdisplay(icon->display);
-	ASSIGN(*f->ret, H);
+	destroy(*f->ret);
+	*f->ret = H;
 	if(kind == ESeparator)
 		e = separatorelement(f->env, f->r, f->icon, f->mask);
 	else
@@ -169,55 +172,66 @@ Element_iconseparator(F_Element_icon *f, int kind)
 		unlockdisplay(icon->display);
 }
 
-DISAPI(Element_icon)
+void
+Element_icon(void *fp)
 {
-	Element_iconseparator(f, EIcon);
+	Element_iconseparator(fp, EIcon);
 }
 
-DISAPI(Element_separator)
+void
+Element_separator(void *fp)
 {
-	Element_iconseparator(f, ESeparator);
+	Element_iconseparator(fp, ESeparator);
 }
 
-DISAPI(Element_text)
+void
+Element_text(void *fp)
 {
+	F_Element_text *f;
 	PElement *pelem;
 	Display *disp;
 	int locked;
 
+	f = fp;
 	badenviron(f->env, 1);
 	if(f->kind!=EText && f->kind!=ETitle)
 		return;
 
 	disp = checkscreen(f->env->screen)->display;
 	locked = lockdisplay(disp);
-	ASSIGN(*f->ret, H);
+	destroy(*f->ret);
+	*f->ret = H;
 	pelem = textelement(f->env, f->text, f->r, f->kind);
 	*f->ret = (Prefab_Element*)pelem;
 	if(locked)
 		unlockdisplay(disp);
 }
 
-DISAPI(Element_layout)
+void
+Element_layout(void *fp)
 {
+	F_Element_layout *f;
 	PElement *pelem;
 	Display *disp;
 	int locked;
 
+	f = fp;
 	badenviron(f->env, 1);
 	if(f->kind!=EText && f->kind!=ETitle)
 		return;
 
 	disp = checkscreen(f->env->screen)->display;
 	locked = lockdisplay(disp);
-	ASSIGN(*f->ret, H);
+	destroy(*f->ret);
+	*f->ret = H;
 	pelem = layoutelement(f->env, f->lay, f->r, f->kind);
 	*f->ret = (Prefab_Element*)pelem;
 	if(locked)
 		unlockdisplay(disp);
 }
 
-DISAPI(Element_elist)
+void
+Element_elist(void *fp)
 {
 	F_Element_elist *f;
 	PElement *pelist;
@@ -233,13 +247,16 @@ DISAPI(Element_elist)
 
 	disp = checkscreen(f->env->screen)->display;
 	locked = lockdisplay(disp);
+	destroy(*f->ret);
+	*f->ret = H;
 	pelist = elistelement(f->env, f->elem, f->kind);
-	ASSIGN(*f->ret, (Prefab_Element*)pelist);
+	*f->ret = (Prefab_Element*)pelist;
 	if(locked)
 		unlockdisplay(disp);
 }
 
-DISAPI(Element_append)
+void
+Element_append(void *fp)
 {
 	F_Element_append *f;
 
@@ -259,11 +276,14 @@ DISAPI(Element_append)
 		*f->ret = 1;
 }
 
-DISAPI(Element_adjust)
+void
+Element_adjust(void *fp)
 {
+	F_Element_adjust *f;
 	Display *disp;
 	int locked;
 
+	f = fp;
 	checkelement(f->elem);
 	badenviron(f->elem->environ, 1);
 	disp = checkscreen(f->elem->environ->screen)->display;
@@ -273,11 +293,14 @@ DISAPI(Element_adjust)
 		unlockdisplay(disp);
 }
 
-DISAPI(Element_show)
+void
+Element_show(void *fp)
 {
+	F_Element_show *f;
 	Display *disp;
 	int locked;
 
+	f = fp;
 	checkelement(f->elem);
 	checkelement(f->elist);
 	badenviron(f->elem->environ, 1);
@@ -288,12 +311,15 @@ DISAPI(Element_show)
 		unlockdisplay(disp);
 }
 
-DISAPI(Element_clip)
+void
+Element_clip(void *fp)
 {
+	F_Element_clip *f;
 	Rectangle r;
 	Display *disp;
 	int locked;
 
+	f = fp;
 	checkelement(f->elem);
 	badenviron(f->elem->environ, 1);
 	R2R(r, f->r);
@@ -328,86 +354,110 @@ Element_translatescroll(void *fp, int trans)
 		unlockdisplay(disp);
 }
 
-DISAPI(Element_scroll)
+void
+Element_scroll(void *fp)
 {
-	Element_translatescroll(f, 0);
+	Element_translatescroll(fp, 0);
 }
 
-DISAPI(Element_translate)
+void
+Element_translate(void *fp)
 {
-	Element_translatescroll(f, 1);
+	Element_translatescroll(fp, 1);
 }
 
-DISAPI(Compound_iconbox)
+void
+Compound_iconbox(void *fp)
 {
+	F_Compound_iconbox *f;
 	Image *icon;
 	int locked;
 	PCompound *pc;
 
+	f = fp;
 	badenviron(f->env, 1);
 	checkimage(f->mask);
 	icon = checkimage(f->icon);
 	locked = lockdisplay(icon->display);
-	ASSIGN(*f->ret, H);
+	destroy(*f->ret);
+	*f->ret = H;
 	pc = iconbox(f->env, f->p, f->title, f->icon, f->mask);
 	*f->ret = &pc->c;
 	if(locked)
 		unlockdisplay(icon->display);
 }
 
-DISAPI(Compound_textbox)
+void
+Compound_textbox(void *fp)
 {
+	F_Compound_textbox *f;
 	Display *disp;
 	int locked;
 	PCompound *pc;
 
+	f = fp;
 	badenviron(f->env, 1);
 	disp = checkscreen(f->env->screen)->display;
 	locked = lockdisplay(disp);
+	destroy(*f->ret);
+	*f->ret = H;
 	pc = textbox(f->env, f->r, f->title, f->text);
-	ASSIGN(*f->ret, &pc->c);
+	*f->ret = &pc->c;
 	if(locked)
 		unlockdisplay(disp);
 }
 
-DISAPI(Compound_layoutbox)
+void
+Compound_layoutbox(void *fp)
 {
+	F_Compound_layoutbox *f;
 	Display *disp;
 	int locked;
 	PCompound *pc;
 
+	f = fp;
 	badenviron(f->env, 1);
 	disp = checkscreen(f->env->screen)->display;
 	locked = lockdisplay(disp);
+	destroy(*f->ret);
+	*f->ret = H;
 	pc = layoutbox(f->env, f->r, f->title, f->lay);
-	ASSIGN(*f->ret, &pc->c);
+	*f->ret = &pc->c;
 	if(locked)
 		unlockdisplay(disp);
 }
 
-DISAPI(Compound_box)
+void
+Compound_box(void *fp)
 {
+	F_Compound_box *f;
 	Display *disp;
 	int locked;
 	PCompound *pc;
 
+	f = fp;
 	badenviron(f->env, 1);
 	if(f->title != H)
 		checkelement(f->title);
 	checkelement(f->elist);
 	disp = checkscreen(f->env->screen)->display;
 	locked = lockdisplay(disp);
+	destroy(*f->ret);
+	*f->ret = H;
 	pc = box(f->env, f->p, f->title, f->elist);
-	ASSIGN(*f->ret, &pc->c);
+	*f->ret = &pc->c;
 	if(locked)
 		unlockdisplay(disp);
 }
 
-DISAPI(Compound_draw)
+void
+Compound_draw(void *fp)
 {
+	F_Compound_draw *f;
 	PCompound *pc;
 	int locked;
 
+	f = fp;
 	if(f->comp == H)
 		return;
 	pc = checkcompound(f->comp);
@@ -419,12 +469,15 @@ DISAPI(Compound_draw)
 		unlockdisplay(pc->display);
 }
 
-DISAPI(Compound_redraw)
+void
+Compound_redraw(void *fp)
 {
+	F_Compound_redraw *f;
 	PCompound *pc;
 	Image *i;
 	int locked;
 
+	f = fp;
 	if(f->comp == H)
 		return;
 	pc = checkcompound(f->comp);
@@ -451,13 +504,16 @@ pelement(Prefab_Compound *comp, Prefab_Element *elem)
 	return pe;
 }
 
-DISAPI(Compound_highlight)
+void
+Compound_highlight(void *fp)
 {
+	F_Compound_highlight *f;
 	PCompound *pc;
 	PElement *pe;
 	Image *i;
 	int locked;
 
+	f = fp;
 	pe = pelement(f->comp, f->elem);
 	if(pe == H)
 		return;
@@ -470,14 +526,17 @@ DISAPI(Compound_highlight)
 		unlockdisplay(pc->display);
 }
 
-DISAPI(Compound_scroll)
+void
+Compound_scroll(void *fp)
 {
+	F_Compound_scroll *f;
 	PCompound *pc;
 	PElement *pe;
 	int locked;
 	Image *i;
 	int moved;
 
+	f = fp;
 	pe = pelement(f->comp, f->elem);
 	if(pe == H)
 		return;
@@ -494,12 +553,15 @@ DISAPI(Compound_scroll)
 		unlockdisplay(pc->display);
 }
 
-DISAPI(Compound_show)
+void
+Compound_show(void *fp)
 {
+	F_Compound_show *f;
 	PCompound *pc;
 	PElement *pe;
 	int locked;
 
+	f = fp;
 	pe = pelement(f->comp, f->elem);
 	if(pe == H)
 		return;
@@ -632,7 +694,7 @@ doselect(void *fp, int dotags)
 	F_Compound_select *f;
 	PCompound *pc;
 	PElement *pe;
-	DISINT *val;
+	WORD *val;
 	List *l;
 	Prefab_Element *t;
 	int i, lasti, ntag;
@@ -643,10 +705,11 @@ doselect(void *fp, int dotags)
 	pc = checkcompound(f->comp);
 	pe = lookupelement(f->elem);
 	if(pe->pkind!=EHorizontal && pe->pkind!=EVertical || pe->nkids == 0){
-Bad:
+    Bad:
+		destroy(f->ret->t2);
 		f->ret->t0 = 9999;
 		f->ret->t1 = 0;
-		ASSIGN(f->ret->t2, H);
+		f->ret->t2 = H;
 		return;
 	}
 	ntag = 0;
@@ -674,7 +737,7 @@ Bad:
 	else
 		highlight(pc, pe, i, 1);
 	/* val must be in shared memory, but stacks not shared */
-	val = malloc(sizeof(DISINT));
+	val = malloc(sizeof(WORD));
 	if(val == nil)
 		goto Bad;
 	for(;;){
@@ -717,8 +780,8 @@ Bad:
 				pe = tagged[i];
 			else
 				pe = element(pe, i, nil);
-			ASSIGN(f->ret->t2, H);
-			ADDREF(pe);
+			destroy(f->ret->t2);
+			D2H(pe)->ref++;
 			f->ret->t2 = &pe->e;
 			if(locked)
 				unlockdisplay(pc->display);
@@ -748,12 +811,14 @@ Bad:
 	}
 }
 
-DISAPI(Compound_tagselect)
+void
+Compound_tagselect(void *fp)
 {
-	doselect(f, 1);
+	doselect(fp, 1);
 }
 
-DISAPI(Compound_select)
+void
+Compound_select(void *fp)
 {
-	doselect(f, 0);
+	doselect(fp, 0);
 }

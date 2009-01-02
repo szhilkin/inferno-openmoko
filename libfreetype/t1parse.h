@@ -20,14 +20,12 @@
 #define __T1PARSE_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_TYPE1_TYPES_H
+#include FT_INTERNAL_STREAM_H
 
-#include <freetype/internal/t1types.h>
-#include <freetype/internal/ftstream.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -129,9 +127,7 @@ extern "C" {
   T1_Finalize_Parser( T1_Parser  parser );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __T1PARSE_H__ */
 

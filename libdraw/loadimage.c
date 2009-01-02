@@ -1,13 +1,13 @@
-#include <lib9.h>
-#include <draw.h>
-#include <kernel.h>
+#include "lib9.h"
+#include "draw.h"
+#include "kernel.h"
 
 int
-loadimage(Image *i, Rectangle r, const char *data, int ndata)
+loadimage(Image *i, Rectangle r, uchar *data, int ndata)
 {
 	long dy;
 	int n, bpl, roff, dstroff, lskip, llen, y;
-	char *a;
+	uchar *a;
 	int chunk;
 	Rectangle dstr;
 
@@ -67,3 +67,4 @@ loadimage(Image *i, Rectangle r, const char *data, int ndata)
 		return -1;
 	return ndata;
 }
+

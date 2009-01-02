@@ -1,11 +1,11 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <kernel.h>
-#include <raise.h>
+#include "dat.h"
+#include "fns.h"
+#include "error.h"
+#include "interp.h"
+#include "isa.h"
+#include "runt.h"
+#include "kernel.h"
+#include "raise.h"
 
 static int
 ematch(char *pat, char *exp)
@@ -44,7 +44,7 @@ void
 excinit(void)
 {
 	exstr = newstring(ERRMAX);
-	/* BUG poolimmutable(D2H(exstr)); */
+	poolimmutable(D2H(exstr));
 }
 
 static String*
@@ -54,7 +54,7 @@ newestring(char *estr)
 
 	if(waserror()){
 		setstr(exstr, estr);
-		ADDREF(exstr);
+		D2H(exstr)->ref++;
 		return exstr;
 	}
 	s = c2string(estr, strlen(estr));
@@ -63,7 +63,7 @@ newestring(char *estr)
 }
 
 #define NOPC	0xffffffff
-#if STACK
+
 #define FRTYPE(f)	((f)->t == nil ? SEXTYPE(f)->reg.TR : (f)->t)
 
 /*
@@ -82,43 +82,35 @@ freeframe(uchar *fp, int setsp)
 	if(setsp)
 		R.SP = fp;
 }
-#endif
-extern REG R;
+
 int
 handler(char *estr)
 {
 	Prog *p;
-	Modlink *m, *ml;
+	Modlink *m, *mr;
 	int str, ne;
 	ulong pc, newpc;
 	long eoff;
+	uchar *fp, **eadr;
 	Frame *f;
-	String ** eadr;
-	Type *zt;
+	Type *t, *zt;
 	Handler *h;
 	Except *e;
 	void *v;
 
 	p = currun();
-#if STACK
-#else
-	print("handler:");
-	print(" |%s|%p %d\n", estr, p, p?p->pid:0);
-	/*panic("handler");*/
-#endif
 	if(*estr == 0 || p == nil)
 		return 0;
-
-	print("handler go on\n");
 	str = p->exval == H || D2H(p->exval)->t == &Tstring;
-	m = R.ML;
+	m = R.M;
 	if(m->compiled)
-		pc = (char*)R.PC-(char*)m->prog;
+		pc = (ulong)R.PC-(ulong)m->prog;
 	else
 		pc = R.PC-m->prog;
 	pc--;
+	fp = R.FP;
 
-	for(f = R.FP; f != H; f = f->parent) {		/* look for a handler */
+	while(fp != nil){		/* look for a handler */
 		if((h = m->m->htab) != nil){
 			for( ; h->etab != nil; h++){
 				if(pc < h->pc1 || pc >= h->pc2)
@@ -136,39 +128,35 @@ handler(char *estr)
 					goto found;
 			}
 		}
-		if(!str && f != R.FP){		/* becomes a string exception in immediate caller */
-			/*
+		if(!str && fp != R.FP){		/* becomes a string exception in immediate caller */
 			v = p->exval;
 			p->exval = *(String**)v;
-			ADDREF(p->exval);
-			ASSIGN(v, H);
-			*/
-			ADDREF(*(String**)p->exval);
-			ASSIGN(p->exval, *(String**)p->exval);
-			/**/
+			D2H(p->exval)->ref++;
+			destroy(v);
 			str = 1;
 			continue;
 		}
-		//f = (Frame*)fp;
-		if(f->ml != H)
-			m = f->ml;
+		f = (Frame*)fp;
+		if(f->mr != nil)
+			m = f->mr;
 		if(m->compiled)
-			pc = (char*)f->lr - (char*)m->prog;
+			pc = (ulong)f->lr-(ulong)m->prog;
 		else
-			pc = f->lr - m->prog;
+			pc = f->lr-m->prog;
 		pc--;
+		fp = f->fp;
 	}
-	ASSIGN(p->exval, H);
+	destroy(p->exval);
+	p->exval = H;
 	return 0;
 found:
-	print("exc:found\n");
 	{
 		int n;
 		char name[3*KNAMELEN];
 
 		pc = modstatus(&R, name, sizeof(name));
 		n = 10+1+strlen(name)+1+strlen(estr)+1;
-		p->exstr = (char*)realloc(p->exstr, n);
+		p->exstr = realloc(p->exstr, n);
 		if(p->exstr != nil)
 			snprint(p->exstr, n, "%lud %s %s", pc, name, estr);
 	}
@@ -176,50 +164,51 @@ found:
 	/*
 	 * there may be an uncalled frame at the top of the stack
 	 */
-	f = R.FP;
-	/* BUG */
-#if STACK
+	f = (Frame*)R.FP;
 	t = FRTYPE(f);
 	if(R.FP < R.EX || R.FP >= R.TS)
 		freeframe(R.EX+OA(Stkext, reg.tos.fr), 0);
 	else if(R.FP+t->size < R.SP)
 		freeframe(R.FP+t->size, 1);
-#endif
-	m = R.ML;
-	while(R.FP != f){
-		f = R.FP;
+
+	m = R.M;
+	while(R.FP != fp){
+		f = (Frame*)R.FP;
 		R.PC = f->lr;
-		R.FP = f->parent;
-
-		ml = f->ml;
-
-		//? destroy(f)
-		assert(D2H(f)->t != nil);
-		freeptrs(f, D2H(f)->t);   /* FIXME */
-
-		if(ml != H){
-			m = ml;
-			ASSIGN(R.ML, m);
+		R.FP = f->fp;
+		R.SP = (uchar*)f;
+		mr = f->mr;
+		if(f->t == nil)
+			unextend(f);
+		else if(f->t->np)
+			freeptrs(f, f->t);
+		if(mr != nil){
+			m = mr;
+			destroy(R.M);
+			R.M = m;
+			R.MP = m->MP;
 		}
 	}
 	if(zt != nil){
-		freeptrs(f, zt);
-		initmem(zt, f);
+		freeptrs(fp, zt);
+		initmem(zt, fp);
 	}
-	eadr = (String **)((char*)f+eoff);
-	ASSIGN(*eadr, H);
+	eadr = (uchar**)(fp+eoff);
+	destroy(*eadr);
+	*eadr = H;
 	if(p->exval == H)
-		*eadr = newestring(estr);	/* might fail */
+		*eadr = (uchar*)newestring(estr);	/* might fail */
 	else{
 		D2H(p->exval)->ref++;
 		*eadr = p->exval;
 	}
 	if(m->compiled)
-		R.PC = (Inst*)((char*)m->prog+newpc);
+		R.PC = (Inst*)((ulong)m->prog+newpc);
 	else
 		R.PC = m->prog+newpc;
 	memmove(&p->R, &R, sizeof(R));
 	p->kill = nil;
-	ASSIGN(p->exval, H);
+	destroy(p->exval);
+	p->exval = H;
 	return 1;
 }

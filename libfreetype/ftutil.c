@@ -16,10 +16,10 @@
 /***************************************************************************/
 
 
-
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftmemory.h>
-#include <freetype/ftlist.h>
+#include <ft2build.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_MEMORY_H
+#include FT_LIST_H
 
 
   /*************************************************************************/
@@ -55,7 +55,7 @@
 
     if ( size > 0 )
     {
-      *P = memory->fnalloc( memory, size );
+      *P = memory->alloc( memory, size );
       if ( !*P )
       {
         FT_ERROR(( "FT_Alloc:" ));
@@ -101,7 +101,7 @@
       return FT_Err_Ok;
     }
 
-    Q = memory->fnrealloc( memory, current, size, *P );
+    Q = memory->realloc( memory, current, size, *P );
     if ( !Q )
       goto Fail;
 
@@ -131,7 +131,7 @@
 
     if ( P && *P )
     {
-      memory->fnfree( memory, *P );
+      memory->free( memory, *P );
       *P = 0;
     }
   }

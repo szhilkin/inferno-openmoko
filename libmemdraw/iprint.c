@@ -3,7 +3,7 @@
 #include "memdraw.h"
 
 int
-iprint(const char *f,...)
+iprint(char *f,...)
 {
 	USED(f);
 	return -1;

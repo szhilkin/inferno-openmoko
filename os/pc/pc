@@ -38,7 +38,7 @@ ip
 lib
 	interp
 	keyring
-	draw
+	draw 
 	memlayer
 	memdraw
 	tk
@@ -48,13 +48,18 @@ lib
 	kern
 
 link
-	ether79c970	pci
+	ether2114x	pci
+#	ether82557	pci
+	ether83815	pci
+	etherelnk3	pci
 	ps2mouse
 	ethermedium
 #	pppmedium ppp compress
 
 misc
-	vgavmware	+cur
+	vgas3	+cur vgasavage
+	vgamach64xx
+	cga
 	uarti8250
 
 mod
@@ -65,7 +70,7 @@ mod
 	math
 
 init
-	vm1
+	wminit
 
 code
 	int kernel_pool_pcnt = 10;
@@ -74,7 +79,7 @@ code
 	int image_pool_pcnt = 40;
 	int cflag=0;
 	int swcursor=0;
-	int consoleprint=1;
+	int consoleprint=0;
 
 port
 	alarm
@@ -111,27 +116,12 @@ root
 	/n
 	/n/remote
 	/net	/
-	/net.alt	/
 	/nvfs	/
 	/prog	/
-	/usr	/
-	/usr/inferno	/
-	/start
-	/stop
 	/dis/lib
 	/dis/svc
 	/dis/wm
 	/osinit.dis
-	/dis/lc
-	/dis/p.dis
-	/dis/touchcal.dis
-	/dis/ns.dis
-	/dis/ftest.dis
-	/dis/cp.dis
-	/dis/ps.dis
-	/dis/mc.dis
-	/dis/netstat.dis
-	/dis/kill.dis
 	/dis/sh.dis
 	/dis/ls.dis
 	/dis/cat.dis
@@ -140,50 +130,10 @@ root
 	/dis/pwd.dis
 	/dis/echo.dis
 	/dis/cd.dis
-	/dis/ip/ping.dis
-	/dis/ip/dhcp.dis
-	/dis/lib/arg.dis
-	/dis/lib/attrdb.dis
-	/dis/lib/auth.dis
 	/dis/lib/bufio.dis
-	/dis/lib/daytime.dis
-	/dis/lib/dhcpclient.dis
-	/dis/lib/ip.dis
-	/dis/lib/ipattr.dis
 	/dis/lib/string.dis
-	/dis/lib/ssl.dis
-	/dis/lib/filepat.dis
-	/dis/lib/rand.dis
-	/dis/lib/random.dis
 	/dis/lib/readdir.dis
-	/dis/lib/timers.dis
-	/dis/lib/titlebar.dis
-	/dis/lib/tkclient.dis
-	/dis/lib/winplace.dis
-	/dis/lib/wmclient.dis
-	/dis/lib/wmlib.dis
-	/dis/lib/wmsrv.dis
 	/dis/lib/workdir.dis
-	/dis/ndb/cs.dis
-	/dis/ndb/csquery.dis
-	/dis/ndb/dns.dis
-	/dis/ndb/dnsquery.dis
-	/dis/wm/wm.dis
-	/dis/wm/sh.dis
-	/dis/wm/toolbar.dis
-	/dis/sh/std.dis
-	/fonts/pelm/unicode.8.font
-	/fonts/pelm/latin1.8
-	/fonts/pelm/latin1.8.font
-	/fonts/misc/latin1.6x13
-	/fonts/misc/latin1.6x13.font
-	/icons/tk/maxf.bit
-	/icons/tk/exit.bit
-	/icons/tk/task.bit
-	/icons/tk/vitasmall.bit
-	/lib/ndb/local
-	/lib/ndb/dns
-	/lib/ndb/inferno
-	/lib/ndb/common
-	/lib/wmsetup
-	/b.dis
+	/dis/lib/daytime.dis
+	/dis/lib/auth.dis
+	/dis/lib/ssl.dis

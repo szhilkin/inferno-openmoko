@@ -24,13 +24,11 @@
 #define __AHGLYPH_H__
 
 
-
+#include <ft2build.h>
 #include "ahtypes.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   typedef enum  AH_UV_
@@ -87,9 +85,7 @@ extern "C" {
   ah_outline_done( AH_Outline  outline );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __AHGLYPH_H__ */
 

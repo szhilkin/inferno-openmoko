@@ -1,6 +1,3 @@
-env
-	CFLAGS=	-DOPENMOKO=1 $CFLAGS
-
 dev
 	root
 	cons
@@ -17,8 +14,9 @@ dev
 	cmd	cmd
 	indir
 
-	draw	framebuffer win-fb
+	draw	win-x11a
 	pointer
+	snarf
 
 	ip	ipif-posix ipaux
 	eia

@@ -2,7 +2,7 @@ objtype=386
 OBJTYPE=$objtype
 <../../mkconfig
 
-LIBNAME=libmp.a
+LIB=libmp.a
 SFILES=\
 	mpvecadd.s\
 	mpvecdigmuladd.s\

@@ -20,13 +20,11 @@
 #define __T1GLOAD_H__
 
 
-
+#include <ft2build.h>
 #include "t1objs.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_LOCAL( FT_Error )
@@ -40,9 +38,7 @@ extern "C" {
                  FT_Int32      load_flags );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __T1GLOAD_H__ */
 

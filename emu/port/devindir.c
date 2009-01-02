@@ -1,27 +1,23 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 static Chan *
-indirattach(const char *spec)
+indirattach(char *spec)
 {
-	char *p, spec2[256]; /*TODO*/
+	char *p;
 	Dev *d;
 
 	if(*spec == 0)
 		error(Ebadspec);
-
-	/* spec2, p = spec.split('!') */
-	strcpy(spec2, spec);
-	p = strrchr(spec2, '!');
+	p = strrchr(spec, '!');
 	if(p == nil)
 		p = "";
 	else
 		*p++ = 0;
-
-	d = devbyname(spec2);
+	d = devbyname(spec);
 	if(d == nil || d->dc == '*'){
-		snprint(up->env->errstr, ERRMAX, "unknown device: %s", spec2);
+		snprint(up->env->errstr, ERRMAX, "unknown device: %s", spec);
 		error(up->env->errstr);
 	}
 	if(up->env->pgrp->nodevs &&

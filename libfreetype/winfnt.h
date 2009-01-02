@@ -20,21 +20,17 @@
 #define __WINFNT_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_DRIVER_H
 
-#include <freetype/internal/ftdriver.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_EXPORT_VAR( const FT_Driver_ClassRec )  winfnt_driver_class;
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __WINFNT_H__ */

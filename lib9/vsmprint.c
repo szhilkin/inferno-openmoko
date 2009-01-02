@@ -11,8 +11,8 @@
  * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
-#include <lib9.h>
-#include <fmtdef.h>
+#include "lib9.h"
+#include "fmtdef.h"
 
 static int
 fmtStrFlush(Fmt *f)
@@ -60,7 +60,7 @@ fmtstrinit(Fmt *f)
  * print into an allocated string buffer
  */
 char*
-vsmprint(const char *fmt, va_list args)
+vsmprint(char *fmt, va_list args)
 {
 	Fmt f;
 	int n;

@@ -1,19 +1,18 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	"interp.h"
 
 Proc*
 newproc(void)
 {
 	Proc *p;
 
-	p = (Proc*)mallocz(sizeof(Proc), 1);
+	p = malloc(sizeof(Proc));
 	if(p == nil)
 		return nil;
 
-	p->type = PUnknown;
+	p->type = Unknown;
 	p->killed = 0;
 	p->swipend = 0;
 	p->env = &p->defenv;
@@ -26,7 +25,7 @@ newproc(void)
 }
 
 void
-sleep9(Rendez *r, int (*f)(void*), void *arg)
+Sleep(Rendez *r, int (*f)(void*), void *arg)
 {
 	lock(&up->rlock);
 	lock(&r->l);
@@ -62,7 +61,7 @@ sleep9(Rendez *r, int (*f)(void*), void *arg)
 }
 
 int
-wakeup9(Rendez *r)
+Wakeup(Rendez *r)
 {
 	Proc *p;
 
@@ -80,7 +79,7 @@ void
 swiproc(Proc *p, int interp)
 {
 	Rendez *r;
-
+	
 	if(p == nil)
 		return;
 
@@ -108,12 +107,12 @@ swiproc(Proc *p, int interp)
 	 * Maybe pull out of Host OS
 	 */
 	lock(&p->sysio);
-	if(p->syscall!=SYSCALL_NO && p->intwait == 0) {
+	if(p->syscall && p->intwait == 0) {
 		p->swipend = 1;
 		p->intwait = 1;
 		unlock(&p->sysio);
 		oshostintr(p);
-		return;
+		return;	
 	}
 	unlock(&p->sysio);
 }
@@ -129,7 +128,7 @@ notkilled(void)
 void
 osenter(void)
 {
-	up->syscall = SYSCALL_OTHER;
+	up->syscall = 1;
 }
 
 void
@@ -143,7 +142,7 @@ osleave(void)
 	unlock(&up->rlock);
 
 	lock(&up->sysio);
-	up->syscall = SYSCALL_NO;
+	up->syscall = 0;
 	unlock(&up->sysio);
 
 	/* Cleared by the signal/note/exception handler */
@@ -157,22 +156,22 @@ osleave(void)
 void
 rptwakeup(void *o, void *ar)
 {
-	Rept *r = (Rept *)ar;
+	Rept *r;
 
+	r = ar;
 	if(r == nil)
 		return;
 	lock(&r->l);
 	r->o = o;
 	unlock(&r->l);
-	wakeup9(&r->r);
+	Wakeup(&r->r);
 }
 
 static int
 rptactive(void *a)
 {
-	Rept *r = (Rept *)a;
+	Rept *r = a;
 	int i;
-
 	lock(&r->l);
 	i = r->active(r->o);
 	unlock(&r->l);
@@ -186,14 +185,14 @@ rproc(void *a)
 	ulong t;
 	int i;
 	void *o;
-	Rept *r = (Rept *)a;
+	Rept *r;
 
 	up->env->fgrp = newfgrp(nil);
-
+	r = a;
 	t = (ulong)r->t;
 
 Wait:
-	sleep9(&r->r, rptactive, r);
+	Sleep(&r->r, rptactive, r);
 	lock(&r->l);
 	o = r->o;
 	unlock(&r->l);
@@ -227,7 +226,7 @@ rptproc(char *s, int t, void *o, int (*active)(void*), int (*ck)(void*, int), vo
 {
 	Rept *r;
 
-	r = (Rept*)mallocz(sizeof(Rept), 1);
+	r = mallocz(sizeof(Rept), 1);
 	if(r == nil)
 		return nil;
 	r->t = t;
@@ -235,6 +234,6 @@ rptproc(char *s, int t, void *o, int (*active)(void*), int (*ck)(void*, int), vo
 	r->ck = ck;
 	r->f = f;
 	r->o = o;
-	kproc(s, rproc, r, KPDUPPG);  /* BUG: check return value */
+	kproc(s, rproc, r, KPDUPPG);
 	return r;
 }

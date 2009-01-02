@@ -1,18 +1,15 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
 #include <kernel.h>
+#include "draw.h"
+#include "tk.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 char*	tkimgbmcreate(TkTop*, char*, int, char**);
 char*	tkimgbmdel(TkImg*);
 void	tkimgbmfree(TkImg*);
 
-//static Rectangle huger = { -1000000, -1000000, 1000000, 1000000 };
-extern	Rectangle	huger;
+static Rectangle huger = { -1000000, -1000000, 1000000, 1000000 };
 
 typedef struct TkImgtype TkImgtype;
 struct TkImgtype
@@ -21,10 +18,10 @@ struct TkImgtype
 	char*	(*create)(TkTop*, char*, int, char**);
 	char*	(*delete)(TkImg*);
 	void	(*destroy)(TkImg*);
-} tkimgopts[] =
+} tkimgopts[] = 
 {
 	{"bitmap",	tkimgbmcreate,		tkimgbmdel, 	tkimgbmfree},
-	{nil}
+	{nil},
 };
 
 typedef struct Imgargs Imgargs;
@@ -48,8 +45,8 @@ tkname2img(TkTop *t, char *name)
 TkOption
 bitopt[] =
 {
-	{"file",	OPTbmap,	offsetof(Imgargs, fgimg)	},
-	{"maskfile",	OPTbmap,	offsetof(Imgargs, maskimg)	},
+	{"file",		OPTbmap,	O(Imgargs, fgimg),	nil},
+	{"maskfile",	OPTbmap,	O(Imgargs, maskimg),	nil},
 	{nil}
 };
 
@@ -94,7 +91,7 @@ tkimgbmcreate(TkTop *t, char *arg, int type, char **ret)
 	d = t->display;
 	locked = 0;
 
-	tki = (TkImg *)malloc(sizeof(TkImg));
+	tki = malloc(sizeof(TkImg));
 	if(tki == nil)
 		return TkNomem;
 
@@ -168,7 +165,7 @@ tkimgbmcreate(TkTop *t, char *arg, int type, char **ret)
 
 	tki->link = t->imgs;
 	t->imgs = tki;
-
+	
 	if (tki->name != nil) {
 		e = tkvalue(ret, "%s", tki->name->name);
 		if(e == nil)
@@ -231,10 +228,10 @@ tkimage(TkTop *t, char *arg, char **ret)
 	char *fmt, *e, *buf, *cmd;
 
 	/* Note - could actually allocate buf and cmd in one buffer - DBK */
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
-	cmd = (char*)mallocz(Tkminitem, 0);
+	cmd = mallocz(Tkminitem, 0);
 	if(cmd == nil) {
 		free(buf);
 		return TkNomem;
@@ -317,11 +314,11 @@ tkimgput(TkImg *tki)
 	if(--tki->ref > 0)
 		return;
 
-	tkimgopts[tki->type].destroy(tki);
+	tkimgopts[tki->type].destroy(tki);	
 }
 
 TkImg*
-tkauximage(TkTop *t, char* s, const char* bytes, int nbytes, int chans, Rectangle r, int repl)
+tkauximage(TkTop *t, char* s, uchar* bytes, int nbytes, int chans, Rectangle r, int repl)
 {
 	TkName *name;
 	TkCtxt *c;
@@ -339,7 +336,7 @@ tkauximage(TkTop *t, char* s, const char* bytes, int nbytes, int chans, Rectangl
 	name = tkmkname(s);
 	if (name == nil)
 		return nil;
-	tki = (TkImg *)mallocz(sizeof(*tki), 0);
+	tki = mallocz(sizeof(*tki), 0);
 	if (tki == nil)
 		goto err;
 	tki->env = tkdefaultenv(t);

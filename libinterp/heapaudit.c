@@ -1,7 +1,6 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <pool.h>
+#include "lib9.h"
+#include "interp.h"
+#include "pool.h"
 
 
 typedef struct Audit Audit;
@@ -108,8 +107,6 @@ auditentry(Type *t)
 void
 heapaudit(void)
 {
-print("heapaudit\n");
-/* TODO
 	Type *t;
 	Heap *h;
 	List *l;
@@ -198,5 +195,4 @@ print("heapaudit\n");
 		}
 
 	release();
-*/
 }

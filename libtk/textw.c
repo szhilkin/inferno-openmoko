@@ -1,13 +1,8 @@
-#include <lib9.h>
-#include <draw.h>
-#include <keyboard.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <textw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "keyboard.h"
+#include "tk.h"
+#include "textw.h"
 
 /*
  * useful text widget info to be found at:
@@ -22,10 +17,12 @@
 
 #define FLUSH() flushimage(tk->env->top->display, 1)
 
+#define	O(t, e)		((long)(&((t*)0)->e))
+
 /* Layout constants */
 enum {
-	Textpadx_textw	= 2,
-	Textpady_textw	= 0,
+	Textpadx	= 2,
+	Textpady	= 0,
 };
 
 typedef struct Interval {
@@ -51,8 +48,8 @@ struct TkDump
 static
 TkOption dumpopts[] =
 {
-	{"sgml",	OPTbool,	offsetof(TkDump, sgml)		},
-	{"metrics",	OPTbool,	offsetof(TkDump, metrics)	},
+	{"sgml",		OPTbool,	O(TkDump, sgml),	nil},
+	{"metrics",	OPTbool,	O(TkDump, metrics),	nil},
 	{nil}
 };
 
@@ -69,23 +66,24 @@ TkStab tkcompare[] =
 };
 
 static
-TkOption textopts_textw[] =
+TkOption textopts[] =
 {
-	{"wrap",		OPTstab,	offsetof(TkText, opts[TkTwrap]),	{tkwrap}},
-	{"spacing1",		OPTnndist,	offsetof(TkText, opts[TkTspacing1]),	{(TkStab*)offsetof(Tk, env)}},
-	{"spacing2",		OPTnndist,	offsetof(TkText, opts[TkTspacing2]),	{(TkStab*)offsetof(Tk, env)}},
-	{"spacing3",		OPTnndist,	offsetof(TkText, opts[TkTspacing3]),	{(TkStab*)offsetof(Tk, env)}},
-	{"tabs",		OPTtabs,	offsetof(TkText, tabs), 		{(TkStab*)offsetof(Tk, env)}},
-	{"xscrollcommand",	OPTtext,	offsetof(TkText, xscroll)		},
-	{"yscrollcommand",	OPTtext,	offsetof(TkText, yscroll)		},
-	{"insertwidth",		OPTnndist,	offsetof(TkText, inswidth)		},
-	{"tagshare",		OPTwinp,	offsetof(TkText, tagshare)		},
-	{"propagate",		OPTstab,	offsetof(TkText, propagate),		{tkbool}},
-	{"selectborderwidth",	OPTnndist,	offsetof(TkText, sborderwidth) 		},
+	{"wrap",			OPTstab, O(TkText, opts[TkTwrap]),	tkwrap},
+	{"spacing1",		OPTnndist, O(TkText, opts[TkTspacing1]),	(void *)O(Tk, env)},
+	{"spacing2",		OPTnndist, O(TkText, opts[TkTspacing2]),	(void *)O(Tk, env)},
+	{"spacing3",		OPTnndist, O(TkText, opts[TkTspacing3]),	(void *)O(Tk, env)},
+	{"tabs",			OPTtabs, O(TkText, tabs), 		(void *)O(Tk, env)},
+	{"xscrollcommand",	OPTtext, O(TkText, xscroll),		nil},
+	{"yscrollcommand",	OPTtext, O(TkText, yscroll),		nil},
+	{"insertwidth",		OPTnndist, O(TkText, inswidth),		nil},
+	{"tagshare",		OPTwinp, O(TkText, tagshare),		nil},
+	{"propagate",		OPTstab, O(TkText, propagate),	tkbool},
+	{"selectborderwidth",	OPTnndist, O(TkText, sborderwidth), nil},
 	{nil}
 };
 
 #define CNTL(c) ((c)&0x1f)
+#define DEL 0x7f
 
 static TkEbind tktbinds[] = {
 	{TkButton1P,		"%W tkTextButton1 %X %Y"},
@@ -101,13 +99,13 @@ static TkEbind tktbinds[] = {
 	{TkKey|CNTL('b'),	"%W tkTextSetCursor insert-1c"},
 	{TkKey|Left,		"%W tkTextSetCursor insert-1c"},
 	{TkKey|CNTL('d'),	"%W delete insert"},
-	{TkKey|CNTL('e'),	"%W tkTextSetCursor {insert lineend}"},
-	{TkKey|End,		"%W tkTextSetCursor {insert lineend}"},
-	{TkKey|CNTL('>'),	"%W tkTextSetCursor {insert lineend}"},
+	{TkKey|CNTL('e'),	"%W tkTextSetCursor {insert lineend}"}, 
+	{TkKey|End,		"%W tkTextSetCursor {insert lineend}"}, 
+	{TkKey|CNTL('>'),	"%W tkTextSetCursor {insert lineend}"}, 
 	{TkKey|CNTL('f'),	"%W tkTextSetCursor insert+1c"},
 	{TkKey|Right,		"%W tkTextSetCursor insert+1c"},
 	{TkKey|CNTL('h'),	"%W tkTextDelIns -c"},
-	{TkKey|Del,		"%W tkTextDelIns +c"},
+	{TkKey|DEL,		"%W tkTextDelIns +c"},
 	{TkKey|CNTL('k'),	"%W delete insert {insert lineend}"},
 	{TkKey|CNTL('n'),	"%W tkTextSetCursor {insert+1l}"},
 	{TkKey|Down,		"%W tkTextSetCursor {insert+1l}"},
@@ -116,9 +114,9 @@ static TkEbind tktbinds[] = {
 	{TkKey|Up,		"%W tkTextSetCursor {insert-1l}"},
 	{TkKey|CNTL('u'),	"%W tkTextDelIns -l"},
 	{TkKey|CNTL('v'),	"%W yview scroll 0.75 page"},
-	{TkKey|Pgdown,		"%W yview scroll 0.75 page"},
+	{TkKey|Pgdown,	"%W yview scroll 0.75 page"},
 	{TkKey|CNTL('w'),	"%W tkTextDelIns -w"},
-	{TkKey|Pgup,		"%W yview scroll -0.75 page"},
+	{TkKey|Pgup,	"%W yview scroll -0.75 page"},
 	{TkFocusout,            "%W tkTextCursor delete"},
 	{TkKey|APP|'\t',	""},
 	{TkKey|BackTab,		""},
@@ -140,8 +138,8 @@ static int	tktpostspace(Tk*, TkTline*);
 static int	tktprespace(Tk*, TkTline*);
 static void	tktsee(Tk*, TkTindex*, int);
 static Point	tktrelpos(Tk*);
-static void	autoselect_textw(Tk*, const char*, int);
-static void	blinkreset_textw(Tk*);
+static void	autoselect(Tk*, void*, int);
+static void	blinkreset(Tk*);
 
 /* debugging */
 extern int tktdbg;
@@ -174,8 +172,8 @@ tktext(TkTop *t, char* arg, char **ret)
 
 	tk->relief = TKsunken;
 	tk->borderwidth = 2;
-	tk->ipad.x = Textpadx_textw * 2;
-	tk->ipad.y = Textpady_textw * 2;
+	tk->ipad.x = Textpadx * 2;
+	tk->ipad.y = Textpady * 2;
 	tk->flag |= Tktakefocus;
 	tkt->sborderwidth = 0;
 	tkt->inswidth = 2;
@@ -188,7 +186,7 @@ tktext(TkTop *t, char* arg, char **ret)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tkt;
-	tko[1].optab = textopts_textw;
+	tko[1].optab = textopts;
 	tko[2].ptr = nil;
 
 	tk->req.width = tk->env->wzero*Textwidth;
@@ -215,8 +213,8 @@ tktext(TkTop *t, char* arg, char **ret)
 		tkt->inswidth = 0;
 
 	if(tkt->tabs == nil) {
-		tkt->tabs = (TkTtabstop*)malloc(sizeof(TkTtabstop));
-		if(tkt->tabs == nil)
+		tkt->tabs = malloc(sizeof(TkTtabstop));
+		if(tkt->tabs == nil) 
 			goto err;
 		tkt->tabs->pos = 8*tk->env->wzero;
 		tkt->tabs->justify = Tkleft;
@@ -494,10 +492,10 @@ tktdrawline(Image *i, Tk *tk, TkTline *l, Point deltait)
 	int o, bd, ul, ov, h, w, la, lh, cursorx, join;
 	char *err;
 
-	env = (TkEnv*)mallocz(sizeof(TkEnv), 0);
+	env = mallocz(sizeof(TkEnv), 0);
 	if(env == nil)
 		return TkNomem;
-	opts = (int*)mallocz(TkTnumopts*sizeof(int), 0);
+	opts = mallocz(TkTnumopts*sizeof(int), 0);
 	if(opts == nil) {
 		free(env);
 		return TkNomem;
@@ -615,7 +613,7 @@ tktdrawline(Image *i, Tk *tk, TkTline *l, Point deltait)
 			}
 			break;
 		case TkTmark:
-			if((it->imark != nil)
+			if((it->imark != nil) 
                            && strcmp(it->imark->name, "insert") == 0) {
 				cursorx = p.x - 1;
 			}
@@ -647,7 +645,7 @@ tktdrawline(Image *i, Tk *tk, TkTline *l, Point deltait)
 		r.max.y = r.min.y + lh;
 		r = rectsubpt(r, deltait);
 		if (!eqrect(tkt->cur_rec, r))
-			blinkreset_textw(tk);
+			blinkreset(tk);
 		tkt->cur_rec = r;
 		if(tkt->cur_flag)
 			tktextcursordraw(tk, TkCforegnd);
@@ -666,7 +664,7 @@ tktextcursordraw(Tk *tk, int color)
 	Image *i;
 
 	tkt = TKobj(TkText, tk);
-
+	
 	r = rectaddpt(tkt->cur_rec, subpt(tkt->deltaiv, tkt->deltatv));
 
 	/* check the cursor with widget boundary */
@@ -692,7 +690,7 @@ tktextcursordraw(Tk *tk, int color)
 }
 
 static void
-blinkreset_textw(Tk *tk)
+blinkreset(Tk *tk)
 {
 	TkText *tkt = TKobj(TkText, tk);
 	if (!tkhaskeyfocus(tk) || tk->flag&Tkdisabled)
@@ -702,7 +700,7 @@ blinkreset_textw(Tk *tk)
 }
 
 static void
-showcaret_textw(Tk *tk, int on)
+showcaret(Tk *tk, int on)
 {
 	TkText *tkt = TKobj(TkText, tk);
 	TkTline *l, *lend;
@@ -736,13 +734,13 @@ tktextcursor(Tk *tk, char* arg, char **ret)
 		return nil;
 
 	if(strcmp(arg, " insert") == 0) {
-		tkblink(tk, showcaret_textw);
+		tkblink(tk, showcaret);
 		on = 1;
 	}
 	else
 		tkblink(nil, nil);
 
-	showcaret_textw(tk, on);
+	showcaret(tk, on);
 	return nil;
 }
 
@@ -750,7 +748,7 @@ tktextcursor(Tk *tk, char* arg, char **ret)
  * Insert string s just before ins, but don't worry about geometry values.
  * Don't worry about doing wrapping correctly, but break long strings
  * into pieces to avoid bad behavior in the wrapping code of tktfixgeom.
- * If tagit != 0, use its tags, else use the intersection of tags of
+ * If tagit != 0, use its tags, else use the intersection of tags of 
  * non cont or mark elements just before and just after insertion point.
  * (At beginning and end of widget, just use the tags of one adjacent item).
  * Keep *ins up-to-date.
@@ -851,7 +849,7 @@ tktinsert(Tk *tk, TkTindex *ins, char *s, TkTitem *tagit)
 			if(s - p > n)
 				i->kind = TkTrune;
 			n = s - p;
-			i->istring = (char*)malloc(n+1);
+			i->istring = malloc(n+1);
 			if(i->istring == nil) {
 				tktfreeitems(tkt, i, 1);
 				if(utagit != nil)
@@ -975,10 +973,10 @@ tktfixgeom(Tk *tk, TkTline *l1, TkTline *l2, int finalwidth)
 	rest.lo = oldi.hi;
 	rest.hi = rest.lo + 1000; /* get background after end, too */
 
-	opts = (int*)mallocz(TkTnumopts*sizeof(int), 0);
+	opts = mallocz(TkTnumopts*sizeof(int), 0);
 	if(opts == nil)
 		return TkNomem;
-	env = (TkEnv*)mallocz(sizeof(TkEnv), 0);
+	env = mallocz(sizeof(TkEnv), 0);
 	if(env == nil) {
 		free(opts);
 		return TkNomem;
@@ -1041,7 +1039,7 @@ tktfixgeom(Tk *tk, TkTline *l1, TkTline *l2, int finalwidth)
 				it = l->next->items;
 				while(it->kind == TkTmark)
 					it = it->next;
-
+				
 				if(it->kind == TkTnewline || it->kind == TkTcontline) {
 					/* next line is empty; join it to this one by removing i */
 					ix.item = i;
@@ -1246,7 +1244,7 @@ tktfixgeom(Tk *tk, TkTline *l1, TkTline *l2, int finalwidth)
 			     tktsametags(i, it)) {
 				n = strlen(i->istring);
 				j = strlen(it->istring);
-				s = (char*)realloc(i->istring, n + j + 1);
+				s = realloc(i->istring, n + j + 1);
 				if(s == nil) {
 					free(opts);
 					free(env);
@@ -1364,7 +1362,7 @@ tktpostspace(Tk *tk, TkTline *l)
 	TkEnv env;
 	int *opts;
 
-	opts = (int*)mallocz(TkTnumopts*sizeof(int), 0);
+	opts = mallocz(TkTnumopts*sizeof(int), 0);
 	if(opts == nil)
 		return 0;
 	ans = 0;
@@ -1385,8 +1383,8 @@ tktprespace(Tk *tk, TkTline *l)
 	TkTitem *i;
 	TkEnv env;
 	int *opts;
-
-	opts = (int*)mallocz(TkTnumopts*sizeof(int), 0);
+	
+	opts = mallocz(TkTnumopts*sizeof(int), 0);
 	if(opts == nil)
 		return 0;
 
@@ -1750,10 +1748,10 @@ tktsetscroll(Tk *tk, int orient)
 	tkt->scrolltop[orient] = top;
 	tkt->scrollbot[orient] = bot;
 
-	val = (char*)mallocz(Tkminitem, 0);
+	val = mallocz(Tkminitem, 0);
 	if(val == nil)
 		return TkNomem;
-	cmd = (char*)mallocz(Tkmaxitem, 0);
+	cmd = mallocz(Tkmaxitem, 0);
 	if(cmd == nil) {
 		free(val);
 		return TkNomem;
@@ -1822,7 +1820,7 @@ tktview(Tk *tk, char *arg, char **val, int nl, int *posn, int max, int orient)
 			n = max;
 		*posn = n;
 	}
-	else
+	else	
 		return TkBadcm;
 
 	bot = max - (nl * 3 / 4);
@@ -2073,12 +2071,12 @@ tktget(TkText *tkt, TkTindex *ix1, TkTindex *ix2, int sgml, char **val)
 
 	iprev = nil;
 	fmtstrinit(&fmt);
-	buf = (char*)mallocz(100, 0);
+	buf = mallocz(100, 0);
 	if(buf == nil)
 		return TkNomem;
 	if(sgml) {
-		stack = (int*)malloc((tkt->nexttag+1)*sizeof(int));
-		tmpstack = (int*)malloc((tkt->nexttag+1)*sizeof(int));
+		stack = malloc((tkt->nexttag+1)*sizeof(int));
+		tmpstack = malloc((tkt->nexttag+1)*sizeof(int));
 		if(stack == nil || tmpstack == nil)
 			goto nomemret;
 		nstack = 0;
@@ -2306,7 +2304,7 @@ tktextbutton1(Tk *tk, char *arg, char **val)
 	tktxyind(tk, p.x, p.y, &ix);
 	tkt->tflag &= ~TkTjustfoc;
 	c = tk->env->top->ctxt;
-	if(!(tk->flag&Tkdisabled) && c->tkkeygrab != tk
+	if(!(tk->flag&Tkdisabled) && c->tkkeygrab != tk 
                       && (tk->name != nil) && ix.item->kind != TkTwin) {
 		tkfocus(tk->env->top, tk->name->name, nil);
 		tkt->tflag |= TkTjustfoc;
@@ -2321,7 +2319,7 @@ tktextbutton1(Tk *tk, char *arg, char **val)
 	tktmarkmove(tk, mi, &ix);
 
 	tktclearsel(tk);
-	tkrepeat(tk, autoselect_textw, nil, TkRptpause, TkRptinterval);
+	tkrepeat(tk, autoselect, nil, TkRptpause, TkRptinterval);
 	return nil;
 }
 
@@ -2349,7 +2347,7 @@ tktextcget(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tkt;
-	tko[1].optab = textopts_textw;
+	tko[1].optab = textopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, tk->env->top);
@@ -2374,7 +2372,7 @@ tktextcompare(Tk *tk, char *arg, char **val)
 	if(*arg == '\0')
 		return TkBadcm;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -2414,7 +2412,7 @@ tktextconfigure(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tkt;
-	tko[1].optab = textopts_textw;
+	tko[1].optab = textopts;
 	tko[2].ptr = nil;
 
 	if(*arg == '\0')
@@ -2692,7 +2690,7 @@ tktextdump(Tk *tk, char *arg, char **val)
 				return e;
 			}
 		}
-		else {
+		else {		
 			ix2 = ix1;
 			tktadjustind(tkt, TkTbychar, &ix2);
 		}
@@ -2702,7 +2700,7 @@ tktextdump(Tk *tk, char *arg, char **val)
 	}
 	else
 		return TkBadix;
-
+	
 	if(tkdump.metrics != 0) {
 		fmtstrinit(&fmt);
 		if(fmtprint(&fmt, "%%Fonts\n") < 0)
@@ -2794,7 +2792,7 @@ tktextdump(Tk *tk, char *arg, char **val)
 				}
 				if(fmtprint(&fmt, " ") < 0)
 					return TkNomem;
-
+	
 			}
 			if(fmtprint(&fmt, "\n") < 0)
 				return TkNomem;
@@ -2895,10 +2893,10 @@ tktextinsert(Tk *tk, char *arg, char **val)
 	n = strlen(arg) + 1;
 	if(n < Tkmaxitem)
 		n = Tkmaxitem;
-	tbuf = (char*)malloc(n);
+	tbuf = malloc(n);
 	if(tbuf == nil)
 		return TkNomem;
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil) {
 		free(tbuf);
 		return TkNomem;
@@ -2980,7 +2978,7 @@ tktextinserti(Tk *tk, char *arg, char **val)
 	if(tk->flag&Tkdisabled)
 		return nil;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -2989,7 +2987,7 @@ tktextinserti(Tk *tk, char *arg, char **val)
 	if(n < Tkmaxitem)
 		tkword(tk->env->top, arg, buf, buf+sizeof(buf), nil);
 	else {
-		tbuf = (char*)malloc(n);
+		tbuf = malloc(n);
 		if(tbuf == nil) {
 			free(buf);
 			return TkNomem;
@@ -3030,7 +3028,7 @@ tktextmark(Tk *tk, char *arg, char **val)
 	char *buf;
 	TkCmdtab *cmd;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	arg = tkword(tk->env->top, arg, buf, buf+Tkmaxitem, nil);
@@ -3294,7 +3292,7 @@ doselectto(Tk *tk, Point p, int dbl)
 }
 
 static void
-autoselect_textw(Tk *tk, const char *v, int cancelled)
+autoselect(Tk *tk, void *v, int cancelled)
 {
 	TkText *tkt = TKobj(TkText, tk);
 	Rectangle hitr;
@@ -3460,7 +3458,7 @@ tktprevwrapline(Tk *tk, TkTline *l)
 			break;
 	if(i == nil || i->kind == TkTnewline)	/* can't use !tkanytags(i) because it doesn't check env */
 		return l->prev;
-	opts = (int*)mallocz(TkTnumopts*sizeof(int), 0);
+	opts = mallocz(TkTnumopts*sizeof(int), 0);
 	if(opts == nil)
 		return l->prev;	/* in worst case gets word wrap wrong */
 	tkttagopts(tk, i, opts, &env, nil, 1);
@@ -3506,7 +3504,7 @@ tktexttag(Tk *tk, char *arg, char **val)
 	char *buf;
 	TkCmdtab *cmd;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	arg = tkword(tk->env->top, arg, buf, buf+Tkmaxitem, nil);

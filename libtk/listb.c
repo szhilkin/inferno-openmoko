@@ -1,13 +1,10 @@
-#include <lib9.h>
-#include <draw.h>
-#include <keyboard.h>
+#include "lib9.h"
+#include "draw.h"
+#include "keyboard.h"
+#include "tk.h"
+#include "listb.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <listb.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Layout constants */
 enum {
@@ -50,23 +47,23 @@ TkStab tkselmode[] =
 };
 
 static
-TkOption opts_listb[] =
+TkOption opts[] =
 {
-	{"xscrollcommand",	OPTtext,	offsetof(TkListbox, xscroll)		},
-	{"yscrollcommand",	OPTtext,	offsetof(TkListbox, yscroll)		},
-	{"selectmode",		OPTstab,	offsetof(TkListbox, selmode),		{tkselmode}},
-	{"selectborderwidth",	OPTnndist,	offsetof(TkListbox, sborderwidth)	},
+	{"xscrollcommand",	OPTtext,	O(TkListbox, xscroll),	nil},
+	{"yscrollcommand",	OPTtext,	O(TkListbox, yscroll),	nil},
+	{"selectmode",		OPTstab,	O(TkListbox, selmode),	tkselmode},
+	{"selectborderwidth",	OPTnndist,	O(TkListbox, sborderwidth),	nil},
 	{nil}
 };
 
 static
-TkEbind b_listb[] =
+TkEbind b[] = 
 {
 	{TkButton1P,		"%W tkListbButton1P %y"},
-	{TkButton1R,		"%W tkListbButton1R"},
+	{TkButton1R,	"%W tkListbButton1R"},
 	{TkButton1P|TkMotion,	"%W tkListbButton1MP %y"},
 	{TkMotion,		""},
-	{TkKey,			"%W tkListbKey 0x%K"},
+	{TkKey,	"%W tkListbKey 0x%K"},
 };
 
 
@@ -102,7 +99,7 @@ tklistbox(TkTop *t, char *arg, char **ret)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tkl;
-	tko[1].optab = opts_listb;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	names = nil;
@@ -113,7 +110,7 @@ tklistbox(TkTop *t, char *arg, char **ret)
 	}
 	tksettransparent(tk, tkhasalpha(tk->env, TkCbackgnd));
 
-	e = tkbindings(t, tk, b_listb, nelem(b_listb));
+	e = tkbindings(t, tk, b, nelem(b));
 	if(e != nil) {
 		tkfreeobj(tk);
 		return e;
@@ -139,7 +136,7 @@ tklistbcget(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tkl;
-	tko[1].optab = opts_listb;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, tk->env->top);
@@ -386,7 +383,7 @@ tklistbconf(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tkl;
-	tko[1].optab = opts_listb;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	if(*arg == '\0')
@@ -506,7 +503,7 @@ tklistbinsert(Tk *tk, char *arg, char **val)
 	n = strlen(arg);
 	if(n > Tkmaxitem) {
 		n = (n*3)/2;
-		tbuf = (char*)malloc(n);
+		tbuf = malloc(n);
 		if(tbuf == nil)
 			return TkNomem;
 	}
@@ -517,7 +514,7 @@ tklistbinsert(Tk *tk, char *arg, char **val)
 
 	while(*arg) {
 		arg = tkword(tk->env->top, arg, tbuf, &tbuf[n], nil);
-		e = (TkLentry *)malloc(sizeof(TkLentry)+strlen(tbuf)+1);
+		e = malloc(sizeof(TkLentry)+strlen(tbuf)+1);
 		if(e == nil)
 			return TkNomem;
 
@@ -690,7 +687,7 @@ tklistbget(Tk *tk, char *arg, char **val)
 		fmt = " %s";
 		e = e->link;
 	}
-	return nil;
+	return nil;		
 }
 
 char*
@@ -713,7 +710,7 @@ tklistbcursel(Tk *tk, char *arg, char **val)
 		}
 		indx++;
 	}
-	return nil;
+	return nil;		
 }
 
 static char*
@@ -925,7 +922,7 @@ dragto(Tk *tk, int y)
 }
 
 static void
-autoselect_listb(Tk *tk, const char *v, int cancelled)
+autoselect(Tk *tk, void *v, int cancelled)
 {
 	Point pt;
 	int y, eh, ne;
@@ -963,7 +960,7 @@ tklistbbutton1p(Tk *tk, char *arg, char **val)
 		entryactivate(tk, indx);
 		entrysee(tk, indx);
 	}
-	tkrepeat(tk, autoselect_listb, nil, TkRptpause, TkRptinterval);
+	tkrepeat(tk, autoselect, nil, TkRptpause, TkRptinterval);
 	return nil;
 }
 

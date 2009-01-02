@@ -1,10 +1,8 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
-#if STACK
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
 
-#define O offsetof
 #define DOT			((ulong)code)
 
 #define	RESCHED 1	/* check for interpreter reschedule */
@@ -144,26 +142,20 @@ struct
 	void	(*gen)(void);
 } mactab[] =
 {
-	MacFRP,		macfrp,		/* decrement and free pointer */
-	MacRET,		macret,		/* return instruction */
-	MacCASE,	maccase,	/* case instruction */
-	MacCOLR,	maccolr,	/* increment and color pointer */
-	MacMCAL,	macmcal,	/* mcall bottom half */
-	MacFRAM,	macfram,	/* frame instruction */
-	MacMFRA,	macmfra,	/* punt mframe because t->initialize==0 */
-	MacRELQ,		macrelq,	/* reschedule */
+	{MacFRP,	macfrp},	/* decrement and free pointer */
+	{MacRET,	macret},	/* return instruction */
+	{MacCASE,	maccase},	/* case instruction */
+	{MacCOLR,	maccolr},	/* increment and color pointer */
+	{MacMCAL,	macmcal},	/* mcall bottom half */
+	{MacFRAM,	macfram},	/* frame instruction */
+	{MacMFRA,	macmfra},	/* punt mframe because t->initialize==0 */
+	{MacRELQ,	macrelq},	/* reschedule */
 };
 
 static void
 bounds(void)
 {
 	error(exBounds);
-}
-
-static void
-nilref(void)
-{
-	error(exNilref);
 }
 
 static void
@@ -383,7 +375,7 @@ literal(ulong imm, int roff)
 		return;
 
 	*litpool = imm;
-	litpool++;
+	litpool++;	
 }
 
 static void
@@ -680,7 +672,7 @@ static void
 comcase(Inst *i, int w)
 {
 	int l;
-	DISINT *t, *e;
+	WORD *t, *e;
 
 	if(w != 0) {
 		opwld(i, Oldw, RAX);		// v
@@ -689,10 +681,10 @@ comcase(Inst *i, int w)
 		rbra(macro[MacCASE], Ojmp);
 	}
 
-	t = (DISINT*)(mod->origmp+i->d.ind+4);
+	t = (WORD*)(mod->origmp+i->d.ind+4);
 	l = t[-1];
 
-	/* have to take care not to relocate the same table twice -
+	/* have to take care not to relocate the same table twice - 
 	 * the limbo compiler can duplicate a case instruction
 	 * during its folding phase
 	 */
@@ -717,9 +709,9 @@ static void
 comcasel(Inst *i)
 {
 	int l;
-	DISINT *t, *e;
+	WORD *t, *e;
 
-	t = (DISINT*)(mod->origmp+i->d.ind+8);
+	t = (WORD*)(mod->origmp+i->d.ind+8);
 	l = t[-2];
 	if(pass == 0) {
 		if(l >= 0)
@@ -784,7 +776,7 @@ commcall(Inst *i)
 	modrm(Omov, O(Frame, lr), RCX, 0);	// MOVL $.+1, lr(CX)	f->lr = R.PC
 	genw((ulong)base+patch[i-mod->prog+1]);
 	modrm(Ostw, O(Frame, fp), RCX, RFP); 	// MOVL RFP, fp(CX)	f->fp = R.FP
-	modrm(Oldw, O(REG, ML), RTMP, RTA);	// MOVL R.M, RTA
+	modrm(Oldw, O(REG, M), RTMP, RTA);	// MOVL R.M, RTA
 	modrm(Ostw, O(Frame, mr), RCX, RTA);	// MOVL RTA, mr(CX) 	f->mr = R.M
 	opwst(i, Oldw, RTA);			// MOVL ml, RTA
 	cmpl(RTA, (ulong)H);
@@ -881,14 +873,14 @@ static
 void
 compdbg(void)
 {
-	print("%s:%lud@%.8lux\n", R.ML->m->name, *(ulong*)R.m, *(ulong*)R.s);
+	print("%s:%lud@%.8lux\n", R.M->m->name, *(ulong*)R.m, *(ulong*)R.s);
 }
 
 static void
 comp(Inst *i)
 {
 	int r;
-	DISINT *t, *e;
+	WORD *t, *e;
 	char buf[64];
 
 	if(0) {
@@ -1041,8 +1033,8 @@ comp(Inst *i)
 		opwst(i, 0xdf, 7);
 		break;
 	case IHEADM:
-  		opwld(i, Oldw, RAX);
-  		modrm(Olea, OA(List, data), RAX, RAX);
+		opwld(i, Oldw, RAX);
+		modrm(Olea, OA(List, data), RAX, RAX);
 		goto movm;
 	case IMOVM:
 		opwld(i, Olea, RAX);
@@ -1051,19 +1043,6 @@ comp(Inst *i)
 		mid(i, Oldw, RCX);
 		genb(OxchgAX+RSI);
 		gen2(Oxchg, (3<<6)|(RDI<<3)|RBX);
-
-		//genb(0x83);genb(0xFE);genb(0xFF); /* cmp         esi,-001 */
-		//gen2(0x75, 5);		    /* JNE */
-		//bra((ulong)nilref, Ocall);
-		genw(0x0FFFFE83);
-		bra((ulong)nilref, 0x84);
-
-		//genb(0x83);genb(0xFF);genb(0xFF); /* cmp         edi,-001 */
-		//gen2(0x75, 5);		    /* JNE */
-		//bra((ulong)nilref, Ocall);
-		genw(0x0FFFFF83);
-		bra((ulong)nilref, 0x84);
-
 		genb(Ocld);
 		gen2(Orep, Omovsb);
 		genb(OxchgAX+RSI);
@@ -1317,7 +1296,7 @@ comp(Inst *i)
 		if(pass == 0)
 			break;
 
-		t = (DISINT*)(mod->origmp+i->d.ind);
+		t = (WORD*)(mod->origmp+i->d.ind);
 		e = t + t[-1];
 		t[-1] = 0;
 		while(t < e) {
@@ -1643,14 +1622,14 @@ macret(void)
 	modrm(Ocmpw, O(Frame, mr), RFP, RBX);	// CMPL	 mr(FP), RBX
 	gen2(Ojeqb, lnomr-(code-s));		// JEQ	 lnomr
 	con((ulong)&R, RTMP);			// MOVL	 $R, RTMP
-	modrm(Oldw, O(REG, ML), RTMP, RTA);	// MOVL	 R.M, RTA
+	modrm(Oldw, O(REG, M), RTMP, RTA);	// MOVL	 R.M, RTA
 	modrm(Odecrm, O(Heap, ref)-sizeof(Heap), RTA, 1);
 	gen2(Ojneb, lfrmr-(code-s));		// JNE	 lfrmr
 	modrm(Oincrm, O(Heap, ref)-sizeof(Heap), RTA, 0);
 	gen2(Ojmpb, lpunt-(code-s));		// JMP	 lpunt
 	lfrmr = code - s;
 	modrm(Oldw, O(Frame, mr), RFP, RTA);	// MOVL	 mr(FP), RTA
-	modrm(Ostw, O(REG, ML), RTMP, RTA);	// MOVL	 RTA, R.M
+	modrm(Ostw, O(REG, M), RTMP, RTA);	// MOVL	 RTA, R.M
 	modrm(Oldw, O(Modlink, MP), RTA, RMP);	// MOVL	 MP(RTA), RMP
 	modrm(Ostw, O(REG, MP), RTMP, RMP);	// MOVL	 RMP, R.MP
 	modrm(Ocmpi, O(Modlink, compiled), RTA, 7);// CMPL $0, M.compiled
@@ -1724,7 +1703,7 @@ macmcal(void)
 	genb(Oret);				// RET
 	*label = code-label-1;			// patch:
 	gen2(Oldw, (3<<6)|(RFP<<3)|RCX);	// MOVL CX, RFP		R.FP = f
-	modrm(Ostw, O(REG, ML), RTMP, RTA);	// MOVL RTA, R.M
+	modrm(Ostw, O(REG, M), RTMP, RTA);	// MOVL RTA, R.M
 	modrm(Oincrm, O(Heap, ref)-sizeof(Heap), RTA, 0);
 	modrm(Oldw, O(Modlink, MP), RTA, RMP);	// MOVL R.M->mp, RMP
 	modrm(Ostw, O(REG, MP), RTMP, RMP);	// MOVL RMP, R.MP	R.MP = ml->MP
@@ -1805,7 +1784,7 @@ macrelq(void)
 	genb(Oret);
 }
 
-static void
+void
 comd(Type *t)
 {
 	int i, j, m, c;
@@ -1818,13 +1797,13 @@ comd(Type *t)
 				modrm(Oldw, j, RFP, RAX);
 				rbra(macro[MacFRP], Ocall);
 			}
-			j += sizeof(DISINT*);
+			j += sizeof(WORD*);
 		}
 	}
 	genb(Oret);
 }
 
-static void
+void
 comi(Type *t)
 {
 	int i, j, m, c;
@@ -1836,13 +1815,13 @@ comi(Type *t)
 		for(m = 0x80; m != 0; m >>= 1) {
 			if(c & m)
 				modrm(Ostw, j, RCX, RAX);
-			j += sizeof(DISINT*);
+			j += sizeof(WORD*);
 		}
 	}
 	genb(Oret);
 }
 
-static void
+void
 typecom(Type *t)
 {
 	int n;
@@ -1894,11 +1873,10 @@ patchex(Module *m, ulong *p)
 			e->pc = p[e->pc];
 	}
 }
-#endif
+
 int
 compile(Module *m, int size, Modlink *ml)
 {
-#if STACK
 	ulong v;
 	Modl *e;
 	Link *l;
@@ -1992,6 +1970,6 @@ bad:
 	free(tinit);
 	free(tmp);
 	free(base);
-#endif
 	return 0;
 }
+

@@ -1,7 +1,6 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <pool.h>
+#include "lib9.h"
+#include "interp.h"
+#include "pool.h"
 
 enum
 {
@@ -11,7 +10,7 @@ enum
 };
 
 static int quanta = Quanta;
-static int gce = 0, gct = 1;
+static int gce, gct = 1;
 
 typedef struct Ptrhash Ptrhash;
 struct Ptrhash
@@ -20,36 +19,29 @@ struct Ptrhash
 	Ptrhash	*next;
 };
 
-	int	nprop = 0;
-	int	gchalt = 0;
-/*extern	int	mflag;*/
+	int	nprop;
+	int	gchalt;
+	int	mflag;
 	int	mutator = 0;
 	int	gccolor = 3;
 
-	ulong	gcnruns = 0;
-	ulong	gcsweeps = 0;
-	ulong	gcbroken = 0;
-	ulong	gchalted = 0;
-	ulong	gcepochs = 0;
-	uvlong	gcdestroys = 0;
-	uvlong	gcinspects = 0;
+	ulong	gcnruns;
+	ulong	gcsweeps;
+	ulong	gcbroken;
+	ulong	gchalted;
+	ulong	gcepochs;
+	uvlong	gcdestroys;
+	uvlong	gcinspects;
 
 static	int	marker  = 1;
 static	int	sweeper = 2;
-/*
 static	Bhdr*	base;
 static	Bhdr*	limit;
-Bhdr*	ptr;*/
-static	int	visit = 0;
-static	Ptrhash	*ptrtab[PTRHASH] = {0};
-static	Ptrhash	*ptrfree = 0;
-enum
-{
-	MAGIC_A		= 0xa110c,		/* Allocated block */
-	MAGIC_F		= 0xbadc0c0a,		/* Free block */
-	MAGIC_E		= 0xdeadbabe,		/* End of arena */
-	MAGIC_I		= 0xabba		/* Block is immutable (hidden from gc) */
-};
+Bhdr*	ptr;
+static	int	visit;
+extern	Pool*	heapmem;
+static	Ptrhash	*ptrtab[PTRHASH];
+static	Ptrhash	*ptrfree;
 
 #define	HASHPTR(p)	(((ulong)(p) >> 6) & (PTRHASH - 1))
 
@@ -61,7 +53,7 @@ ptradd(Heap *v)
 
 	if ((p = ptrfree) != nil)
 		ptrfree = p->next;
-	else if ((p = (Ptrhash *)malloc(sizeof (Ptrhash))) == nil)
+	else if ((p = malloc(sizeof (Ptrhash))) == nil)
 		error("ptradd malloc");
 	h = HASHPTR(v);
 	p->value = v;
@@ -114,16 +106,16 @@ void
 markheap(Type *t, void *vw)
 {
 	Heap *h;
-	char *p;
+	uchar *p;
 	int i, c, m;
-	void **w, **q;
+	WORD **w, **q;
 	Type *t1;
 
 	if(t == nil || t->np == 0)
 		return;
 
 	markdepth++;
-	w = (void**)vw;
+	w = (WORD**)vw;
 	p = t->map;
 	for(i = 0; i < t->np; i++) {
 		c = *p++;
@@ -137,7 +129,7 @@ markheap(Type *t, void *vw)
 						gce--;
 						h->color = mutator;
 						if((t1 = h->t) != nil)
-							t1->fnmark(t1, H2D(void*, h));
+							t1->mark(t1, H2D(void*, h));
 					}
 				}
 				q++;
@@ -149,17 +141,19 @@ markheap(Type *t, void *vw)
 }
 
 /*
- * TODO This routine should be modified to be incremental, but how?
+ * This routine should be modified to be incremental, but how?
  */
 void
-markarray(Type *t, Array *a)
+markarray(Type *t, void *vw)
 {
 	int i;
 	Heap *h;
-	char *v;
+	uchar *v;
+	Array *a;
 
 	USED(t);
 
+	a = vw;
 	t = a->t;
 	if(a->root != H) {
 		h = D2H(a->root);
@@ -178,19 +172,21 @@ markarray(Type *t, Array *a)
 }
 
 void
-marklist(Type *t, List *l)
+marklist(Type *t, void *vw)
 {
+	List *l;
 	Heap *h;
 
 	USED(t);
-	markheap(l->t, &l->data); /*?*/
+	l = vw;
+	markheap(l->t, l->data);
 	while(visit > 0) {
 		l = l->tail;
 		if(l == H)
 			return;
 		h = D2H(l);
 		Setmark(h);
-		markheap(l->t, &l->data);
+		markheap(l->t, l->data);
 		visit--;
 	}
 	l = l->tail;
@@ -209,14 +205,14 @@ rootset(Prog *root)
 	Module *m;
 	Stkext *sx;
 	Modlink *ml;
-	char *fp, *sp, *ex, *mp;
+	uchar *fp, *sp, *ex, *mp;
 
 	mutator = gccolor % 3;
 	marker = (gccolor-1)%3;
 	sweeper = (gccolor-2)%3;
 
 	while(root != nil) {
-		ml = root->R.ML;
+		ml = root->R.M;
 		h = D2H(ml);
 		Setmark(h);
 		mp = ml->MP;
@@ -224,8 +220,7 @@ rootset(Prog *root)
 			h = D2H(mp);
 			Setmark(h);
 		}
-/* TODO */
-#if STACK
+
 		sp = root->R.SP;
 		ex = root->R.EX;
 		while(ex != nil) {
@@ -252,9 +247,7 @@ rootset(Prog *root)
 			ex = sx->reg.EX;
 			sp = sx->reg.SP;
 		}
-#else
-	print("rootset\n");
-#endif
+
 		root = root->next;
 	}
 
@@ -269,9 +262,11 @@ rootset(Prog *root)
 }
 
 static int
-oktag(int tag)
+okbhdr(Bhdr *b)
 {
-	switch(tag) {
+	if(b == nil)
+		return 0;
+	switch(b->magic) {
 	case MAGIC_A:
 	case MAGIC_F:
 	case MAGIC_E:
@@ -280,7 +275,7 @@ oktag(int tag)
 	}
 	return 0;
 }
-/*
+
 static void
 domflag(Heap *h)
 {
@@ -299,18 +294,14 @@ domflag(Heap *h)
 	print("\n");
 	if(mflag > 1)
 		abort();
-}*/
+}
 
 void
 rungc(Prog *p)
 {
-/*print("rungc pid=%d\n", p->pid);/**/
-/*
 	Type *t;
 	Heap *h;
 	Bhdr *b;
-
-	return;
 
 	gcnruns++;
 	if(gchalt) {
@@ -325,7 +316,7 @@ rungc(Prog *p)
 		limit = B2LIMIT(b);
 	}
 
-	//* Chain broken ? *
+	/* Chain broken ? */
 	if(!okbhdr(ptr)) {
 		base = nil;
 		gcbroken++;
@@ -348,8 +339,8 @@ rungc(Prog *p)
 			else
 			if(h->color == sweeper) {
 				gce++;
-				//*if(0 && mflag)
-				//	domflag(h);*
+				if(0 && mflag)
+					domflag(h);
 				if(heapmonitor != nil)
 					heapmonitor(2, h, 0);
 				if(t != nil) {
@@ -378,9 +369,9 @@ rungc(Prog *p)
 	if(quanta > MaxQuanta)
 		quanta = MaxQuanta;
 
-	if(base != nil)		/* Completed this iteration ? *
+	if(base != nil)		/* Completed this iteration ? */
 		return;
-	if(nprop == 0) {	/* Completed the epoch ? *
+	if(nprop == 0) {	/* Completed the epoch ? */
 		gcepochs++;
 		gccolor++;
 		rootset(p);
@@ -389,5 +380,4 @@ rungc(Prog *p)
 		return;
 	}
 	nprop = 0;
-*/
 }

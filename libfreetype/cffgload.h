@@ -20,14 +20,12 @@
 #define __CFFGLOAD_H__
 
 
-
-#include <freetype/freetype.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include "cffobjs.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 #define CFF_MAX_OPERANDS     48
@@ -208,9 +206,7 @@ extern "C" {
                  FT_Int32       load_flags );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __CFFGLOAD_H__ */
 

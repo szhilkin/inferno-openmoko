@@ -1,6 +1,6 @@
 <../mkconfig
 
-LIBNAME=libbio.a
+LIB=libbio.a
 OFILES=\
 	bbuffered.$O\
 	bfildes.$O\

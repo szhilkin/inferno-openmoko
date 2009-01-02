@@ -86,9 +86,9 @@ struct SigAlgVec {
 	char**	pkattr;
 	char**	sigattr;
 
-	void*	(*str2sk)(const char*, const char**);
-	void*	(*str2pk)(const char*, const char**);
-	void*	(*str2sig)(const char*, const char**);
+	void*	(*str2sk)(char*, char**);
+	void*	(*str2pk)(char*, char**);
+	void*	(*str2sig)(char*, char**);
 
 	int	(*sk2str)(void*, char*, int);
 	int	(*pk2str)(void*, char*, int);
@@ -113,6 +113,6 @@ struct SigAlg
 };
 
 int	bigtobase64(mpint* b, char *buf, int blen);
-mpint*	base64tobig(const char *str, const char **strp);
+mpint*	base64tobig(char *str, char **strp);
 SigAlgVec*	findsigalg(char*);
 Keyring_IPint*	newIPint(mpint*);

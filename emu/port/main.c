@@ -1,34 +1,31 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
-#include <kernel.h>
-#include <draw.h>
-#include <version.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	"interp.h"
+#include	"kernel.h"
+#include	"draw.h"
+#include	"version.h"
 
+int		rebootargc = 0;
+char**		rebootargv;
+static	char	*imod = "/dis/emuinit.dis";
 extern	char*	hosttype;
-extern	char*	cputype;
-extern	char*	tkfont;	/* for libtk/utils.c */
-extern	int	tkstylus;	/* libinterp/tk.c */
-int	Xsize	= 480; /* screen width in pixels */
-int	Ysize	= 640; /* screen height in pixels */
-
-int	xtblbit = 0;
-char	*eve = 0; /* superuser name */
-int	bflag = 1;
-int	cflag = 0;
-int	dflag = 0;
-int	mflag = 0;
-int	sflag = 0;
-int	vflag = 0;
-Procs	procs = {0};
-ulong	displaychan = 0;
-int	rebootargc = 0;
-const char**	rebootargv = 0;
-
-static	char*	imod = "/dis/emuinit.dis";
-
+char*	tkfont;	/* for libtk/utils.c */
+int	tkstylus;	/* libinterp/tk.c */
+extern	int	mflag;
+	int	dflag;
+	int vflag;
+	int	vflag;
+	Procs	procs;
+	char	*eve;
+	int	Xsize	= 640;
+	int	Ysize	= 480;
+	int	bflag = 1;
+	int	sflag;
+	int	qflag;
+	int	xtblbit;
+	ulong	displaychan;
+extern char *cputype;
 
 static void
 usage(void)
@@ -73,10 +70,10 @@ geom(char *val)
 {
 	char *p;
 	int x, y;
-	if (val == '\0' || (*val < '0' || *val > '9'))
+	if (val == '\0' || (*val < '0' || *val > '9')) 
 		return 0;
 	x = strtoul(val, &p, 0);
-	if(x >= 64)
+	if(x >= 64) 
 		Xsize = x;
 	if (*p++ != 'x' || !isnum(p))
 		return 0;
@@ -86,7 +83,7 @@ geom(char *val)
 	if (*p != '\0') return 0;
 	return 1;
 }
-/* BUG
+
 static void
 poolopt(char *str)
 {
@@ -114,7 +111,7 @@ poolopt(char *str)
 	}
 	if(poolsetsize(var, x) == 0)
 		usage();
-}*/
+}
 
 static void
 option(int argc, char *argv[], void (*badusage)(void))
@@ -160,7 +157,7 @@ option(int argc, char *argv[], void (*badusage)(void))
 			usage();
 		break;
 	case 'p':		/* pool option */
-		 /* BUG poolopt(EARGF(badusage())); */
+		poolopt(EARGF(badusage()));
 		break;
 	case 'f':		/* Set font path */
 		tkfont = EARGF(badusage());
@@ -190,16 +187,13 @@ option(int argc, char *argv[], void (*badusage)(void))
 	} ARGEND
 }
 
-/**
- *	Save argc,argv -> rebootargc,rebootargv
- */
 static void
 savestartup(int argc, char *argv[])
 {
 	int i;
 
 	rebootargc = argc;
-	rebootargv = (const char**)malloc((argc+1)*sizeof(char*));
+	rebootargv = malloc((argc+1)*sizeof(char*));
 	if(rebootargv == nil)
 		panic("can't save startup args");
 	for(i = 0; i < argc; i++) {
@@ -210,7 +204,7 @@ savestartup(int argc, char *argv[])
 	rebootargv[i] = nil;
 }
 
-static void
+void
 putenvq(char *name, char *val, int conf)
 {
 	val = smprint("%q", val);
@@ -218,8 +212,8 @@ putenvq(char *name, char *val, int conf)
 	free(val);
 }
 
-static void
-putenvqv(char *name, const char * const *v, int n, int conf)
+void
+putenvqv(char *name, char **v, int n, int conf)
 {
 	Fmt f;
 	int i;
@@ -233,16 +227,12 @@ putenvqv(char *name, const char * const *v, int n, int conf)
 	free(val);
 }
 
-NORETURN
-main(int argc, char **argv)
+void
+main(int argc, char *argv[])
 {
 	char *opt, *p;
 	char *enva[20];
 	int envc;
-
-	//char* argv[] = {"\\inferno\\Ce\\arm\\bin\\emu.exe", "-g", "450x600", /*"-c1",*/ "wm/wm", 0};
-	//char* argv[] = {"\\inferno\\Ce\\arm\\bin\\emu.exe", 0};
-	//int argc = (sizeof(argv)/sizeof(*argv))-1;
 
 	quotefmtinstall();
 	savestartup(argc, argv);
@@ -269,11 +259,8 @@ main(int argc, char **argv)
 	libinit(imod);
 }
 
-/**
- * main() -> os-specific libinit(startmodule) -> emuinit(startmodule)
- */
-NORETURN
-emuinit(const char *imod)
+void
+emuinit(void *imod)
 {
 	Osenv *e;
 
@@ -326,61 +313,35 @@ emuinit(const char *imod)
 	putenvq("emuroot", rootdir, 1);
 	ksetenv("emuhost", hosttype, 1);
 
-	kproc("main", (ProcFunc)disinit, (void*)imod, KPDUP);  /* BUG: check return value */
+	kproc("main", disinit, imod, KPDUPFDG|KPDUPPG|KPDUPENVG);
 
 	for(;;)
-		ospause();
+		ospause(); 
 }
 
-static NORETURN
-errorv(const char *fmt, va_list arg)
+void
+errorf(char *fmt, ...)
 {
+	va_list arg;
 	char buf[PRINTSIZE];
 
+	va_start(arg, fmt);
 	vseprint(buf, buf+sizeof(buf), fmt, arg);
+	va_end(arg);
 	error(buf);
 }
 
-NORETURN
-errorf(const char *fmt, ...)
+void
+error(char *err)
 {
-	va_list arg;
-
-	va_start(arg, fmt);
-	errorv(fmt, arg);
-	va_end(arg);
-}
-
-/*
- * mainly for libmp
- */
-NORETURN
-sysfatal(const char *fmt, ...)
-{
-	va_list arg;
-
-	va_start(arg, fmt);
-	errorv(fmt, arg);
-	va_end(arg);
-}
-
-NORETURN
-error(const char *err)
-{
-	print("error(%s)\n", err);
-	/*if(err==exBounds)
-		__asm int 3;*/
-//	o("error '%s'\n",err);
 	if(err != up->env->errstr && up->env->errstr != nil)
 		kstrcpy(up->env->errstr, err, ERRMAX);
 //	ossetjmp(up->estack[NERR-1]);
-//	nexterror();
-
-	oslongjmp(nil, up->estack[--up->nerr], 1);
+	nexterror();
 }
 
-NORETURN
-exhausted(const char *resource)
+void
+exhausted(char *resource)
 {
 	char buf[64];
 	int n;
@@ -391,11 +352,9 @@ exhausted(const char *resource)
 	error(buf);
 }
 
-NORETURN
+void
 nexterror(void)
 {
-	print("nexterror\n");
-	//assert(0<up->nerr && up->nerr<=NERR-1);
 	oslongjmp(nil, up->estack[--up->nerr], 1);
 }
 
@@ -404,7 +363,6 @@ nexterror(void)
 void*
 waserr(void)
 {
-	//assert(0<=up->nerr && up->nerr<NERR-1);
 	up->nerr++;
 	return up->estack[up->nerr-1];
 }
@@ -412,7 +370,6 @@ waserr(void)
 void
 poperr(void)
 {
-	//assert(0<up->nerr && up->nerr<=NERR-1);
 	up->nerr--;
 }
 
@@ -422,36 +379,27 @@ enverror(void)
 	return up->env->errstr;
 }
 
-NORETURN
-panicv(const char *fmt, va_list arg)
-{
-	fprint(2, "panic: ");
-	vfprint(2, fmt, arg);
-	if(sflag)
-	{
-#ifdef _MSC_VER
-		__asm int 3;
-#else
-		asm("int3");
-#endif
-	}
-	cleanexit(1);
-}
-
-NORETURN
-panic(const char *fmt, ...)
+void
+panic(char *fmt, ...)
 {
 	va_list arg;
+	char buf[512];
 
 	va_start(arg, fmt);
-	panicv(fmt, arg);
+	vseprint(buf, buf+sizeof(buf), fmt, arg);
 	va_end(arg);
+	fprint(2, "panic: %s\n", buf);
+	if(sflag)
+		abort();
+
+	cleanexit(0);
 }
 
 int
-iprint(const char *fmt, ...)
+iprint(char *fmt, ...)
 {
-	int n;
+
+	int n;	
 	va_list va;
 	char buf[1024];
 
@@ -463,9 +411,29 @@ iprint(const char *fmt, ...)
 	return 1;
 }
 
+void
+_assert(char *fmt)
+{
+	panic("assert failed: %s", fmt);
+}
 
-NORETURN
-_oserror(void)
+/*
+ * mainly for libmp
+ */
+void
+sysfatal(char *fmt, ...)
+{
+	va_list arg;
+	char buf[64];
+
+	va_start(arg, fmt);
+	vsnprint(buf, sizeof(buf), fmt, arg);
+	va_end(arg);
+	error(buf);
+}
+
+void
+oserror(void)
 {
 	oserrstr(up->env->errstr, ERRMAX);
 	error(up->env->errstr);

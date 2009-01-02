@@ -3,7 +3,7 @@ OBJTYPE=$objtype
 <../../mkconfig
 OBJDIR=Inferno/$OBJTYPE
 
-LIBNAME=libsec.a
+LIB=libsec.a
 FILES=\
 	md5block\
 	sha1block\

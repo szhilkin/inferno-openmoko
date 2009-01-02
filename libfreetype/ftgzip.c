@@ -19,10 +19,10 @@
 /*                                                                         */
 /***************************************************************************/
 
-
-#include <freetype/internal/ftmemory.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/ftdebug.h>
+#include <ft2build.h>
+#include FT_INTERNAL_MEMORY_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_DEBUG_H
 #include <string.h>
 
 #ifdef FT_CONFIG_OPTION_USE_ZLIB

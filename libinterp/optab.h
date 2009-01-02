@@ -1,4 +1,4 @@
-void	(*optab[256])(Disdata*s, Disdata*m, Disdata*d, REG*rr) =
+void	(*optab[256])(void) =
 {
 	badop,
 	alt,
@@ -148,16 +148,16 @@ void	(*optab[256])(Disdata*s, Disdata*m, Disdata*d, REG*rr) =
 	indl,
 	movpc,
 	tcmp,
-	mnewz,		/* j2d */
-	cvtrf,		/* j2d */
-	cvtfr,		/* j2d */
-	cvtws,		/* j2d */
-	cvtsw,		/* j2d */
-	lsrw,		/* j2d */
-	lsrl,		/* j2d */
+	mnewz,
+	cvtrf,
+	cvtfr,
+	cvtws,
+	cvtsw,
+	lsrw,
+	lsrl,
 	eclr,		/* unused */
-	newz,		/* j2d */
-	newaz,		/* j2d */
+	newz,
+	newaz,
 	iraise,
 	casel,
 	mulx,

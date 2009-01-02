@@ -32,7 +32,7 @@ enum
 	DGreen		= 0x00FF00FF,
 	DBlue		= 0x0000FFFF,
 	DCyan		= 0x00FFFFFF,
-	DMagenta	= 0xFF00FFFF,
+	DMagenta		= 0xFF00FFFF,
 	DYellow		= 0xFFFF00FF,
 	DPaleyellow	= 0xFFFFAAFF,
 	DDarkyellow	= 0xEEEE9EFF,
@@ -40,27 +40,27 @@ enum
 	DPalegreen	= 0xAAFFAAFF,
 	DMedgreen	= 0x88CC88FF,
 	DDarkblue	= 0x000055FF,
-	DPalebluegreen	= 0xAAFFFFFF,
-	DPaleblue	= 0x0000BBFF,
+	DPalebluegreen= 0xAAFFFFFF,
+	DPaleblue		= 0x0000BBFF,
 	DBluegreen	= 0x008888FF,
 	DGreygreen	= 0x55AAAAFF,
 	DPalegreygreen	= 0x9EEEEEFF,
 	DYellowgreen	= 0x99994CFF,
-	DMedblue	= 0x000099FF,
+	DMedblue		= 0x000099FF,
 	DGreyblue	= 0x005DBBFF,
 	DPalegreyblue	= 0x4993DDFF,
 	DPurpleblue	= 0x8888CCFF,
 
 	DNotacolor	= 0xFFFFFF00,
 	DNofill		= DNotacolor,
-
+	
 };
 
 enum
 {
 	Displaybufsize	= 8000,
 	ICOSSCALE	= 1024,
-	Borderwidth	= 4,
+	Borderwidth =	4,
 };
 
 enum
@@ -84,16 +84,16 @@ enum
 #define	ARROW(a, b, c)	(Endarrow|((a)<<5)|((b)<<14)|((c)<<23))
 
 /*
- * image channel descriptors
+ * image channel descriptors 
  */
 enum {
-	CRed = 0,  /* r */
-	CGreen,    /* g */
-	CBlue,     /* b */
-	CGrey,     /* k */
-	CAlpha,    /* a */
-	CMap,      /* m */
-	CIgnore,   /* x */
+	CRed = 0,
+	CGreen,
+	CBlue,
+	CGrey,
+	CAlpha,
+	CMap,
+	CIgnore,
 	NChan,
 };
 
@@ -121,30 +121,23 @@ enum {
 	BGR24	= CHAN3(CBlue, 8, CGreen, 8, CRed, 8),
 	ABGR32	= CHAN4(CAlpha, 8, CBlue, 8, CGreen, 8, CRed, 8),
 	XBGR32	= CHAN4(CIgnore, 8, CBlue, 8, CGreen, 8, CRed, 8),
-
-	/* compact image formats (for PDA) */
-	BWA8	= CHAN2(CGrey, 1, CAlpha, 7),
-	GRAY4A	= CHAN2(CGrey, 4, CAlpha, 4),
-	RGBA8 	= CHAN4(CRed, 2, CGreen, 2, CBlue, 2, CAlpha, 2),
-	RGBA16	= CHAN4(CRed, 4, CGreen, 4, CBlue, 4, CAlpha, 4),
-	MRGB16	= CHAN4(CAlpha, 1, CRed, 5, CGreen, 5, CBlue, 5),	/* RGB15 + mask bit */
 };
 
 /* compositing operators */
 
 typedef enum
 {
-	SinD	= 1<<3,
-	DinS	= 1<<2,
+	SinD		= 1<<3,
+	DinS		= 1<<2,
 	SoutD	= 1<<1,
 	DoutS	= 1 <<0,
 
-	S	= SinD|SoutD,
+	S		= SinD|SoutD,
 	SoverD	= SinD|SoutD|DoutS,
 	SatopD	= SinD|DoutS,
 	SxorD	= SoutD|DoutS,
 
-	D	= DinS|DoutS,
+	D		= DinS|DoutS,
 	DoverS	= DinS|DoutS|SoutD,
 	DatopS	= DinS|SoutD,
 	DxorS	= DoutS|SoutD,
@@ -188,19 +181,18 @@ struct Refreshq
 	Refreshq	*next;
 };
 
-typedef struct DRef DRef;
 struct Display
 {
-	QLock		*qlock;
+	void*	qlock;
 	int		locking;	/*program is using lockdisplay */
 	int		dirno;
-	Chan		*datachan;
-	Chan		*refchan;
-	Chan		*ctlchan;
+	void	*datachan;
+	void	*refchan;
+	void	*ctlchan;
 	int		imageid;
 	int		local;
 	int		depth;
-	ulong		chan;
+	ulong	chan;
 	void		(*error)(Display*, char*);
 	char		*devdir;
 	char		*windir;
@@ -211,13 +203,13 @@ struct Display
 	Image		*image;
 	Image		*opaque;
 	Image		*transparent;
-	char		buf[Displaybufsize+1];	/* +1 for flush message */
-	int		bufsize;
-	char		*bufp;
+	uchar		buf[Displaybufsize+1];	/* +1 for flush message */
+	int			bufsize;
+	uchar		*bufp;
 	Font		*defaultfont;
 	Subfont		*defaultsubfont;
 	Image		*windows;
-	DRef		*limbo;
+	void		*limbo;
 	Refreshq	*refhead;
 	Refreshq	*reftail;
 };
@@ -229,7 +221,7 @@ struct Image
 	Rectangle	r;		/* rectangle in data area, local coords */
 	Rectangle 	clipr;		/* clipping region */
 	int		depth;		/* number of bits per pixel */
-	ulong		chan;
+	ulong	chan;
 	int		repl;		/* flag: data replicates to tile clipr */
 	Screen		*screen;	/* 0 if not a window */
 	Image		*next;	/* next in list of windows */
@@ -324,7 +316,7 @@ struct Font
 	Display		*display;
 	short		height;	/* max height of image, interline spacing */
 	short		ascent;	/* top of image to baseline */
-	short		width;	/* widest so far; used in caching only */
+	short		width;	/* widest so far; used in caching only */	
 	short		nsub;	/* number of subfonts */
 	ulong		age;	/* increasing counter; used for LRU */
 	int		maxdepth;	/* maximum depth of all loaded subfonts */
@@ -344,7 +336,7 @@ struct Font
  */
 extern Image*	_allocimage(Image*, Display*, Rectangle, ulong, int, ulong, int, int);
 extern Image*	allocimage(Display*, Rectangle, ulong, int, ulong);
-extern char*	bufimage(Display*, int);
+extern uchar*	bufimage(Display*, int);
 extern int	bytesperline(Rectangle, int);
 extern void	closedisplay(Display*);
 extern void	drawerror(Display*, char*);
@@ -355,13 +347,13 @@ extern int	_freeimage1(Image*);
 extern int	geninitdraw(char*, void(*)(Display*, char*), char*, char*, char*, int);
 extern int	initdraw(void(*)(Display*, char*), char*, char*);
 extern Display*	initdisplay(char*, char*, void(*)(Display*, char*));
-extern int	loadimage(Image*, Rectangle, const char*, int);
-extern int	cloadimage(Image*, Rectangle, const char*, int);
+extern int	loadimage(Image*, Rectangle, uchar*, int);
+extern int	cloadimage(Image*, Rectangle, uchar*, int);
 extern int	getwindow(Display*, int);
 extern int	gengetwindow(Display*, char*, Image**, Screen**, int);
 extern Image* readimage(Display*, int, int);
 extern Image* creadimage(Display*, int, int);
-extern int	unloadimage(Image*, Rectangle, char*, int);
+extern int	unloadimage(Image*, Rectangle, uchar*, int);
 extern int	wordsperline(Rectangle, int);
 extern int	writeimage(int, Image*, int);
 extern Image*	namedimage(Display*, char*);
@@ -412,7 +404,7 @@ extern int		rectclip(Rectangle*, Rectangle);
 extern int		ptinrect(Point, Rectangle);
 extern void		replclipr(Image*, int, Rectangle);
 extern int		drawreplxy(int, int, int);	/* used to be drawsetxy */
-extern Point		drawrepl(Rectangle, Point);
+extern Point	drawrepl(Rectangle, Point);
 extern int		rgb2cmap(int, int, int);
 extern int		cmap2rgb(int);
 extern int		cmap2rgba(int);
@@ -450,15 +442,15 @@ extern Point	runestringnbg(Image*, Point, Image*, Point, Font*, Rune*, int, Imag
 extern Point	runestringnbgop(Image*, Point, Image*, Point, Font*, Rune*, int, Image*, Point, Drawop);
 extern Point	_string(Image*, Point, Image*, Point, Font*, char*, Rune*, int, Rectangle, Image*, Point, Drawop);
 extern Point	stringsubfont(Image*, Point, Image*, Subfont*, char*);
-extern int	bezier(Image*, Point, Point, Point, Point, int, int, int, Image*, Point);
-extern int	bezierop(Image*, Point, Point, Point, Point, int, int, int, Image*, Point, Drawop);
-extern int	bezspline(Image*, Point*, int, int, int, int, Image*, Point);
-extern int	bezsplineop(Image*, Point*, int, int, int, int, Image*, Point, Drawop);
-extern int	getbezsplinepts(Point*, int, Point**);
-extern int	fillbezier(Image*, Point, Point, Point, Point, int, Image*, Point);
-extern int	fillbezierop(Image*, Point, Point, Point, Point, int, Image*, Point, Drawop);
-extern int	fillbezspline(Image*, Point*, int, int, Image*, Point);
-extern int	fillbezsplineop(Image*, Point*, int, int, Image*, Point, Drawop);
+extern int		bezier(Image*, Point, Point, Point, Point, int, int, int, Image*, Point);
+extern int		bezierop(Image*, Point, Point, Point, Point, int, int, int, Image*, Point, Drawop);
+extern int		bezspline(Image*, Point*, int, int, int, int, Image*, Point);
+extern int		bezsplineop(Image*, Point*, int, int, int, int, Image*, Point, Drawop);
+extern int		getbezsplinepts(Point*, int, Point**);
+extern int		fillbezier(Image*, Point, Point, Point, Point, int, Image*, Point);
+extern int		fillbezierop(Image*, Point, Point, Point, Point, int, Image*, Point, Drawop);
+extern int		fillbezspline(Image*, Point*, int, int, Image*, Point);
+extern int		fillbezsplineop(Image*, Point*, int, int, Image*, Point, Drawop);
 extern void	ellipse(Image*, Point, int, int, int, Image*, Point);
 extern void	ellipseop(Image*, Point, int, int, int, Image*, Point, Drawop);
 extern void	fillellipse(Image*, Point, int, int, Image*, Point);
@@ -499,21 +491,17 @@ extern int	loadchar(Font*, Rune, Cacheinfo*, int, int, char**);
 extern char*	subfontname(char*, char*, int);
 extern Subfont*	_getsubfont(Display*, char*);
 extern Subfont*	getdefont(Display*);
-extern int	lockdisplay(Display*);
+extern int		lockdisplay(Display*);
 extern void	unlockdisplay(Display*);
-
-typedef struct Memimage Memimage;
-typedef struct Refx Refx;
-typedef void (*Refreshfn)(Memimage*, Rectangle, Refx*);
-extern int	drawlsetrefresh(ulong, int, Refreshfn, Refx*);
+extern int		drawlsetrefresh(ulong, int, void*, void*);
 
 /* Compositing operator utility */
 extern void	_setdrawop(Display*, Drawop);
 
 /*
- * Predefined
+ * Predefined 
  */
-extern	uchar		defontdata[];
+extern	uchar	defontdata[];
 extern	int		sizeofdefont;
 extern	Point		ZP;
 extern	Rectangle	ZR;
@@ -524,10 +512,10 @@ extern	Rectangle	ZR;
 extern	int	_cursorfd;
 extern	int	_drawdebug;	/* set to 1 to see errors from flushimage */
 
-#define	BGSHORT GBIT16
-#define	BGLONG  GBIT32
-#define	BPSHORT PBIT16
-#define	BPLONG  PBIT32
+#define	BGSHORT(p)		(((p)[0]<<0) | ((p)[1]<<8))
+#define	BGLONG(p)		((BGSHORT(p)<<0) | (BGSHORT(p+2)<<16))
+#define	BPSHORT(p, v)		((p)[0]=(v), (p)[1]=((v)>>8))
+#define	BPLONG(p, v)		(BPSHORT(p, (v)), BPSHORT(p+2, (v)>>16))
 
 /*
  * Compressed image file parameters
@@ -542,7 +530,7 @@ extern	int	_compblocksize(Rectangle, int);
 
 /* XXX backwards helps; should go */
 extern	ulong	drawld2chan[];
-extern	void	drawsetdebug(int);
+extern	void		drawsetdebug(int);
 
 /*
  * Inferno interface
@@ -561,6 +549,4 @@ extern	void	font_close(Font*);
 #define P2P(p1, p2)	(p1).x = (p2).x, (p1).y = (p2).y
 #define R2R(r1, r2)	(r1).min.x = (r2).min.x, (r1).min.y = (r2).min.y,\
 			(r1).max.x = (r2).max.x, (r1).max.y = (r2).max.y
-extern Image*	display_open(Display*, const char*);
-
-#define TR_ALLOCIMAGE(r,c) {char s[64]; o("%s:%d %s allocimage(%d %d %d %d 0x%08uX=%s)\n", __FILE__, __LINE__, __FUNCTION__, (r).min.x, (r).min.y, (r).max.x, (r).max.y, (c), chantostr(s,(c)) );}
+extern Image*	display_open(Display*, char*);

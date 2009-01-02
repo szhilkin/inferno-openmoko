@@ -1,16 +1,14 @@
-#include <lib9.h>
-#include <draw.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
 
 /*
  * XXX TODO
  * - grid rowcget|columncget
  * - grid columnconfigure/rowconfigure accepts a list of indexes?
  */
+
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 typedef struct TkGridparam TkGridparam;
 typedef struct TkBeamparam TkBeamparam;
@@ -35,30 +33,30 @@ struct TkBeamparam{
 };
 
 static
-TkOption opts_grids[] =
+TkOption opts[] =
 {
-	{"padx",	OPTnndist,	offsetof(TkGridparam, pad.x)	},
-	{"pady",	OPTnndist,	offsetof(TkGridparam, pad.y)	},
-	{"ipadx",	OPTnndist,	offsetof(TkGridparam, ipad.x)	},
-	{"ipady",	OPTnndist,	offsetof(TkGridparam, ipad.y)	},
-	{"in",		OPTwinp,	offsetof(TkGridparam, in)	},
-	{"row",		OPTtext,	offsetof(TkGridparam, row)	},
-	{"column",	OPTtext,	offsetof(TkGridparam, col)	},
-	{"rowspan",	OPTnndist,	offsetof(TkGridparam, span.y)	},
-	{"columnspan",	OPTnndist,	offsetof(TkGridparam, span.x) 	},
-	{"sticky",	OPTsticky,	offsetof(TkGridparam, sticky)	},
+	{"padx",		OPTnndist,	O(TkGridparam, pad.x),	nil},
+	{"pady",		OPTnndist,	O(TkGridparam, pad.y),	nil},
+	{"ipadx",	OPTnndist,	O(TkGridparam, ipad.x),	nil},
+	{"ipady",	OPTnndist,	O(TkGridparam, ipad.y),	nil},
+	{"in",		OPTwinp,		O(TkGridparam, in),		nil},
+	{"row",	OPTtext,		O(TkGridparam, row), nil},
+	{"column",	OPTtext,		O(TkGridparam, col), nil},
+	{"rowspan",	OPTnndist,	O(TkGridparam, span.y), nil},
+	{"columnspan",	OPTnndist,	O(TkGridparam, span.x), nil},
+	{"sticky",	OPTsticky,		O(TkGridparam, sticky), nil},
 	{nil}
 };
 
 static
 TkOption beamopts[] =
 {
-	{"minsize",	OPTnndist,	offsetof(TkBeamparam, minsize)	},
-	{"maxsize",	OPTnndist,	offsetof(TkBeamparam, maxsize)	},
-	{"weight",	OPTnndist,	offsetof(TkBeamparam, weight)	},
-	{"pad",		OPTnndist,	offsetof(TkBeamparam, pad)	},
-	{"name",	OPTtext,	offsetof(TkBeamparam, name)	},
-	{"equalise",	OPTstab,	offsetof(TkBeamparam, equalise),{tkbool}},
+	{"minsize",		OPTnndist,	O(TkBeamparam, minsize),	nil},
+	{"maxsize",	OPTnndist,	O(TkBeamparam, maxsize),	nil},
+	{"weight",		OPTnndist,	O(TkBeamparam, weight),	nil},
+	{"pad",		OPTnndist,	O(TkBeamparam, pad),		nil},
+	{"name",		OPTtext,		O(TkBeamparam, name),		nil},
+	{"equalise",	OPTstab,		O(TkBeamparam, equalise),	tkbool},
 	{nil}
 };
 
@@ -138,19 +136,19 @@ ensuregridsize(TkGrid *grid, Point dim)
 	if(dim.y < olddim.y)
 		dim.y = olddim.y;
 	if(dim.y > olddim.y){
-		cells = (TkGridcell **)realloc(grid->cells, sizeof(TkGridcell*)*dim.y);
+		cells = realloc(grid->cells, sizeof(TkGridcell*)*dim.y);
 		if(cells == nil)
 			return TkNomem;
 		grid->cells = cells;
 		for(i = olddim.y; i < dim.y; i++){
-			cells[i] = (TkGridcell *)malloc(sizeof(TkGridcell)*dim.x);
+			cells[i] = malloc(sizeof(TkGridcell)*dim.x);
 			if(cells[i] == nil){
 				for(i--; i >= olddim.y; i--)
 					free(cells[i]);
 				return TkNomem;
 			}
 		}
-		rows = (TkGridbeam *)realloc(grid->rows, sizeof(TkGridbeam)*dim.y);
+		rows = realloc(grid->rows, sizeof(TkGridbeam)*dim.y);
 		if(rows == nil)
 			return TkNomem;
 		grid->rows = rows;
@@ -165,13 +163,13 @@ ensuregridsize(TkGrid *grid, Point dim)
 		 */
 		cells = grid->cells;
 		for(i = 0; i < olddim.y; i++){
-			cellrow = (TkGridcell *)realloc(cells[i], sizeof(TkGridcell) * dim.x);
+			cellrow = realloc(cells[i], sizeof(TkGridcell) * dim.x);
 			if(cellrow == nil)
 				return TkNomem;	/* leak some earlier rows, but not permanently */
 			memset(cellrow + olddim.x, 0, (dim.x-olddim.x)*sizeof(TkGridcell));
 			cells[i] = cellrow;
 		}
-		cols = (TkGridbeam *)realloc(grid->cols, sizeof(TkGridbeam)*dim.x);
+		cols = realloc(grid->cols, sizeof(TkGridbeam)*dim.x);
 		if(cols == nil)
 			return TkNomem;
 		initbeam(cols + olddim.x, dim.x - olddim.x);
@@ -189,7 +187,7 @@ delbeams(TkGridbeam *beam, int nb, int x0, int x1)
 	for(i = x0; i < x1; i++)
 		free(beam[i].name);
 	memmove(&beam[x0], &beam[x1], sizeof(TkGridbeam) * (nb-x1));
-	b = (TkGridbeam *)realloc(beam, sizeof(TkGridbeam) * (nb-(x1-x0)));
+	b = realloc(beam, sizeof(TkGridbeam) * (nb-(x1-x0)));
 	return b ? b : beam;
 }
 
@@ -199,7 +197,7 @@ delrows(TkGrid *grid, int y0, int y1)
 	TkGridcell **cells;
 	memmove(grid->cells+y0, grid->cells+y1, sizeof(TkGridcell*) * (grid->dim.y-y1));
 	grid->dim.y -= (y1 - y0);
-	cells = (TkGridcell **)realloc(grid->cells, sizeof(TkGridcell*) * grid->dim.y);
+	cells = realloc(grid->cells, sizeof(TkGridcell*) * grid->dim.y);
 	if(cells != nil || grid->dim.y == 0)
 		grid->cells = cells;		/* can realloc to a smaller size ever fail? */
 }
@@ -216,7 +214,7 @@ delcols(TkGrid *grid, int x0, int x1)
 	for(y = 0; y < dim.y; y++){
 		row = cells[y];
 		memmove(row+x0, row+x1, sizeof(TkGridcell) * (dim.x - x1));
-		row = (TkGridcell *)realloc(row, sizeof(TkGridcell) * ndx);
+		row = realloc(row, sizeof(TkGridcell) * ndx);
 		if(row != nil || ndx == 0)
 			cells[y] = row;
 	}
@@ -293,7 +291,7 @@ inscols(TkGrid *grid, int x0, int n)
 }
 
 static int
-maximum_grids(int a, int b) /* XXX */
+maximum(int a, int b)
 {
 	if(a > b)
 		return a;
@@ -315,7 +313,7 @@ beamsize(TkGridbeam *cols, int x0, int x1)
 	tot = cols[x0].act;
 	fpad = cols[x0].pad;
 	for(x = x0 + 1; x < x1; x++){
-		tot += cols[x].act + maximum_grids(cols[x].pad, fpad);
+		tot += cols[x].act + maximum(cols[x].pad, fpad);
 		fpad = cols[x].pad;
 	}
 	return tot;
@@ -333,7 +331,7 @@ beamcellpos(TkGridbeam *beam, int blen, int index)
 		return 0;
 	x = beam[0].pad + beamsize(beam, 0, index);
 	if(index > 0)
-		x += maximum_grids(beam[index-1].pad, beam[index].pad);
+		x += maximum(beam[index-1].pad, beam[index].pad);
 	return x;
 }
 
@@ -503,7 +501,7 @@ tkgridconfigure(TkTop *t, TkGridparam *p, TkName *names)
 			return TkIstop;
 		if(tkp->parent != nil)
 			return TkWpack;
-
+	
 		/*
 		 * unpacking now does give an non-reversible side effect
 		 * ifthere's an error encountered later, but also means
@@ -532,7 +530,7 @@ tkgridconfigure(TkTop *t, TkGridparam *p, TkName *names)
 		return TkNotgrid;
 
 	if(grid == nil){
-		grid = (TkGrid *)malloc(sizeof(TkGrid));
+		grid = malloc(sizeof(TkGrid));
 		if(grid == nil)
 			return TkNomem;
 		p->in->grid = grid;
@@ -596,7 +594,7 @@ tkgridconfigure(TkTop *t, TkGridparam *p, TkName *names)
 		case '-':
 			return TkBadspan;
 		case '.':
-			tkp = (Tk*)n->obj;
+			tkp = n->obj;
 			if(tkisslave(p->in, tkp))
 				return TkRecur;
 			n = n->link;
@@ -611,7 +609,7 @@ tkgridconfigure(TkTop *t, TkGridparam *p, TkName *names)
 					if(cells[j][i].tk != nil)
 						return TkBadgridcell;
 			pos.x = i;
-			break;
+			break; 
 		}
 	}
 
@@ -640,7 +638,7 @@ tkgridconfigure(TkTop *t, TkGridparam *p, TkName *names)
 			}
 			break;
 		case '.':
-			tkf = (Tk*)n->obj;
+			tkf = n->obj;
 			n = n->link;
 			span = p->span;
 			for(; n != nil && strcmp(n->name, "-") == 0; n = n->link)
@@ -656,7 +654,7 @@ tkgridconfigure(TkTop *t, TkGridparam *p, TkName *names)
 				tksetbits(tkf, Tksubsub);
 			tkgridsetopt(p, tkf);
 			pos.x = i;
-			break;
+			break; 
 		}
 	}
 	tkpackqit(p->in);
@@ -715,7 +713,7 @@ gridfindloc(TkGridbeam *beam, int blen, int f)
 	fpad = 0;
 	x =  0;
 	for(i = 0; i < blen; i++){
-		x += maximum_grids(fpad, beam[i].pad);
+		x += maximum(fpad, beam[i].pad);
 		if(x <= f && f < x + beam[i].act)
 			return i;
 		x += beam[i].act;
@@ -932,7 +930,7 @@ tkgridslaves(TkTop *t, char *arg, char **val, char *buf, char *ebuf)
 				fmt = " %s";
 			}
 		}
-	}
+	}		
 
 	return nil;
 }
@@ -1113,7 +1111,7 @@ tkbeamconfigure(TkTop *t, char *arg, int isrow)
 	if(grid == nil){
 		if(master->slave != nil)
 			return TkNotgrid;
-		grid = master->grid = (TkGrid*)malloc(sizeof(TkGrid));
+		grid = master->grid = malloc(sizeof(TkGrid));
 		if(grid == nil){
 			tkfreename(names);
 			return TkNomem;
@@ -1284,7 +1282,7 @@ tkgrid(TkTop *t, char *arg, char **val)
 	TkName *names;
 	char *e, *w, *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -1333,25 +1331,25 @@ tkgrid(TkTop *t, char *arg, char **val)
 			e = TkBadcm;
 		}
 	} else{
-		p = (TkGridparam*)malloc(sizeof(TkGridparam));
+		p = malloc(sizeof(TkGridparam));
 		if(p == nil)
 			return TkNomem;
 		tko[0].ptr = p;
-		tko[0].optab = opts_grids;
+		tko[0].optab = opts;
 		tko[1].ptr = nil;
-
+	
 		p->span.x = 1;
 		p->span.y = 1;
 		p->pad.x = p->pad.y = p->ipad.x = p->ipad.y = -1;
 		p->sticky = -1;
-
+	
 		names = nil;
 		e = tkparse(t, arg, tko, &names);
 		if(e != nil){
 			free(p);
 			return e;
 		}
-
+	
 		e = tkgridconfigure(t, p, names);
 		free(p->row);
 		free(p->col);
@@ -1506,7 +1504,7 @@ tkgridder(Tk *master)
 	if(req.x != master->req.width || req.y != master->req.height)
 	if((master->flag & Tknoprop) == 0){
 		if(master->geom != nil){
-			master->geom(master, master->act.x, master->act.y,
+			master->geom(master, master->act.x, master->act.y, 
 					req.x, req.y);
 		} else{
 			master->req.width = req.x;
@@ -1529,14 +1527,14 @@ tkgridder(Tk *master)
 	pos.y = org.y;
 	fpady = 0;
 	for(y = 0; y < dy; y++){
-		pos.y += maximum_grids(fpady, rows[y].pad);
+		pos.y += maximum(fpady, rows[y].pad);
 		fpady = rows[y].pad;
 
 		pos.x = org.x;
 		fpadx = 0;
 		for(x = 0; x < dx; x++){
 			cell = &cells[y][x];
-			pos.x += maximum_grids(fpadx, cols[x].pad);
+			pos.x += maximum(fpadx, cols[x].pad);
 			fpadx = cols[x].pad;
 			if((slave = cell->tk) != nil && cell->span.x > 0){
 				pos.width = beamsize(cols, x, x + cell->span.x);

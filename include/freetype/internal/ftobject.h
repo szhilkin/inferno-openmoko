@@ -1,12 +1,10 @@
 #ifndef __FT_OBJECT_H__
 #define __FT_OBJECT_H__
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-#include <freetype/freetype.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
  /**************************************************************
   *
@@ -499,7 +497,7 @@ extern "C" {
 
  /* */
 
-#include <freetype/internal/fthash.h>
+#include FT_INTERNAL_HASH_H
 
   typedef struct FT_ClassHNodeRec_*  FT_ClassHNode;
 
@@ -530,8 +528,6 @@ extern "C" {
 
  /* */
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FT_OBJECT_H__ */

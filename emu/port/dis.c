@@ -1,10 +1,10 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
-#include <kernel.h>
-#include <raise.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	<isa.h>
+#include	<interp.h>
+#include	<kernel.h>
+#include	"error.h"
+#include	"raise.h"
 
 struct
 {
@@ -23,22 +23,19 @@ struct
 	Atidle*	idletasks;
 } isched;
 
-extern	int	bflag;
-extern	int	cflag;
-extern	int	vflag;
-
-uvlong	gcbusy = 0;		/* idle gc statistic */
-uvlong	gcidle = 0;
-uvlong	gcidlepass = 0;
-uvlong	gcpartial = 0;
-int	keepbroken = 1; /* kill broken processes or leave them for debugger */
-
-
-static Prog*	proghash[64] = {0};
+extern int	bflag;
+int	cflag;
+uvlong	gcbusy;
+uvlong	gcidle;
+uvlong	gcidlepass;
+uvlong	gcpartial;
+int keepbroken = 1;
+extern int	vflag;
+static Prog*	proghash[64];
 
 static Progs*	delgrp(Prog*);
 static void	addgrp(Prog*, Prog*);
-/*static void	printgrp(Prog*, char*);*/
+void	printgrp(Prog*, char*);
 
 static Prog**
 pidlook(int pid)
@@ -52,7 +49,7 @@ pidlook(int pid)
 	return l;
 }
 
-static int
+int
 tready(void *a)
 {
 	USED(a);
@@ -74,7 +71,7 @@ progn(int n)
 		;
 	return p;
 }
-/*
+
 int
 nprog(void)
 {
@@ -85,7 +82,7 @@ nprog(void)
 	for(p = isched.head; p; p = p->next)
 		n++;
 	return n;
-}*/
+}
 
 static void
 execatidle(void)
@@ -113,17 +110,23 @@ execatidle(void)
 	delrunq(up->prog);
 }
 
-/**
- *	Create new Limbo process
- */
 Prog*
 newprog(Prog *p, Modlink *m)
 {
+	Heap *h;
 	Prog *n, **ph;
 	Osenv *on, *op;
-	static int pidnum; /* TODO: 4G is enough for unique id? */
+	static int pidnum;
 
-	n = (Prog *)malloc(sizeof(Prog)+sizeof(Osenv));
+	if(p != nil){
+		if(p->group != nil)
+			p->flags |= p->group->flags & Pkilled;
+		if(p->kill != nil)
+			error(p->kill);
+		if(p->flags & Pkilled)
+			error("");
+	}
+	n = malloc(sizeof(Prog)+sizeof(Osenv));
 	if(n == 0){
 		if(p == nil)
 			panic("no memory");
@@ -156,11 +159,13 @@ newprog(Prog *p, Modlink *m)
 	n->xec = xec;
 	n->quanta = PQUANTA;
 	n->flags = 0;
-	n->exval = (String*)H;
+	n->exval = H;
 
-	ADDREF(m);
-	Setmark(D2H(m));
-	n->R.ML = m;
+	h = D2H(m);
+	h->ref++;
+	Setmark(h);
+	n->R.M = m;
+	n->R.MP = m->MP;
 	if(m->MP != H)
 		Setmark(D2H(m->MP));
 	addrun(n);
@@ -193,7 +198,7 @@ newprog(Prog *p, Modlink *m)
 	return n;
 }
 
-/*static*/ void
+void
 delprog(Prog *p, char *msg)
 {
 	Osenv *o;
@@ -231,15 +236,13 @@ delprog(Prog *p, char *msg)
 		if(p->link == nil)
 			isched.runtl = nil;
 	}
-	p->state = Pdeadbeef;
+	p->state = 0xdeadbeef;
 	free(o->user);
-	if(p->killstr)
-		free(p->killstr);
-	if(p->exstr)
-		free(p->exstr);
+	free(p->killstr);
+	free(p->exstr);
 	free(p);
 }
-/*
+
 void
 renameproguser(char *old, char *new)
 {
@@ -253,9 +256,9 @@ renameproguser(char *old, char *new)
 			kstrdup(&o->user, new);
 	}
 	release();
-}*/
+}
 
-/*static*/ void
+void
 tellsomeone(Prog *p, char *buf)
 {
 	Osenv *o;
@@ -265,8 +268,8 @@ tellsomeone(Prog *p, char *buf)
 	o = p->osenv;
 	if(o->childq != nil)
 		qproduce(o->childq, buf, strlen(buf));
-	if(o->waitq != nil)
-		qproduce(o->waitq, buf, strlen(buf));
+	if(o->waitq != nil) 
+		qproduce(o->waitq, buf, strlen(buf)); 
 	poperror();
 }
 
@@ -299,13 +302,13 @@ grpleader(Prog *p)
 	return nil;
 }
 
-static int
+int
 exprog(Prog *p, char *exc)
 {
 	/* similar code to killprog but not quite */
 	switch(p->state) {
 	case Palt:
-		altdone(p->aaa, p, nil, -1);
+		altdone(p->R.s, p, nil, -1);
 		break;
 	case Psend:
 		cqdelp(&p->chan->send, p);
@@ -329,7 +332,7 @@ exprog(Prog *p, char *exc)
 		addrun(p);
 	if(p->kill == nil){
 		if(p->killstr == nil){
-			p->killstr = (char*)malloc(ERRMAX);
+			p->killstr = malloc(ERRMAX);
 			if(p->killstr == nil){
 				p->kill = Enomem;
 				return 1;
@@ -341,9 +344,6 @@ exprog(Prog *p, char *exc)
 	return 1;
 }
 
-/**
- * Propagate exception
- */
 static void
 propex(Prog *p, char *estr)
 {
@@ -391,7 +391,7 @@ killprog(Prog *p, char *cause)
 
 	switch(p->state) {
 	case Palt:
-		altdone(p->aaa, p, nil, -1);
+		altdone(p->R.s, p, nil, -1);
 		break;
 	case Psend:
 		cqdelp(&p->chan->send, p);
@@ -434,11 +434,11 @@ killprog(Prog *p, char *cause)
 
 	propex(p, "killed");
 
-	snprint(msg, sizeof(msg), "%d \"%s\":%s", p->pid, p->R.ML->m->name, cause);
+	snprint(msg, sizeof(msg), "%d \"%s\":%s", p->pid, p->R.M->m->name, cause);
 
 	p->state = Pexiting;
 	gclock();
-	ASSIGN(p->R.FP, H); //destroystack(&p->R);
+	destroystack(&p->R);
 	delprog(p, msg);
 	gcunlock();
 
@@ -452,7 +452,7 @@ newgrp(Prog *p)
 
 	if(p->group != nil && p->group->id == p->pid)
 		return;
-	g = (Progs*)malloc(sizeof(*g));
+	g = malloc(sizeof(*g));
 	if(g == nil)
 		error(Enomem);
 	p->flags &= ~(Ppropagate|Pnotifyleader);
@@ -530,7 +530,7 @@ delgrp(Prog *p)
 	}
 	return g;
 }
-/*
+
 void
 printgrp(Prog *p, char *v)
 {
@@ -545,7 +545,7 @@ printgrp(Prog *p, char *v)
 	for(g = g->child; g != nil; g = g->sib)
 		print(" %d", g->id);
 	print("]\n");
-}*/
+}
 
 int
 killgrp(Prog *p, char *msg)
@@ -558,20 +558,26 @@ killgrp(Prog *p, char *msg)
 	g = p->group;
 	if(g == nil || g->head == nil)
 		return 0;
+	while(g->flags & Pkilled){
+		release();
+		acquire();
+	}
 	npid = 0;
 	for(f = g->head; f != nil; f = f->grpnext)
 		if(f->group != g)
 			panic("killgrp");
 		else
 			npid++;
-	/* use pids not Prog* because state can change during killprog */
-	pids = (int*)malloc(npid*sizeof(int));
+	/* use pids not Prog* because state can change during killprog (eg, in delprog) */
+	pids = malloc(npid*sizeof(int));
 	if(pids == nil)
 		error(Enomem);
 	npid = 0;
 	for(f = g->head; f != nil; f = f->grpnext)
 		pids[npid++] = f->pid;
+	g->flags |= Pkilled;
 	if(waserror()) {
+		g->flags &= ~Pkilled;
 		free(pids);
 		nexterror();
 	}
@@ -581,6 +587,7 @@ killgrp(Prog *p, char *msg)
 			killprog(f, msg);
 	}
 	poperror();
+	g->flags &= ~Pkilled;
 	free(pids);
 	return 1;
 }
@@ -616,15 +623,12 @@ killcomm(Progq **q)
 	}
 }
 
-/**
- * Add a fake Limbo process to the kernel process
- */
 void
 addprog(Proc *p)
 {
 	Prog *n;
 
-	n = (Prog*)mallocz(sizeof(Prog), 1);
+	n = malloc(sizeof(Prog));
 	if(n == nil)
 		panic("no memory");
 	p->prog = n;
@@ -638,13 +642,13 @@ cwakeme(Prog *p)
 
 	p->addrun = nil;
 	o = p->osenv;
-	wakeup9(o->rend);
+	Wakeup(o->rend);
 }
 
 static int
 cdone(void *vp)
 {
-	Prog *p = (Prog *)vp;
+	Prog *p = vp;
 
 	return p->addrun == nil || p->kill != nil;
 }
@@ -669,7 +673,7 @@ cblock(Prog *p)
 		p->addrun = nil;
 		nexterror();
 	}
-	sleep9(o->rend, cdone, p);
+	Sleep(o->rend, cdone, p);
 	if (p->kill != nil)
 		error(Eintr);
 	poperror();
@@ -694,7 +698,7 @@ addrun(Prog *p)
 }
 
 Prog*
-delrun(enum ProgState state)
+delrun(int state)
 {
 	Prog *p;
 
@@ -707,7 +711,7 @@ delrun(enum ProgState state)
 	return p;
 }
 
-/*static*/ void
+void
 delrunq(Prog *p)
 {
 	Prog *prev, *f;
@@ -729,7 +733,7 @@ delrunq(Prog *p)
 }
 
 Prog*
-delruntail(enum ProgState state)
+delruntail(int state)
 {
 	Prog *p;
 
@@ -745,42 +749,35 @@ currun(void)
 	return isched.runhd;
 }
 
-/**
- * Like mspawn/linkmod for the first module
- */
-static Prog*
+Prog*
 schedmod(Module *m)
 {
 	Heap *h;
 	Type *t;
 	Prog *p;
 	Modlink *ml;
-	Frame *f;
+	Frame f, *fp;
 
 	ml = mklinkmod(m, 0);
+
 	if(m->origmp != H && m->ntype > 0) {
 		t = m->type[0];
 		h = nheap(t->size);
 		h->t = t;
 		t->ref++;
-		ml->MP = H2D(char*, h);
+		ml->MP = H2D(uchar*, h);
 		newmp(ml->MP, m->origmp, t);
 	}
 
 	p = newprog(nil, ml);
-	DELREF(ml);
+	h = D2H(ml);
+	h->ref--;
 	p->R.PC = m->entry;
-
-	/*PRINT_TYPE(m->entryt);*/
-	/* type fix */
-	if(t->np==0) {t->np=1; t->map[0]=0;}
-	m->entryt->map[0] |= 0x60; /* ml, parent */
-
-	f = H2D(Frame*,heapz(m->entryt));
-	assert(f->ml == H);
-	assert(f->parent == H);
-
-	p->R.FP = f;
+	fp = &f;
+	R.s = &fp;
+	f.t = m->entryt;
+	newstack(p);
+	initmem(m->entryt, p->R.FP);
 
 	return p;
 }
@@ -822,7 +819,7 @@ acquire(void)
 		unlock(&isched.l);
 		strcpy(up->text, "acquire");
 		if(empty)
-			wakeup9(&isched.irend);
+			Wakeup(&isched.irend);
 		osblock();
 	}
 
@@ -861,7 +858,7 @@ release(void)
 		isched.creating = 1;
 		unlock(&isched.l);
 		if(f == 0)
-			kproc("dis", vmachine, nil, 0);  /* BUG: check return value */
+			kproc("dis", vmachine, nil, 0);
 		return;
 	}
 	p = *pq;
@@ -872,7 +869,7 @@ release(void)
 	strcpy(up->text, "released");
 }
 
-/*static*/ void
+void
 iyield(void)
 {
 	Proc *p;
@@ -903,7 +900,7 @@ iyield(void)
 	strcpy(up->text, "dis");
 }
 
-static void
+void
 startup(void)
 {
 
@@ -923,8 +920,8 @@ startup(void)
 
 	osblock();
 }
-extern REG R;
-static void
+
+void
 progexit(void)
 {
 	Prog *r;
@@ -933,19 +930,9 @@ progexit(void)
 	char *estr, msg[ERRMAX+2*KNAMELEN];
 
 	estr = up->env->errstr;
-	if(estr[0] == '\0' ||
-		strcmp(estr, Eintr) == 0 ||
-		strncmp(estr, "fail:", 5) == 0)
-	{
-		// ""
-		// "interrupted"
-		// "fail:*"
-		broken = 0;
-	} else
-	{
+	broken = 0;
+	if(estr[0] != '\0' && strcmp(estr, Eintr) != 0 && strncmp(estr, "fail:", 5) != 0)
 		broken = 1;
-	}
-
 
 	r = up->iprog;
 	if(r != nil)
@@ -956,7 +943,7 @@ progexit(void)
 	if(*estr == '\0' && r->flags & Pkilled)
 		estr = "killed";
 
-	m = R.ML->m;
+	m = R.M->m;
 	if(broken){
 		if(cflag){	/* only works on Plan9 for now */
 			char *pc = strstr(estr, "pc=");
@@ -965,16 +952,6 @@ progexit(void)
 				R.PC = r->R.PC = (Inst*)strtol(pc+3, nil, 0);	/* for debugging */
 		}
 		print("[%s] Broken: \"%s\"\n", m->name, estr);
-
-		/* read /prog/id/stack */
-		/* or better exec '/dis/watson.dis id' to see with debug info */
-		/*
-		{
-		static char va[0x1000];
-		extern int progstack(REG *reg, int state, char *va, int count, long offset);
-		progstack(&r->R, r->state, va, sizeof(va), 0);
-		print("Stack:\n%s\n", va);
-		}*/
 	}
 
 	snprint(msg, sizeof(msg), "%d \"%s\":%s", r->pid, m->name, estr);
@@ -983,80 +960,10 @@ progexit(void)
 		dbgexit(r, broken, estr);
 		broken = 1;
 		/* must force it to break if in debug */
-	}else if(broken && (!keepbroken || strncmp(estr, "out of memory", 13)==0 /* BUG|| memusehigh()*/))
+	}else if(broken && (!keepbroken || strncmp(estr, "out of memory", 13)==0 || memusehigh()))
 		broken = 0;	/* don't want them or short of memory */
 
 	if(broken){
-		/* it can change error string d*/
-#if 0
-		if(0){
-			/* iload */
-			Module* mod;
-			Modlink *ml;
-			Prog *p;
-			Type *t;
-			uchar* nsp;
-			Frame*f;
-			static Import imp_command[] = {
-				{0x4244b354,"init"},
-				0
-			};
-			//const char*path = "/dis/stack.dis";
-			const char*path = "/dis/ls.dis";
-			/*mod = load(path);*/
-			mod = readmod(path, lookmod(path), 1);
-			print("mod=%p", mod);
-			print(" %s %s\n", mod->name, mod->path);
-			if(mod == 0) {
-				kgerrstr(up->genbuf, sizeof up->genbuf);
-				panic("loading \"%s\": %s", path, up->genbuf);
-			}
-			ml = linkmod(m, imp_command, 1);
-			/* iload end */
-
-			/* mframe */
-			t = ml->links[0].frame;
-			nsp = R.SP + t->size;
-			if(nsp >= R.TS) {
-				R.s = t;
-				extend();
-				f = R.s;
-			} else
-			{
-				f = (Frame*)R.SP;
-				R.SP = nsp;
-				f->t = t;
-				f->mr = nil;
-				if (t->np)
-					initmem(t, f);
-				R.s = f;
-			}
-			print("f=%p\n", f);
-			/* mframe end */
-
-			/* mspawn */
-
-			print("ml=%p\n", ml);
-			print("currun()=%p\n", currun());
-			p = newprog(currun(), ml);
-			p->R.PC = ml->links[0].u.pc;
-			print("p->R.PC=%p\n", p->R.PC);
-			print("%D\n", p->R.PC+0);
-			print("%D\n", p->R.PC+1);
-			print("%D\n", p->R.PC+2);
-			print("%D\n", p->R.PC+3);
-			print("%D\n", p->R.PC+4);
-			print("%D\n", p->R.PC+5);
-			print("%D\n", p->R.PC+6);
-			print("%D\n", p->R.PC+7);
-			print("f=%p\n", R.s);
-			newstack(p); /* frame in R.s */
-			print("ok\n");
-			unframe();
-			/* mspawn end */
-			print("ok\n");
-		}
-#endif
 		tellsomeone(r, msg);
 		r = isave();
 		r->state = Pbroken;
@@ -1064,9 +971,7 @@ progexit(void)
 	}
 
 	gclock();
-
-	ASSIGN(R.FP, H); //destroystack(&R);
-
+	destroystack(&R);
 	delprog(r, msg);
 	gcunlock();
 
@@ -1074,18 +979,15 @@ progexit(void)
 		cleanexit(0);
 }
 
-/**
- * Called from OS-specific code on exception
- */
-NORETURN
-disfault(void *reg, __in_z const char *msg)
+void
+disfault(void *reg, char *msg)
 {
 	Prog *p;
 
-	/*USED(reg);*/
+	USED(reg);
 
-	if(strncmp(msg, Eintr, 6) == 0) /* TODO "interr"? */
-		cleanexit(0);
+	if(strncmp(msg, Eintr, 6) == 0)
+		exits(0);
 
 	if(up == nil) {
 		print("EMU: faults: %s\n", msg);
@@ -1108,7 +1010,7 @@ disfault(void *reg, __in_z const char *msg)
 	oslongjmp(reg, up->estack[--up->nerr], 1);
 }
 
-NORETURN
+void
 vmachine(void *a)
 {
 	Prog *r;
@@ -1135,7 +1037,7 @@ vmachine(void *a)
 		if(tready(nil) == 0) {
 			execatidle();
 			strcpy(up->text, "idle");
-			sleep9(&isched.irend, tready, 0);
+			Sleep(&isched.irend, tready, 0);
 			strcpy(up->text, "dis");
 		}
 
@@ -1164,23 +1066,24 @@ vmachine(void *a)
 			up->env = &up->defenv;
 		}
 		if(isched.runhd != nil)
-			if((++gccounter&0xFF) == 0 /* BUG || memlow()*/) {
-				gcbusy++;
-				up->type = BusyGC;
-				pushrun(up->prog);
-				rungc(isched.head);
-				up->type = Interp;
-				delrunq(up->prog);
-			}
+		if((++gccounter&0xFF) == 0 || memlow()) {
+			gcbusy++;
+			up->type = BusyGC;
+			pushrun(up->prog);
+			rungc(isched.head);
+			up->type = Interp;
+			delrunq(up->prog);
+		}
 	}
 }
 
-NORETURN
-disinit(__in_z const char *initmod)
+void
+disinit(void *a)
 {
 	Prog *p;
 	Osenv *o;
 	Module *root;
+	char *initmod = a;
 
 	if(waserror())
 		panic("disinit error: %r");
@@ -1197,9 +1100,9 @@ disinit(__in_z const char *initmod)
 	modinit();
 	excinit();
 
-	root = load((char *)initmod);
+	root = load(initmod);
 	if(root == 0) {
-		kgerrstr(up->genbuf, 128/*sizeof up->genbuf*/);
+		kgerrstr(up->genbuf, sizeof (up->genbuf));
 		panic("loading \"%s\": %s", initmod, up->genbuf);
 	}
 

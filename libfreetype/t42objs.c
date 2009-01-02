@@ -18,9 +18,9 @@
 #include "t42objs.h"
 #include "t42parse.h"
 #include "t42error.h"
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/ftlist.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
+#include FT_LIST_H
 
 
 #undef  FT_COMPONENT
@@ -560,7 +560,7 @@
 
 
   static void
-  t42_ft_glyphslot_clear( FT_GlyphSlot  slot )
+  ft_glyphslot_clear( FT_GlyphSlot  slot )
   {
     /* free bitmap if needed */
     if ( slot->flags & FT_GLYPH_OWN_BITMAP )
@@ -603,7 +603,7 @@
     FT_Driver_Class  ttclazz = ((T42_Driver)glyph->face->driver)->ttclazz;
 
 
-    t42_ft_glyphslot_clear( t42slot->ttslot );
+    ft_glyphslot_clear( t42slot->ttslot );
     error = ttclazz->load_glyph( t42slot->ttslot,
                                  t42size->ttsize,
                                  glyph_index,

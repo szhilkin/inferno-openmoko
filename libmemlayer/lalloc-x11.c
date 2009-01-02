@@ -66,7 +66,6 @@ makememones(void)
 	screenimage.data->data = &xm->word;
 
 	memones = allocmemimage(paint.r, paint.ldepth);
-	assert(memones!=nil);
 	memones->clipr = paint.clipr;
 	memones->repl = 1;
 	memfillcolor(memones, ~0);
@@ -147,7 +146,7 @@ memlalloc(Memscreen *s, Rectangle screenr, Refreshfn refreshfn, void *refreshptr
 	l->clear = 0;
 
 	/* don't set it until we're done */
-	l->refreshptr = nil;
+	l->refreshptr = nil;	
 
 	/* now pull new window to front */
 	memltofront(n);
@@ -158,7 +157,7 @@ memlalloc(Memscreen *s, Rectangle screenr, Refreshfn refreshfn, void *refreshptr
 	/*
 	 * paint with requested color.
 	 * previously exposed areas are already right
-	 * if this window has backing store, but just painting
+	 * if this window has backing store, but just painting 
 	 * the whole thing is simplest.
 	 */
 

@@ -1,12 +1,12 @@
-#include <lib9.h>
+#include "lib9.h"
 
 int
-utfnlen(const char *s, long m)
+utfnlen(char *s, long m)
 {
 	int c;
 	long n;
 	Rune rune;
-	const char *es;
+	char *es;
 
 	es = s + m;
 	for(n = 0; s < es; n++) {
