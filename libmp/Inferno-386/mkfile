@@ -3,7 +3,7 @@ OBJTYPE=$objtype
 <../../mkconfig
 OBJDIR=Inferno/$OBJTYPE
 
-LIBNAME=libmp.a
+LIB=libmp.a
 SFILES=\
 	mpvecadd.s\
 	mpvecdigmuladd.s\

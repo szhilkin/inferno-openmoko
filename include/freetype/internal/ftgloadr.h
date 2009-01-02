@@ -20,13 +20,11 @@
 #define __FTGLOADR_H__
 
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-#include <freetype/freetype.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -67,7 +65,7 @@ extern "C" {
     FT_Int     arg1;
     FT_Int     arg2;
     FT_Matrix  transform;
-
+    
   } FT_SubGlyphRec;
 
 
@@ -146,9 +144,8 @@ extern "C" {
 
  /* */
 
-#ifdef __cplusplus
-}
-#endif
+
+FT_END_HEADER
 
 #endif /* __FTGLOADR_H__ */
 

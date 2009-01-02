@@ -1,14 +1,9 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "label.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <label.h>
-
-/*#define	O(t, e)		((long)(&((t*)0)->e))*/
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Widget Commands (+ means implemented)
 	+cget
@@ -26,53 +21,53 @@ enum {
 
 TkOption tkbutopts[] =
 {
-	{"text",	OPTtext,	offsetof(TkLabel, text)		},
-	{"label",	OPTtext,	offsetof(TkLabel, text)		},
-	{"underline",	OPTdist,	offsetof(TkLabel, ul)		},
-	{"justify",	OPTstab,	offsetof(TkLabel, justify),	{tkjustify}},
-	{"anchor",	OPTflag,	offsetof(TkLabel, anchor),	{tkanchor}},
-	{"command",	OPTtext,	offsetof(TkLabel, command)	},
-	{"bitmap",	OPTbmap,	offsetof(TkLabel, bitmap)	},
-	{"image",	OPTimag,	offsetof(TkLabel, img)		},
+	{"text",		OPTtext,	O(TkLabel, text),	nil},
+	{"label",	OPTtext,	O(TkLabel, text),	nil},
+	{"underline",	OPTdist,	O(TkLabel, ul),		nil},
+	{"justify",	OPTstab,	O(TkLabel, justify),	tkjustify},
+	{"anchor",	OPTflag,	O(TkLabel, anchor),	tkanchor},
+	{"command",	OPTtext,	O(TkLabel, command),	nil},
+	{"bitmap",	OPTbmap,	O(TkLabel, bitmap),	nil},
+	{"image",	OPTimag,	O(TkLabel, img),	nil},
 	{nil}
 };
 
 TkOption tkcbopts[] =
 {
-	{"variable",	OPTtext,	offsetof(TkLabel, variable) 	},
-	{"indicatoron",	OPTstab,	offsetof(TkLabel, indicator),	{tkbool}},
-	{"onvalue",	OPTtext,	offsetof(TkLabel, value)	},
-	{"offvalue",	OPTtext,	offsetof(TkLabel, offvalue)	},
-	{nil}
+	{"variable",	OPTtext,	O(TkLabel, variable),	nil},
+	{"indicatoron",	OPTstab,	O(TkLabel, indicator),	tkbool},
+	{"onvalue",	OPTtext,	O(TkLabel, value),	nil},
+	{"offvalue",	OPTtext,	O(TkLabel, offvalue), nil},
+	{nil},
 };
 
 TkOption tkradopts[] =
 {
-	{"variable",	OPTtext,	offsetof(TkLabel, variable)	},
-	{"value",	OPTtext,	offsetof(TkLabel, value)	},
-	{"indicatoron",	OPTstab,	offsetof(TkLabel, indicator),	{tkbool}},
-	{nil}
+	{"variable",	OPTtext,	O(TkLabel, variable),	nil},
+	{"value",	OPTtext,	O(TkLabel, value), nil},
+	{"indicatoron",	OPTstab,	O(TkLabel, indicator),	tkbool},
+	{nil},
 };
 
 static
 TkEbind bb[] =
 {
-	{TkEnter,		"%W configure -state active"},
-	{TkLeave,		"%W configure -state normal"},
-	{TkButton1P,		"%W tkButton1P"},
-	{TkButton1R,		"%W tkButton1R %x %y"},
+	{TkEnter,	"%W configure -state active"},
+	{TkLeave,	"%W configure -state normal"},
+	{TkButton1P,	"%W tkButton1P"},
+	{TkButton1R,	"%W tkButton1R %x %y"},
 	{TkMotion|TkButton1P, 	"" },
-	{TkKey,			"%W tkButtonKey 0x%K"},
+	{TkKey,	"%W tkButtonKey 0x%K"},
 };
 
 static
-TkEbind cb[] =
+TkEbind cb[] = 
 {
 	{TkEnter,		"%W configure -state active"},
 	{TkLeave,		"%W configure -state normal"},
 	{TkButton1P,		"%W invoke"},
 	{TkMotion|TkButton1P, 	"" },
-	{TkKey,			"%W tkButtonKey 0x%K"},
+	{TkKey,	"%W tkButtonKey 0x%K"},
 };
 
 
@@ -80,7 +75,7 @@ static char	tkselbut[] = "selectedButton";
 
 static char*	newbutton(TkTop*, int, char*, char**);
 static int	istransparent(Tk*);
-static void	tkvarchanged(Tk*, const char*, const char*);
+static void tkvarchanged(Tk*, char*, char*);
 
 char*
 tkbutton(TkTop *t, char *arg, char **ret)
@@ -174,7 +169,7 @@ newbutton(TkTop *t, int btype, char *arg, char **ret)
 			e = TkNotvt;
 			goto err;
 		} else
-			tkvarchanged(tk, tkl->variable, v->value.pchar);
+			tkvarchanged(tk, tkl->variable, v->value);
 	}
 
 	return tkvalue(ret, "%s", tk->name->name);
@@ -328,7 +323,7 @@ tkbuttonconf(Tk *tk, char *arg, char **val)
 				tkl->variable = nil;
 			}
 			else
-				tkvarchanged(tk, tkl->variable, v->value.pchar);
+				tkvarchanged(tk, tkl->variable, v->value);
 		}
 	}
 	return e;
@@ -342,7 +337,7 @@ istransparent(Tk *tk)
 }
 
 static void
-tkvarchanged(Tk *tk, const char *var, const char *val)
+tkvarchanged(Tk *tk, char *var, char *val)
 {
 	TkLabel *tkl;
 	char *sval;
@@ -451,7 +446,7 @@ buttoninvoke(Tk *tk, char **val)
 }
 
 static void
-cancelinvoke(Tk *tk, const char *v, int cancelled)
+cancelinvoke(Tk *tk, void *v, int cancelled)
 {
 	int unset;
 	USED(cancelled);
@@ -481,7 +476,7 @@ tkbuttoninvoke(Tk *tk, char *arg, char **val)
 		return nil;
 	e = buttoninvoke(tk, val);
 	if (e == nil && tk->type == TKbutton && !(tk->flag & Tkactivated)) {
-		tkrepeat(tk, cancelinvoke, (const char*)(tk->flag&Tkactive), InvokePause, 0);
+		tkrepeat(tk, cancelinvoke, (void*)(tk->flag&Tkactive), InvokePause, 0);
 		tk->flag |= Tkactivated | Tkactive;
 		tksettransparent(tk, istransparent(tk));
 		tk->dirty = tkrect(tk, 1);
@@ -538,7 +533,7 @@ tkbuttondeselect(Tk *tk, char *arg, char **val)
 static
 TkCmdtab tkbuttoncmd[] =
 {
-	{"cget",		tkbuttoncget},
+	{"cget",			tkbuttoncget},
 	{"configure",		tkbuttonconf},
 	{"invoke",		tkbuttoninvoke},
 	{"tkButton1P",		tkbutton1p},
@@ -550,7 +545,7 @@ TkCmdtab tkbuttoncmd[] =
 static
 TkCmdtab tkchkbuttoncmd[] =
 {
-	{"cget",		tkbuttoncget},
+	{"cget",			tkbuttoncget},
 	{"configure",		tkbuttonconf},
 	{"invoke",		tkbuttoninvoke},
 	{"select",		tkbuttonselect},

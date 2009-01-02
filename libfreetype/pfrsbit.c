@@ -18,8 +18,8 @@
 
 #include "pfrsbit.h"
 #include "pfrload.h"
-#include <freetype/internal/ftdebug.h>
-#include <freetype/internal/ftstream.h>
+#include FT_INTERNAL_DEBUG_H
+#include FT_INTERNAL_STREAM_H
 
 #include "pfrerror.h"
 

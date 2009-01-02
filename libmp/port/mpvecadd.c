@@ -1,6 +1,6 @@
-#include <os.h>
+#include "os.h"
 #include <mp.h>
-#include "mpdat.h"
+#include "dat.h"
 
 // prereq: alen >= blen, sum has at least blen+1 digits
 void

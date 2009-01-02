@@ -1,17 +1,29 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
-#include <pool.h>
-#include <mathi.h> /* strtod */
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
+#include "pool.h"
 
-#define OP(fn)	void fn(Disdata*rs, Disdata*rm, Disdata*rd, REG*rr)
+#define OP(fn)	void fn(void)
+#define B(r)	*((BYTE*)(R.r))
+#define W(r)	*((WORD*)(R.r))
+#define F(r)	*((REAL*)(R.r))
+#define V(r)	*((LONG*)(R.r))
+#define	S(r)	*((String**)(R.r))
+#define	A(r)	*((Array**)(R.r))
+#define	L(r)	*((List**)(R.r))
+#define P(r)	*((WORD**)(R.r))
+#define C(r)	*((Channel**)(R.r))
+#define T(r)	*((void**)(R.r))
 
 OP(indc)
 {
 	int l;
-	ulong v = rm->disint;
-	String *ss = rs->pstring;
+	ulong v;
+	String *ss;
+
+	v = W(m);
+	ss = S(s);
 
 	if(ss == H)
 		error(exNilref);
@@ -19,26 +31,26 @@ OP(indc)
 	l = ss->len;
 	if(l < 0) {
 		if(v >= -l)
-			error(exBounds);
-		l = ss->Srune[v];
+e:			error(exBounds);
+		l = ss->Srune[v];			
 	}
 	else {
 		if(v >= l)
-			error(exBounds);
-		l = ss->Sascii[v];
+			goto e;
+		l = ss->Sascii[v];			
 	}
-	rd->disint = l;
+	W(d) = l;
 }
 
 OP(insc)
 {
 	ulong v;
 	int l, r, expand;
-	String *ss, *ns;
+	String *ss, *ns, **sp;
 
-	r = rs->disint;
-	v = rm->disint;
-	ss = rd->pstring;
+	r = W(s);
+	v = W(m);
+	ss = S(d);
 
 	expand = r >= Runeself;
 
@@ -52,7 +64,7 @@ OP(insc)
 	}
 	else
 	if(D2H(ss)->ref > 1 || (expand && ss->len > 0))
-		ss = splitc(&rd->pstring, expand);
+		ss = splitc(R.d, expand);
 
 	l = ss->len;
 	if(l < 0 || expand) {
@@ -94,20 +106,22 @@ r:
 			ss = ns;
 		}
 	}
-	if(ss != rd->pstring) {
-		ASSIGN(rd->pstring, ss);
+	if(ss != S(d)) {
+		sp = R.d;
+		destroy(*sp);
+		*sp = ss;
 	}
 }
 
 String*
-slicer(ulong start, ulong v, const String *ds)
+slicer(ulong start, ulong v, String *ds)
 {
 	String *ns;
 	int l, nc;
 
 	if(ds == H) {
 		if(start == 0 && v == 0)
-			return (String*)H;
+			return H;
 
 		error(exBounds);
 	}
@@ -118,14 +132,14 @@ slicer(ulong start, ulong v, const String *ds)
 		if(v < start || v > l)
 			error(exBounds);
 		ns = newrunes(nc);
-		memmove(ns->Srune, ds->Srune + start, nc*sizeof(Rune));
+		memmove(ns->Srune, &ds->Srune[start], nc*sizeof(Rune));
 	}
 	else {
 		l = ds->len;
 		if(v < start || v > l)
 			error(exBounds);
 		ns = newstring(nc);
-		memmove(ns->Sascii, ds->Sascii + start, nc);
+		memmove(ns->Sascii, &ds->Sascii[start], nc);
 	}
 
 	return ns;
@@ -133,17 +147,21 @@ slicer(ulong start, ulong v, const String *ds)
 
 OP(slicec)
 {
-	String *ns = slicer(rs->disint, rm->disint, rd->pstring);
+	String *ns, **sp;
 
-	ASSIGN(rd->pstring, ns);
+	ns = slicer(W(s), W(m), S(d));
+	sp = R.d;
+	destroy(*sp);
+	*sp = ns;
 }
 
-static void
-cvtup(Rune *r, const String *s)
+void
+cvtup(Rune *r, String *s)
 {
-	const char* bp = s->Sascii;
-	const char* ep = bp + s->len;
+	uchar *bp, *ep;
 
+	bp = (uchar*)s->Sascii;
+	ep = bp + s->len;
 	while(bp < ep)
 		*r++ = *bp++;
 }
@@ -157,7 +175,7 @@ addstring(String *s1, String *s2, int append)
 
 	if(s1 == H) {
 		if(s2 == H)
-			return (String*)H;
+			return H;
 		return stringdup(s2);
 	}
 	if(D2H(s1)->ref > 1)
@@ -170,7 +188,7 @@ addstring(String *s1, String *s2, int append)
 
 	if(s1->len < 0) {
 		l1 = -s1->len;
-		if(s2->len < 0)
+		if(s2->len < 0) 
 			l = l1 - s2->len;
 		else
 			l = l1 + s2->len;
@@ -216,10 +234,14 @@ addstring(String *s1, String *s2, int append)
 
 OP(addc)
 {
-	String *ns = addstring(rm->pstring, rs->pstring, rm == rd);
+	String *ns, **sp;
 
-	if(ns != rd->pstring) {
-		ASSIGN(rd->pstring, ns);
+	ns = addstring(S(m), S(s), R.m == R.d);
+
+	sp = R.d;
+	if(ns != *sp) {
+		destroy(*sp);
+		*sp = ns;
 	}
 }
 
@@ -228,9 +250,10 @@ OP(cvtca)
 	int l;
 	Rune *r;
 	char *p;
-	String *ss = rs->pstring;
- 	Array *a;
+	String *ss;
+ 	Array *a, **ap;
 
+	ss = S(s);
 	if(ss == H) {
 		a = mem2array(nil, 0);
 		goto r;
@@ -241,94 +264,113 @@ OP(cvtca)
 		p = (char*)a->data;
 		r = ss->Srune;
 		while(l--)
-			p += runetochar(p, r++);
+			p += runetochar(p, r++);	
 		goto r;
 	}
 	a = mem2array(ss->Sascii, ss->len);
-r:
-	ASSIGN(rd->parray, a);
+
+r:	ap = R.d;
+	destroy(*ap);
+	*ap = a;
 }
 
 OP(cvtac)
 {
-	Array *a = rs->parray;
-	String *ds = (String*)H;
+	Array *a;
+	String *ds, **dp;
 
+	ds = H;
+	a = A(s);
 	if(a != H)
 		ds = c2string((char*)a->data, a->len);
 
-	ASSIGN(rd->pstring, ds);
+	dp = R.d;
+	destroy(*dp);
+	*dp = ds;
 }
 
 OP(lenc)
 {
-	int l = 0;
-	String *ss = rs->pstring;
+	int l;
+	String *ss;
 
+	l = 0;
+	ss = S(s);
 	if(ss != H) {
 		l = ss->len;
 		if(l < 0)
 			l = -l;
 	}
-	rd->disint = l;
+	W(d) = l;
 }
 
 OP(cvtcw)
 {
-	String *s = rs->pstring;
+	String *s;
 
+	s = S(s);
 	if(s == H)
-		rd->disint = 0;
-	else if(s->len < 0)
-		rd->disint = strtol(string2c(s), nil, 10);
+		W(d) = 0;
+	else
+	if(s->len < 0)
+		W(d) = strtol(string2c(s), nil, 10);
 	else {
 		s->Sascii[s->len] = '\0';
-		rd->disint = strtol(s->Sascii, nil, 10);
+		W(d) = strtol(s->Sascii, nil, 10);
 	}
 }
 
 OP(cvtcf)
 {
-	String *s = rs->pstring;
+	String *s;
 
+	s = S(s);
 	if(s == H)
-		rd->disreal = 0.0;
-	else if(s->len < 0)
-		rd->disreal = strtod(string2c(s), nil);
+		F(d) = 0.0;
+	else
+	if(s->len < 0)
+		F(d) = strtod(string2c(s), nil);
 	else {
 		s->Sascii[s->len] = '\0';
-		rd->disreal = strtod(s->Sascii, nil);
+		F(d) = strtod(s->Sascii, nil);
 	}
 }
 
 OP(cvtwc)
 {
-	String *ds = newstring(16);
+	String *ds, **dp;
 
-	ds->len = sprint(ds->Sascii, "%d", rs->disint);
+	ds = newstring(16);
+	ds->len = sprint(ds->Sascii, "%d", W(s));
 
-	ASSIGN(rd->pstring, ds);
+	dp = R.d;
+	destroy(*dp);
+	*dp = ds;
 }
 
 OP(cvtlc)
 {
-	String *ds = newstring(16);
+	String *ds, **dp;
 
-	ds->len = sprint(ds->Sascii, "%lld", rs->disbig);
-
-	ASSIGN(rd->pstring, ds);
+	ds = newstring(16);
+	ds->len = sprint(ds->Sascii, "%lld", V(s));
+	
+	dp = R.d;
+	destroy(*dp);
+	*dp = ds;
 }
 
 OP(cvtfc)
 {
-	String *ds = newstring(32);
+	String *ds, **dp;
 
-	ds->len = sprint(ds->Sascii, "%g", rs->disreal);
-
-	ASSIGN(rd->pstring, ds);
+	ds = newstring(32);
+	ds->len = sprint(ds->Sascii, "%g", F(s));	
+	dp = R.d;
+	destroy(*dp);
+	*dp = ds;
 }
 
-#undef OP
 char*
 string2c(String *s)
 {
@@ -348,7 +390,7 @@ string2c(String *s)
 	l = (nc * UTFmax) + UTFmax;
 	if(s->tmp == nil || msize(s->tmp) < l) {
 		free(s->tmp);
-		s->tmp = (char*)malloc(l);
+		s->tmp = malloc(l);
 		if(s->tmp == nil)
 			error(exNomem);
 	}
@@ -370,17 +412,17 @@ string2c(String *s)
 }
 
 String*
-c2string(const char *cs, int len)
+c2string(char *cs, int len)
 {
-	const char *p;
-	const char *ecs;
+	uchar *p;
+	char *ecs;
 	String *s;
 	Rune *r, junk;
 	int c, nc, isrune;
 
 	isrune = 0;
 	ecs = cs+len;
-	p = cs;
+	p = (uchar*)cs;
 	while(len--) {
 		c = *p++;
 		if(c >= Runeself) {
@@ -397,12 +439,12 @@ c2string(const char *cs, int len)
 	}
 
 	p--;
-	nc = p - cs;
-	while(p < ecs) {
+	nc = p - (uchar*)cs;
+	while(p < (uchar*)ecs) {
 		c = *p;
 		if(c < Runeself)
 			p++;
-		else if(p+UTFmax<=ecs || fullrune(p, ecs-p))
+		else if(p+UTFmax<=(uchar*)ecs || fullrune((char*)p, (uchar*)ecs-p))
 			p += chartorune(&junk, (char*)p);
 		else
 			break;
@@ -419,11 +461,13 @@ c2string(const char *cs, int len)
 String*
 newstring(int nb)
 {
-	Heap *h = nheap(sizeof(String)+nb);
-	String *s = H2D(String*, h);
+	Heap *h;
+	String *s;
 
+	h = nheap(sizeof(String)+nb);
 	h->t = &Tstring;
-	Tstring.ref++; /*???*/
+	Tstring.ref++;
+	s = H2D(String*, h);
 	s->tmp = nil;
 	s->len = nb;
 	s->max = hmsize(h) - (sizeof(String)+sizeof(Heap));
@@ -451,12 +495,12 @@ newrunes(int nr)
 }
 
 String*
-stringdup(const String *s)
+stringdup(String *s)
 {
 	String *ns;
 
 	if(s == H)
-		return (String*)H;
+		return H;
 
 	if(s->len >= 0) {
 		ns = newstring(s->len);
@@ -471,10 +515,10 @@ stringdup(const String *s)
 }
 
 int
-stringcmp(const String *s1, const String *s2)
+stringcmp(String *s1, String *s2)
 {
-	const Rune *r1, *r2;
-	const char *a1, *a2;
+	Rune *r1, *r2;
+	char *a1, *a2;
 	int v, n, n1, n2, c1, c2;
 	static String snil = { 0, 0, nil };
 
@@ -552,9 +596,9 @@ ne:	if(c1 < c2)
 String*
 splitc(String **s, int expand)
 {
-	const String * const ss = *s;
-	String *ns;
+	String *ss, *ns;
 
+	ss = *s;
 	if(expand && ss->len > 0) {
 		ns = newrunes(ss->len);
 		cvtup(ns->Srune, ss);
@@ -562,6 +606,7 @@ splitc(String **s, int expand)
 	else
 		ns = stringdup(ss);
 
-	ASSIGN(*s, ns); /*XXX*/
+	destroy(ss);
+	*s = ns;
 	return ns;
 }

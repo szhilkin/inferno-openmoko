@@ -2,9 +2,9 @@
  * mouse or stylus
  */
 
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"../port/error.h"
 
 #include <draw.h>
 #include <memdraw.h>
@@ -14,9 +14,9 @@
 #define	cursordisable()
 
 enum{
-	Qpointer_dir,
-	Qpointer_pointer,
-	Qpointer_cursor
+	Qdir,
+	Qpointer,
+	Qcursor
 };
 
 typedef struct Pointer Pointer;
@@ -40,9 +40,9 @@ static struct
 
 static
 Dirtab pointertab[]={
-	".",		{Qpointer_dir, 0, QTDIR},	0,	0555,
-	"pointer",	{Qpointer_pointer},	0,	0666,
-	"cursor",	{Qpointer_cursor},		0,	0222,
+	".",			{Qdir, 0, QTDIR},	0,	0555,
+	"pointer",		{Qpointer},	0,	0666,
+	"cursor",		{Qcursor},		0,	0222,
 };
 
 enum {
@@ -98,7 +98,7 @@ mousetrack(int b, int x, int y, int isdelta)
 	}
 	mouse.modify = 1;
 	ptrq.put++;
-	wakeup9(&ptrq.r);
+	Wakeup(&ptrq.r);
 /*	drawactive(1);	*/
 /*	setpointer(x, y); */
 }
@@ -115,7 +115,7 @@ mouseconsume(void)
 {
 	Pointer e;
 
-	sleep9(&ptrq.r, ptrqnotempty, 0);
+	Sleep(&ptrq.r, ptrqnotempty, 0);
 	ptrq.full = 0;
 	ptrq.get = ptrq.put;
 	if(ptrq.rd != ptrq.wr){
@@ -135,24 +135,24 @@ mousexy(void)
 
 
 static Chan*
-pointerattach(const char* spec)
+pointerattach(char* spec)
 {
 	return devattach('m', spec);
 }
 
 static Walkqid*
-pointerwalk(Chan *c, Chan *nc, const char **name, int nname)
+pointerwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	Walkqid *wq;
 
 	wq = devwalk(c, nc, name, nname, pointertab, nelem(pointertab), devgen);
-	if(wq != nil && wq->clone != c && wq->clone != nil && (ulong)c->qid.path == Qpointer_pointer)
+	if(wq != nil && wq->clone != c && wq->clone != nil && (ulong)c->qid.path == Qpointer)
 		incref(&mouse.ref);	/* can this happen? */
 	return wq;
 }
 
 static int
-pointerstat(Chan* c, char *db, int n)
+pointerstat(Chan* c, uchar *db, int n)
 {
 	return devstat(c, db, n, pointertab, nelem(pointertab), devgen);
 }
@@ -161,7 +161,7 @@ static Chan*
 pointeropen(Chan* c, int omode)
 {
 	c = devopen(c, omode, pointertab, nelem(pointertab), devgen);
-	if((ulong)c->qid.path == Qpointer_pointer){
+	if((ulong)c->qid.path == Qpointer){
 		if(waserror()){
 			c->flag &= ~COPEN;
 			nexterror();
@@ -185,7 +185,7 @@ pointerclose(Chan* c)
 	if((c->flag & COPEN) == 0)
 		return;
 	switch((ulong)c->qid.path){
-	case Qpointer_pointer:
+	case Qpointer:
 		qlock(&mouse.q);
 		if(decref(&mouse.ref) == 0){
 			cursordisable();
@@ -196,7 +196,7 @@ pointerclose(Chan* c)
 }
 
 static long
-pointerread(Chan* c, char* a, long n, vlong off)
+pointerread(Chan* c, void* a, long n, vlong off)
 {
 	Pointer mt;
 	char buf[1+4*12+1];
@@ -204,9 +204,9 @@ pointerread(Chan* c, char* a, long n, vlong off)
 
 	USED(&off);
 	switch((ulong)c->qid.path){
-	case Qpointer_dir:
+	case Qdir:
 		return devdirread(c, a, n, pointertab, nelem(pointertab), devgen);
-	case Qpointer_pointer:
+	case Qpointer:
 		qlock(&mouse.q);
 		if(waserror()) {
 			qunlock(&mouse.q);
@@ -228,16 +228,16 @@ pointerread(Chan* c, char* a, long n, vlong off)
 }
 
 static long
-pointerwrite(Chan* c, const char* va, long n, vlong off)
+pointerwrite(Chan* c, void* va, long n, vlong off)
 {
-	char *a;
+	char *a = va;
 	char buf[128];
 	int b, x, y;
 	Drawcursor cur;
 
 	USED(&off);
 	switch((ulong)c->qid.path){
-	case Qpointer_pointer:
+	case Qpointer:
 		if(n > sizeof buf-1)
 			n = sizeof buf -1;
 		memmove(buf, va, n);
@@ -254,7 +254,7 @@ pointerwrite(Chan* c, const char* va, long n, vlong off)
 		setpointer(x, y);
 		USED(b);
 		break;
-	case Qpointer_cursor:
+	case Qcursor:
 		/* TO DO: perhaps interpret data as an Image */
 		/*
 		 *  hotx[4] hoty[4] dx[4] dy[4] clr[dx/8 * dy/2] set[dx/8 * dy/2]

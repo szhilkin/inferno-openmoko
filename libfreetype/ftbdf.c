@@ -16,9 +16,9 @@
 /***************************************************************************/
 
 
-
-#include <freetype/internal/bdftypes.h>
-#include <freetype/internal/ftobjs.h>
+#include <ft2build.h>
+#include FT_INTERNAL_BDF_TYPES_H
+#include FT_INTERNAL_OBJECTS_H
 
 
   FT_EXPORT_DEF( FT_Error )

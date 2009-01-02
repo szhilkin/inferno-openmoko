@@ -1,12 +1,15 @@
-#include <windows.h>
-#include <winsock.h>
+#define Unknown win_Unknown
+#include        <windows.h>
+#include        <winbase.h>
+#include        <sys/types.h>
+#include        <winsock.h>
+#undef Unknown
+#include        "dat.h"
+#include        "fns.h"
+#include        "ip.h"
+#include        "error.h"
 
-#include <sys/types.h>
-
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <ip.h>
+extern int SOCK_SELECT;
 
 int
 so_socket(int type)
@@ -37,31 +40,33 @@ so_socket(int type)
 }
 
 int
-so_send(int sock, const char *va, int len, const void *h, int hdrlen)
+so_send(int sock, void *va, int len, void *hdr, int hdrlen)
 {
 	int r;
 	struct sockaddr sa;
 	struct sockaddr_in *sin;
+	char *h = hdr;
+
 
 	osenter();
-	if(h == 0)
+	if(hdr == 0)
 		r = send(sock, va, len, 0);
 	else {
 		memset(&sa, sizeof(sa), 0);
 		sin = (struct sockaddr_in*)&sa;
 		sin->sin_family = AF_INET;
 		switch(hdrlen){
-		case OUdphdrlenv4: /*12*/
-			memcpy(&sin->sin_addr, h,  4);
-			memcpy(&sin->sin_port, (const uchar*)h+8, 2);
+		case OUdphdrlenv4:
+			memmove(&sin->sin_addr, h,  4);
+			memmove(&sin->sin_port, h+8, 2);
 			break;
-		case OUdphdrlen: /*36*/
-			v6tov4((uchar*)&sin->sin_addr, (const uchar*)h);
-			memmove(&sin->sin_port, (const uchar*)h+2*IPaddrlen, 2);	/* rport */
+		case OUdphdrlen:
+			v6tov4((uchar*)&sin->sin_addr, h);
+			memmove(&sin->sin_port, h+2*IPaddrlen, 2);	/* rport */
 			break;
 		default:
-			v6tov4((uchar*)&sin->sin_addr, (const uchar*)h);
-			memcpy(&sin->sin_port, (const uchar*)h+3*IPaddrlen, 2);
+			v6tov4((uchar*)&sin->sin_addr, h);
+			memmove(&sin->sin_port, h+3*IPaddrlen, 2);
 			break;
 		}
 		r = sendto(sock, va, len, 0, &sa, sizeof(sa));
@@ -76,7 +81,7 @@ doselect(int sock)
 	fd_set	waitr;
 	struct timeval seltime;
 
-	up->syscall = SYSCALL_SOCK_SELECT;
+	up->syscall = SOCK_SELECT;
 	FD_ZERO(&waitr);
 	FD_SET(sock, &waitr);
 	for(;;){
@@ -103,12 +108,12 @@ doselect(int sock)
 }
 
 int
-so_recv(int sock, char *va, int len, void *hdr, int hdrlen)
+so_recv(int sock, void *va, int len, void *hdr, int hdrlen)
 {
 	int r, l;
 	struct sockaddr sa;
 	struct sockaddr_in *sin;
-	uchar h[Udphdrlen];
+	char h[Udphdrlen];
 
 	osenter();
 	if(doselect(sock) < 0) {
@@ -129,11 +134,11 @@ so_recv(int sock, char *va, int len, void *hdr, int hdrlen)
 				memmove(h+2*IPv4addrlen, &sin->sin_port, 2);
 				break;
 			case OUdphdrlen:
-				v4tov6(h, (const uchar*)&sin->sin_addr);
+				v4tov6(h, (uchar*)&sin->sin_addr);
 				memmove(h+2*IPaddrlen, &sin->sin_port, 2);
 				break;
 			default:
-				v4tov6(h, (const uchar*)&sin->sin_addr);
+				v4tov6(h, (uchar*)&sin->sin_addr);
 				memmove(h+3*IPaddrlen, &sin->sin_port, 2);
 				break;
 			}
@@ -146,12 +151,12 @@ so_recv(int sock, char *va, int len, void *hdr, int hdrlen)
 				memmove(h+2*IPv4addrlen+2, &sin->sin_port, 2);
 				break;
 			case OUdphdrlen:
-				v4tov6(h+IPaddrlen, (const uchar*)&sin->sin_addr);
+				v4tov6(h+IPaddrlen, (uchar*)&sin->sin_addr);
 				memmove(h+2*IPaddrlen+2, &sin->sin_port, 2);
 				break;
 			default:
-				v4tov6(h+IPaddrlen, (const uchar*)&sin->sin_addr);
-				v4tov6(h+2*IPaddrlen, (const uchar*)&sin->sin_addr);	/* ifcaddr */
+				v4tov6(h+IPaddrlen, (uchar*)&sin->sin_addr);
+				v4tov6(h+2*IPaddrlen, (uchar*)&sin->sin_addr);	/* ifcaddr */
 				memmove(h+3*IPaddrlen+2, &sin->sin_port, 2);
 				break;
 			}
@@ -270,7 +275,7 @@ so_bind(int fd, int su, unsigned long addr, unsigned short port)
 			hnputl(&sin->sin_addr.s_addr, addr);
 			hnputs(&sin->sin_port, i);
 
-			if(bind(fd, &sa, sizeof(sa)) >= 0)
+			if(bind(fd, &sa, sizeof(sa)) >= 0)	
 				return;
 		}
 		oserror();
@@ -307,7 +312,7 @@ int
 so_gethostbyname(char *host, char**hostv, int n)
 {
 	int i;
-	char buf[32], *p;
+	unsigned char buf[32], *p;
 	struct hostent *hp;
 
 	hp = gethostbyname(host);
@@ -360,7 +365,7 @@ so_getservbyname(char *service, char *net, char *port)
 	if(s == 0)
 		return -1;
 	p = s->s_port;
-	sprint(port, "%d", nhgets(&p));
+	sprint(port, "%d", nhgets(&p));	
 	return 0;
 }
 

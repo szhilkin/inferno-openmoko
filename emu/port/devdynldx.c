@@ -1,8 +1,8 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <a.out.h>
-#include <dynld.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	<a.out.h>
+#include	<dynld.h>
 
 /*
  * TO DO
@@ -18,18 +18,18 @@ extern ulong ndevs;
 
 enum
 {
-	Qdynldx_dir,
-	Qdynldx_dynld,
-	Qdynldx_dynsyms,
+	Qdir,
+	Qdynld,
+	Qdynsyms,
 
 	DEVCHAR	= 'L',
 };
 
 static Dirtab	dltab[] =
 {
-	".",		{Qdynldx_dir, 0, QTDIR},0,	DMDIR|0555,
-	"dynld",	{Qdynldx_dynld},	0,	0644,
-	"dynsyms",	{Qdynldx_dynsyms},	0,	0444,
+	".",			{Qdir, 0, QTDIR},	0,	DMDIR|0555,
+	"dynld",		{Qdynld},	0,	0644,
+	"dynsyms",	{Qdynsyms},	0,	0444,
 };
 
 typedef struct Dyndev Dyndev;
@@ -279,7 +279,7 @@ dlclose(Chan *c)
 }
 
 static long
-dlread(Chan *c, char *a, long n, vlong voffset)
+dlread(Chan *c, void *a, long n, vlong voffset)
 {
 	switch((ulong)c->qid.path){
 	case Qdir:
@@ -295,7 +295,7 @@ dlread(Chan *c, char *a, long n, vlong voffset)
 }
 
 static long
-dlwrite(Chan *c, const char *a, long n, vlong voffset)
+dlwrite(Chan *c, void *a, long n, vlong voffset)
 {
 	Cmdbuf *cb;
 	char *name, *tag, *path;

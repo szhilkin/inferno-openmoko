@@ -1,4 +1,5 @@
 typedef struct Block	Block;
+typedef struct Chan	Chan;
 typedef struct Cmdbuf	Cmdbuf;
 typedef struct Cmdtab	Cmdtab;
 typedef struct Cname	Cname;
@@ -14,6 +15,7 @@ typedef struct Mntrpc	Mntrpc;
 typedef struct Mntwalk	Mntwalk;
 typedef struct Mnt	Mnt;
 typedef struct Mhead	Mhead;
+typedef struct Osenv	Osenv;
 typedef struct Pgrp	Pgrp;
 typedef struct Queue	Queue;
 typedef struct Ref	Ref;
@@ -29,7 +31,7 @@ typedef struct Uqid	Uqid;
 typedef struct Uqidtab	Uqidtab;
 typedef struct Walkqid	Walkqid;
 
-#include <lib9.h>
+#include "lib9.h"
 #undef CHDIR
 #undef NAMELEN
 #undef ERRLEN
@@ -37,11 +39,11 @@ typedef struct Walkqid	Walkqid;
 #pragma incomplete Queue
 #pragma incomplete Mntrpc
 
-#include <fcall.h>
+#include "fcall.h"
 
-#include <pool.h>
+#include "pool.h"
 
-typedef int    Devgen(Chan*, const char*, Dirtab*, int, int, Dir*);
+typedef int    Devgen(Chan*, char*, Dirtab*, int, int, Dir*);
 
 enum
 {
@@ -76,7 +78,7 @@ struct Rept
 	void	(*f)(void*);	/* called with VM acquire()'d */
 };
 
-/**
+/*
  * Access types in namec & channel flags
  */
 enum
@@ -98,11 +100,6 @@ enum
 	CCACHE	= 0x0080		/* client cache */
 };
 
-typedef struct Pipe Pipe;
-typedef struct Fsinfo Fsinfo;
-typedef struct Heapqry Heapqry;
-typedef struct Progctl Progctl;
-typedef struct Value Value;
 struct Chan
 {
 	Lock	l;
@@ -125,19 +122,7 @@ struct Chan
 	ulong	mountid;
 	Mntcache *mcp;			/* Mount cache pointer */
 	Mnt		*mux;		/* Mnt for clients using me for messages */
-	/*void*	aux;*/
-	union {				/* device specific data */
-		Pipe*	pipe;		/* devpipe */
-		Fsinfo*	fsinfo;		/* devfs */
-		char*	pchar;		/* devsnarf */
-		int	i;		/* devprof */
-		SrvFile*srv;		/* devsrv */
-		Queue*	queue;		/* devprog */
-		Heapqry*heapqry;	/* devprog */
-		Mntwalk*mntwalk;	/* devprog */
-		Progctl*progctl;	/* devprog */
-		Value*	value;		/* devarch */
-	} aux;
+	void*	aux;		/* device specific data */
 	Chan*	mchan;			/* channel to mounted server */
 	Qid	mqid;			/* qid of root of mount point */
 	Cname	*name;
@@ -157,18 +142,18 @@ struct Dev
 	char*	name;
 
 	void	(*init)(void);
-	Chan*	(*attach)(const char*);
-	Walkqid*	(*walk)(Chan*, Chan*, const char**, int);
-	int	(*stat)(Chan*, char*, int);
+	Chan*	(*attach)(char*);
+	Walkqid*	(*walk)(Chan*, Chan*, char**, int);
+	int	(*stat)(Chan*, uchar*, int);
 	Chan*	(*open)(Chan*, int);
-	void	(*create)(Chan*, const char*, int, ulong);
+	void	(*create)(Chan*, char*, int, ulong);
 	void	(*close)(Chan*);
-	long	(*read)(Chan*, char*, long, vlong);
+	long	(*read)(Chan*, void*, long, vlong);
 	Block*	(*bread)(Chan*, long, ulong);
-	long	(*write)(Chan*, const char*, long, vlong);
+	long	(*write)(Chan*, void*, long, vlong);
 	long	(*bwrite)(Chan*, Block*, ulong);
 	void	(*remove)(Chan*);
-	int	(*wstat)(Chan*, char*, int);
+	int	(*wstat)(Chan*, uchar*, int);
 };
 
 enum
@@ -182,11 +167,11 @@ struct Block
 {
 	Block*	next;
 	Block*	list;
-	char*	rp;			/* first unconsumed byte */
-	char*	wp;			/* first empty byte */
-	char*	lim;			/* 1 past the end of the buffer */
-	char*	base;			/* start of the buffer */
-	void	(*fnfree)(Block*);
+	uchar*	rp;			/* first unconsumed byte */
+	uchar*	wp;			/* first empty byte */
+	uchar*	lim;			/* 1 past the end of the buffer */
+	uchar*	base;			/* start of the buffer */
+	void	(*free)(Block*);
 	ulong	flag;
 };
 #define BLEN(s)	((s)->wp - (s)->rp)
@@ -275,9 +260,6 @@ struct Mntparam {
 	int	flags;
 };
 
-/**
- *  Kernel process group, 'namespace, working dir and root'
- */
 struct Pgrp
 {
 	Ref	r;			/* also used as a lock when mounting */
@@ -285,7 +267,7 @@ struct Pgrp
 	RWlock	ns;			/* Namespace n read/one write lock */
 	QLock	nsh;
 	Mhead*	mnthash[MNTHASH];
-	int	progmode;	/* access mode to prog, i.e. 0644 */
+	int	progmode;
 	int	privatemem;	/* deny access to /prog by debuggers */
 	Chan*	dot;
 	Chan*	slash;
@@ -369,99 +351,79 @@ struct Uqidtab
 	ulong	pathgen;
 };
 
-/**
- * Kernel process' operating system environment
- */
-#ifdef _WIN32_WINNT
-	typedef struct User User; /* devfs.h */
-#endif
 struct Osenv
 {
-	char*		syserrstr;	/* last error from a system call, errbuf0 or 1 */
-	char*		errstr;		/* reason we're unwinding the error stack, errbuf1 or 0 */
-	char		errbuf0[ERRMAX];
-	char		errbuf1[ERRMAX];
-	Pgrp*		pgrp;		/* Ref to namespace, working dir and root */
-	Fgrp*		fgrp;		/* Ref to file descriptors */
-	Egrp*		egrp;		/* Environment vars */
-	Skeyset*	sigs;		/* Signed module keys */
-	Rendez*		rend;		/* Synchro point */
-	Queue*		waitq;		/* Info about dead children */
-	Queue*		childq;		/* Info about children for debuggers */
-	Progctl*	debug;		/* Debugging master */
-	char*		user;		/* Inferno user name */
-	FPU		fpu;		/* Floating point thread state */
-	int		uid;		/* Numeric user id for host system */
-	int		gid;		/* Numeric group id for host system */
-#ifdef _WIN32_WINNT
-	User*		ui;		/* User info for NT */
-#endif
+	char	*syserrstr;	/* last error from a system call, errbuf0 or 1 */
+	char	*errstr;	/* reason we're unwinding the error stack, errbuf1 or 0 */
+	char	errbuf0[ERRMAX];
+	char	errbuf1[ERRMAX];
+	Pgrp*	pgrp;		/* Ref to namespace, working dir and root */
+	Fgrp*	fgrp;		/* Ref to file descriptors */
+	Egrp*	egrp;	/* Environment vars */
+	Skeyset*		sigs;		/* Signed module keys */
+	Rendez*	rend;		/* Synchro point */
+	Queue*	waitq;		/* Info about dead children */
+	Queue*	childq;		/* Info about children for debuggers */
+	void*	debug;		/* Debugging master */
+	char*	user;	/* Inferno user name */
+	FPU	fpu;		/* Floating point thread state */
+	int	uid;		/* Numeric user id for host system */
+	int	gid;		/* Numeric group id for host system */
+	void	*ui;		/* User info for NT */
 };
 
-enum ProcType
+enum
 {
-	PUnknown	= 0xdeadbabe,
+	Unknown	= 0xdeadbabe,
 	IdleGC	= 0x16,
 	Interp	= 0x17,
 	BusyGC	= 0x18,
 	Moribund
 };
 
-enum Syscalls
-{
-	SYSCALL_NO = 0,
-	SYSCALL_OTHER = 1,
-	SYSCALL_SLEEP = 2,
-	SYSCALL_SOCK_SELECT = 3
-};
-
-/**
- *	Kernel process
- *	Thread on Windows
- */
 struct Proc
 {
-	enum ProcType	type;		/* interpreter or not */
-	char		text[KNAMELEN];
-	Proc*		qnext;		/* list of processes waiting on a Qlock */
-	long		pid;
-	Proc*		next;		/* list of created processes */
-	Proc*		prev;
-	Lock		rlock;		/* sync between sleep/swiproc for r */
-	Rendez*		r;		/* rendezvous point slept on */
-	Rendez		sleep;		/* place to sleep */
+	int	type;		/* interpreter or not */
+	char	text[KNAMELEN];
+	Proc*	qnext;		/* list of processes waiting on a Qlock */
+	long	pid;
+	Proc*	next;		/* list of created processes */
+	Proc*	prev;
+	Lock	rlock;	/* sync between sleep/swiproc for r */
+	Rendez*	r;		/* rendezvous point slept on */
+	Rendez	sleep;		/* place to sleep */
 	int		killed;		/* by swiproc */
-	int		swipend;	/* software interrupt pending for Prog */
-	enum Syscalls	syscall;	/* set true under sysio for interruptable syscalls */
-	int		intwait;	/* spin wait for note to turn up */
-	int		sigid;		/* handle used for signal/note/exception */
-	Lock		sysio;		/* note handler lock */
-	char		genbuf[128];	/* buffer used e.g. for last name element from namec */
-	int		nerr;		/* error stack SP */
+	int	swipend;	/* software interrupt pending for Prog */
+	int	syscall;	/* set true under sysio for interruptable syscalls */
+	int	intwait;	/* spin wait for note to turn up */
+	int	sigid;		/* handle used for signal/note/exception */
+	Lock	sysio;		/* note handler lock */
+	char	genbuf[128];	/* buffer used e.g. for last name element from namec */
+	int	nerr;		/* error stack SP */
 	osjmpbuf	estack[NERR];	/* vector of error jump labels */
-	char*		kstack;
-	void		(*func)(void*);	/* saved trampoline pointer for kproc */
-	void*		arg;		/* arg for invoked kproc function */
-	Prog*		iprog;		/* work for Prog after release */
-	Prog*		prog;		/* fake prog for slaves eg. exportfs */
-	Osenv*		env;		/* effective operating system environment */
-	Osenv		defenv;		/* default env for slaves with no prog */
+	char*	kstack;
+	void	(*func)(void*);	/* saved trampoline pointer for kproc */
+	void*	arg;		/* arg for invoked kproc function */
+	void*	iprog;		/* work for Prog after release */
+	void*	prog;		/* fake prog for slaves eg. exportfs */
+	Osenv*	env;		/* effective operating system environment */
+	Osenv	defenv;		/* default env for slaves with no prog */
 	osjmpbuf	privstack;	/* private stack for making new kids */
 	osjmpbuf	sharestack;
-	Proc*		kid;
-	void*		kidsp;
-	void*		os;		/* host os specific data */
+	Proc	*kid;
+	void	*kidsp;
+	void	*os;		/* host os specific data */
 };
 
 #define poperror()	up->nerr--
-#define	waserror()	ossetjmp(up->estack[up->nerr++])
+#define	waserror()	(up->nerr++, ossetjmp(up->estack[up->nerr-1]))
 
-typedef int KProcFlags;
 enum
 {
-	KPDUPPG		= (1<<0),		/* Dup 'namespace, working dir and root' */
-	KPDUPFDG	= (1<<1),		/* Dup 'file descriptors' */
-	KPDUPENVG	= (1<<2),		/* Dup 'Environment vars' */
+	/* kproc flags */
+	KPDUPPG		= (1<<0),
+	KPDUPFDG	= (1<<1),
+	KPDUPENVG	= (1<<2),
 	KPX11		= (1<<8),		/* needs silly amount of stack */
 	KPDUP		= (KPDUPPG|KPDUPFDG|KPDUPENVG)
 };
@@ -476,9 +438,9 @@ struct Procs
 struct Rootdata
 {
 	int	dotdot;
-	Dirtab*	ptr;
+	void	*ptr;
 	int	size;
-	int*	sizep;
+	int	*sizep;
 };
 
 extern	Dev*	devtab[];
@@ -498,6 +460,22 @@ extern	int	globfs;
 extern	int	greyscale;
 extern	uint	qiomaxatomic;
 
+/*
+ * floating point control and status register masks
+ */
+enum
+{
+	INVAL		= 0x0001,
+	ZDIV		= 0x0002,
+	OVFL		= 0x0004,
+	UNFL		= 0x0008,
+	INEX		= 0x0010,
+	RND_NR		= 0x0000,
+	RND_NINF	= 0x0100,
+	RND_PINF	= 0x0200,
+	RND_Z		= 0x0300,
+	RND_MASK	= 0x0300
+};
 
 struct Cmdbuf
 {
@@ -514,8 +492,9 @@ struct Cmdtab
 };
 
 /* queue state bits,  Qmsg, Qcoalesce, and Qkick can be set in qopen */
-enum QueueState
+enum
 {
+	/* Queue.state */
 	Qstarve		= (1<<0),	/* consumer starved */
 	Qmsg		= (1<<1),	/* message stream */
 	Qclosed		= (1<<2),	/* queue has been closed/hungup */

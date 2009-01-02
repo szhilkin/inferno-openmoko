@@ -1,13 +1,10 @@
 #include <lib9.h>
-#include <draw.h>
 #include <kernel.h>
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Text Options (+ means implemented)
 	+anchor
@@ -49,22 +46,22 @@ struct TkCtext
 };
 
 static
-TkOption textopts_ctext[] =
+TkOption textopts[] =
 {
-	{"anchor",	OPTstab,	offsetof(TkCtext, anchor),	{tkanchor}},
-	{"justify",	OPTstab,	offsetof(TkCtext, justify),	{tktabjust}},
-	{"width",	OPTdist,	offsetof(TkCtext, width),	{(TkStab*)offsetof(TkCtext, env)}},
-	{"stipple",	OPTbmap,	offsetof(TkCtext, stipple)	},
-	{"text",	OPTtext,	offsetof(TkCtext, text)		},
+	{"anchor",	OPTstab,	O(TkCtext, anchor),	tkanchor},
+	{"justify",	OPTstab,	O(TkCtext, justify),	tktabjust},
+	{"width",	OPTdist,	O(TkCtext, width),	IAUX(O(TkCtext, env))},
+	{"stipple",	OPTbmap,	O(TkCtext, stipple),	nil},
+	{"text",		OPTtext,	O(TkCtext, text),	nil},
 	{nil}
 };
 
 static
-TkOption itemopts_ctext[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
-	{"font",	OPTfont,	offsetof(TkCitem, env)		},
-	{"fill",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCfill}},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"font",		OPTfont,	O(TkCitem, env),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill)},
 	{nil}
 };
 
@@ -178,16 +175,16 @@ tkcvstextcreat(Tk* tk, char *arg, char **val)
 	}
 
 	tko[0].ptr = t;
-	tko[0].optab = textopts_ctext;
+	tko[0].optab = textopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_ctext;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
 		tkcvsfreeitem(i);
 		return e;
 	}
-
+	
 	e = tkcaddtag(tk, i, 1);
 	if(e != nil) {
 		tkcvsfreeitem(i);
@@ -220,9 +217,9 @@ tkcvstextcget(TkCitem *i, char *arg, char **val)
 	TkCtext *t = TKobj(TkCtext, i);
 
 	tko[0].ptr = t;
-	tko[0].optab = textopts_ctext;
+	tko[0].optab = textopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_ctext;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -236,9 +233,9 @@ tkcvstextconf(Tk *tk, TkCitem *i, char *arg)
 	TkCtext *t = TKobj(TkCtext, i);
 
 	tko[0].ptr = t;
-	tko[0].optab = textopts_ctext;
+	tko[0].optab = textopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_ctext;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);
@@ -407,7 +404,7 @@ tkcvstextsrch(TkCitem *i, int x, int y)
 		}
 		y -= font->height;
 		p = next;
-	}
+	}	
 	return p - t->text + n;
 }
 
@@ -459,7 +456,7 @@ tkcvsparseindex(TkCitem *i, char *buf, int *index)
 		x = 0;
 	if(x > t->tlen)
 		x = t->tlen;
-	*index = x;
+	*index = x;	
 	return nil;
 }
 
@@ -520,13 +517,13 @@ tkcvstextinsert(Tk *tk, TkCitem *i, char *arg)
 	if(*arg == '\0')
 		return nil;
 
-	text = (char*)malloc(Tkcvstextins);
+	text = malloc(Tkcvstextins);
 	if(text == nil)
 		return TkNomem;
 
 	tkword(top, arg, text, text+Tkcvstextins, nil);
 	n = strlen(text);
-	t->text = (char*)realloc(t->text, t->tlen+n+1);
+	t->text = realloc(t->text, t->tlen+n+1);
 	if(t->text == nil) {
 		free(text);
 		return TkNomem;

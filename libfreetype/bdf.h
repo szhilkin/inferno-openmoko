@@ -30,14 +30,12 @@
  * Based on bdf.h,v 1.16 2000/03/16 20:08:51 mleisher
  */
 
+#include <ft2build.h>
+#include FT_INTERNAL_OBJECTS_H
+#include FT_INTERNAL_STREAM_H
 
-#include <freetype/internal/ftobjs.h>
-#include <freetype/internal/ftstream.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 /* Imported from bdfP.h */
@@ -163,7 +161,7 @@ extern "C" {
   {
     char*  key;
     void*  data;
-
+  
   } _hashnode, *hashnode;
 
 
@@ -288,9 +286,7 @@ extern "C" {
                          char*        name );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __BDF_H__ */

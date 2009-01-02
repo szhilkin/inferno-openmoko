@@ -1,21 +1,17 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
-
-//typedef void	(*Drawfn)(Image*, Point, int, int, Image*, int);
+#define	O(t, e)		((long)(&((t*)0)->e))
+typedef void	(*Drawfn)(Image*, Point, int, int, Image*, int);
 
 /* Arc Options (+ means implemented)
 	+extent
 	+fill
 	+outline
 	 outlinestipple
-	+start
+	+start 
 	+stipple
 	+style (+pieslice chord +arc)
 	+tags
@@ -40,7 +36,7 @@ enum Style
 	Arc
 };
 
-static
+static 
 TkStab tkstyle[] =
 {
 	{"pieslice",	Pieslice},
@@ -52,20 +48,20 @@ TkStab tkstyle[] =
 static
 TkOption arcopts[] =
 {
-	{"start",	OPTfrac,	offsetof(TkCarc, start) 	},
-	{"extent",	OPTfrac,	offsetof(TkCarc, extent) 	},
-	{"style",	OPTstab,	offsetof(TkCarc, style),	{tkstyle}},
-	{"width",	OPTnnfrac,	offsetof(TkCarc, width) 	},
-	{"stipple",	OPTbmap,	offsetof(TkCarc, stipple) 	},
+	{"start",	OPTfrac,	O(TkCarc, start),	nil},
+	{"extent",	OPTfrac,	O(TkCarc, extent),	nil},
+	{"style",	OPTstab,	O(TkCarc, style),	tkstyle},
+	{"width",	OPTnnfrac,	O(TkCarc, width),	nil},
+	{"stipple",	OPTbmap,	O(TkCarc, stipple),	nil},
 	{nil}
 };
 
 static
-TkOption itemopts_carcs[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags) 	},
-	{"fill",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCfill}},
-	{"outline",	OPTcolr,	offsetof(TkCitem, env),		{(TkStab*)TkCforegnd}},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
+	{"fill",		OPTcolr,	O(TkCitem, env),	IAUX(TkCfill)},
+	{"outline",	OPTcolr,	O(TkCitem, env),	IAUX(TkCforegnd)},
 	{nil}
 };
 
@@ -114,14 +110,14 @@ tkcvsarccreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = a;
 	tko[0].optab = arcopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_carcs;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
 		tkcvsfreeitem(i);
 		return e;
 	}
-
+	
 	e = tkcaddtag(tk, i, 1);
 	if(e != nil) {
 		tkcvsfreeitem(i);
@@ -147,7 +143,7 @@ tkcvsarccget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = a;
 	tko[0].optab = arcopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_carcs;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -163,7 +159,7 @@ tkcvsarcconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = a;
 	tko[0].optab = arcopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_carcs;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);

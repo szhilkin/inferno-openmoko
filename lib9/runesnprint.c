@@ -1,7 +1,7 @@
-#include <lib9.h>
+#include "lib9.h"
 
 int
-runesnprint(Rune *buf, int len, const char *fmt, ...)
+runesnprint(Rune *buf, int len, char *fmt, ...)
 {
 	int n;
 	va_list args;
@@ -11,3 +11,4 @@ runesnprint(Rune *buf, int len, const char *fmt, ...)
 	va_end(args);
 	return n;
 }
+

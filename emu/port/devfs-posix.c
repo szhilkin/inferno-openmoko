@@ -3,6 +3,10 @@
  */
 #define _LARGEFILE64_SOURCE	1
 #define _FILE_OFFSET_BITS 64
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+
 #include	<sys/types.h>
 #include	<sys/stat.h>
 #include	<sys/fcntl.h>
@@ -15,11 +19,6 @@
 #include	<pwd.h>
 #include	<grp.h>
 
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-
-
 typedef struct Fsinfo Fsinfo;
 struct Fsinfo
 {
@@ -30,6 +29,7 @@ struct Fsinfo
 	struct dirent*	de;	/* directory reading */
 	int	fd;		/* open files */
 	ulong	offset;	/* offset when reading directory */
+	int	eod;	/* end of directory */
 	QLock	oq;	/* mutex for offset */
 	char*	spec;
 	Cname*	name;	/* Unix's name for file */
@@ -279,6 +279,7 @@ fsopen(Chan *c, int mode)
 		FS(c)->dir = opendir(FS(c)->name->s);
 		if(FS(c)->dir == 0)
 			oserror();
+		FS(c)->eod = 0;
 	}
 	else {
 		if(mode & OTRUNC)
@@ -297,7 +298,7 @@ fsopen(Chan *c, int mode)
 static void
 fscreate(Chan *c, char *name, int mode, ulong perm)
 {
-	int fd, m, oo;
+	int fd, m, o;
 	struct stat stbuf;
 	Cname *n;
 
@@ -334,12 +335,13 @@ fscreate(Chan *c, char *name, int mode, ulong perm)
 		FS(c)->dir = opendir(n->s);
 		if(FS(c)->dir == nil)
 			oserror();
+		FS(c)->eod = 0;
 	} else {
-		oo = (O_CREAT | O_EXCL) | (mode&3);
+		o = (O_CREAT | O_EXCL) | (mode&3);
 		if(mode & OTRUNC)
-			oo |= O_TRUNC;
+			o |= O_TRUNC;
 		perm &= ~0666 | (FS(c)->mode & 0666);
-		fd = open(n->s, oo, perm);
+		fd = open(n->s, o, perm);
 		if(fd < 0)
 			oserror();
 		fchmod(fd, perm);
@@ -753,11 +755,13 @@ fsdirread(Chan *c, uchar *va, int count, vlong offset)
 	if(FS(c)->offset != offset) {
 		seekdir(FS(c)->dir, 0);
 		FS(c)->de = nil;
+		FS(c)->eod = 0;
 		for(n=0; n<offset; ) {
 			de = readdir(FS(c)->dir);
 			if(de == 0) {
 				/* EOF, so stash offset and return 0 */
 				FS(c)->offset = n;
+				FS(c)->eod = 1;
 				return 0;
 			}
 			if(de->d_ino==0 || de->d_name[0]==0 || isdots(de->d_name))
@@ -779,6 +783,9 @@ fsdirread(Chan *c, uchar *va, int count, vlong offset)
 		FS(c)->offset = offset;
 	}
 
+	if(FS(c)->eod)
+		return 0;
+
 	/*
 	 * Take idl on behalf of id2name.  Stalling attach, which is a
 	 * rare operation, until the readdir completes is probably
@@ -790,8 +797,10 @@ fsdirread(Chan *c, uchar *va, int count, vlong offset)
 		FS(c)->de = nil;
 		if(de == nil)
 			de = readdir(FS(c)->dir);
-		if(de == nil)
+		if(de == nil){
+			FS(c)->eod = 1;
 			break;
+		}
 
 		if(de->d_ino==0 || de->d_name[0]==0 || isdots(de->d_name))
 			continue;

@@ -35,10 +35,15 @@ lib9\create-Nt.c
 lib9\dirstat-Nt.c
 """
 
+def remove(fname):
+	try:
+		os.remove(fname);
+	except: pass
+
 cmd=r'iyacc.exe -d %s/utils/rcsh/syn.y"' % ROOT
 os.system(cmd)
-os.remove('%s/utils/rcsh/y.tab.c' % ROOT); os.rename('y.tab.c', '%s/utils/rcsh/y.tab.c' % ROOT)
-os.remove('%s/utils/rcsh/y.tab.h' % ROOT); os.rename('y.tab.h', '%s/utils/rcsh/y.tab.h' % ROOT)
+remove('%s/utils/rcsh/y.tab.c' % ROOT); os.rename('y.tab.c', '%s/utils/rcsh/y.tab.c' % ROOT)
+remove('%s/utils/rcsh/y.tab.h' % ROOT); os.rename('y.tab.h', '%s/utils/rcsh/y.tab.h' % ROOT)
 
 #sys.exit()
 

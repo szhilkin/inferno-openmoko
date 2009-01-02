@@ -1,6 +1,6 @@
-#include <os.h>
+#include "os.h"
 #include <mp.h>
-#include "mpdat.h"
+#include "dat.h"
 
 // division ala knuth, seminumerical algorithms, pp 237-238
 // the numbers are stored backwards to what knuth expects so j

@@ -1,6 +1,6 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 extern ulong	kerndate;
 
@@ -28,7 +28,7 @@ devno(int c, int user)
 }
 
 void
-devdir(Chan *c, Qid qid, const char *n, long length, char *user, long perm, Dir *db)
+devdir(Chan *c, Qid qid, char *n, long length, char *user, long perm, Dir *db)
 {
 	db->name = n;
 	if(c->flag&CMSG)
@@ -49,7 +49,7 @@ devdir(Chan *c, Qid qid, const char *n, long length, char *user, long perm, Dir 
  * the zeroth element of the table MUST be the directory itself for ..
  */
 int
-devgen(Chan *c, const char *name, Dirtab *tab, int ntab, int i, Dir *dp)
+devgen(Chan *c, char *name, Dirtab *tab, int ntab, int i, Dir *dp)
 {
 	USED(name);
 	if(tab == 0)
@@ -76,7 +76,7 @@ devshutdown(void)
 }
 
 Chan*
-devattach(int tc, const char *spec)
+devattach(int tc, char *spec)
 {
 	Chan *c;
 	char *buf;
@@ -86,7 +86,7 @@ devattach(int tc, const char *spec)
 	c->type = devno(tc, 0);
 	if(spec == nil)
 		spec = "";
-	buf = (char*)smalloc(4+strlen(spec)+1);
+	buf = smalloc(4+strlen(spec)+1);
 	sprint(buf, "#%C%s", tc, spec);
 	c->name = newcname(buf);
 	free(buf);
@@ -116,19 +116,19 @@ devclone(Chan *c)
 }
 
 Walkqid*
-devwalk(Chan *c, Chan *nc, const char **name, int nname, Dirtab *tab, int ntab, Devgen *gen)
+devwalk(Chan *c, Chan *nc, char **name, int nname, Dirtab *tab, int ntab, Devgen *gen)
 {
 	int i, j;
 	volatile int alloc;
 	Walkqid *wq;
-	const char *n;
+	char *n;
 	Dir dir;
 
 	if(nname > 0)
 		isdir(c);
 
 	alloc = 0;
-	wq = (Walkqid*)smalloc(sizeof(Walkqid)+(nname-1)*sizeof(Qid));
+	wq = smalloc(sizeof(Walkqid)+(nname-1)*sizeof(Qid));
 	if(waserror()){
 		if(alloc && wq->clone!=nil)
 			cclose(wq->clone);
@@ -174,10 +174,7 @@ devwalk(Chan *c, Chan *nc, const char **name, int nname, Dirtab *tab, int ntab, 
 			case -1:
 			Notfound:
 				if(j == 0)
-				{
-					//print("%s:%d %s '%s'\n", __FILE__, __LINE__, __FUNCTION__, n);
 					error(Enonexist);
-				}
 				kstrcpy(up->env->errstr, Enonexist, ERRMAX);
 				goto Done;
 			case 0:
@@ -210,7 +207,7 @@ Done:
 }
 
 int
-devstat(Chan *c, char *db, int n, Dirtab *tab, int ntab, Devgen *gen)
+devstat(Chan *c, uchar *db, int n, Dirtab *tab, int ntab, Devgen *gen)
 {
 	int i;
 	Dir dir;
@@ -238,7 +235,6 @@ devstat(Chan *c, char *db, int n, Dirtab *tab, int ntab, Devgen *gen)
 				up->text, up->env->user,
 				devtab[c->type]->dc, c->qid.path);
 
-			//print("%s:%d %s", __FILE__, __LINE__, __FUNCTION__);
 			error(Enonexist);
 		case 0:
 			break;
@@ -273,7 +269,7 @@ devdirread(Chan *c, char *d, long n, Dirtab *tab, int ntab, Devgen *gen)
 			break;
 
 		case 1:
-			dsz = convD2M(&dir.d, d, n-m);
+			dsz = convD2M(&dir.d, (uchar*)d, n-m);
 			if(dsz <= BIT16SZ){	/* <= not < because this isn't stat; read is stuck */
 				if(m == 0)
 					error(Eshort);
@@ -292,7 +288,7 @@ devdirread(Chan *c, char *d, long n, Dirtab *tab, int ntab, Devgen *gen)
  * error(Eperm) if open permission not granted for up->env->user.
  */
 void
-devpermcheck(const char *fileuid, ulong perm, int omode)
+devpermcheck(char *fileuid, ulong perm, int omode)
 {
 	ulong t;
 	static int access[] = { 0400, 0200, 0600, 0100 };
@@ -371,7 +367,7 @@ devbwrite(Chan *c, Block *bp, ulong offset)
 }
 
 void
-devcreate(Chan *c, const char *name, int mode, ulong perm)
+devcreate(Chan *c, char *name, int mode, ulong perm)
 {
 	USED(c);
 	USED(name);
@@ -388,7 +384,7 @@ devremove(Chan *c)
 }
 
 int
-devwstat(Chan *c, char *dp, int n)
+devwstat(Chan *c, uchar *dp, int n)
 {
 	USED(c);
 	USED(dp);
@@ -398,7 +394,7 @@ devwstat(Chan *c, char *dp, int n)
 }
 
 int
-readstr(ulong off, char *buf, ulong n, const char *str)
+readstr(ulong off, char *buf, ulong n, char *str)
 {
 	int size;
 
@@ -431,7 +427,7 @@ readnum(ulong off, char *buf, ulong n, ulong val, int size)
  * check that the name in a wstat is plausible
  */
 void
-validwstatname(const char *name)
+validwstatname(char *name)
 {
 	validname(name, 0);
 	if(strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
@@ -439,7 +435,7 @@ validwstatname(const char *name)
 }
 
 Dev*
-devbyname(const char *name)
+devbyname(char *name)
 {
 	int i;
 

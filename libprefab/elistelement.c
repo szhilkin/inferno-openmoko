@@ -2,7 +2,7 @@
 #include <draw.h>
 #include <interp.h>
 #include <isa.h>
-#include <runt.h>
+#include "../libinterp/runt.h"
 #include <drawif.h>
 #include <prefab.h>
 #include <kernel.h>

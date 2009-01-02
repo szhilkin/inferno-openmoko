@@ -1,28 +1,35 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
-#include <ip.h>
-#include <srv.h>
-#include <srvm.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	<interp.h>
+#include	<isa.h>
+#include	"ip.h"
+#include	"srv.h"
+#include	"srvm.h"
 
 static	QLock	dbq;
 
-DISAPI(Srv_init)
+void
+Srv_init(void *fp)
 {
-	USED(f);
+	USED(fp);
 }
 
-DISAPI(Srv_iph2a)
+void
+Srv_iph2a(void *fp)
 {
 	Heap *hpt;
 	String *ss;
+	F_Srv_iph2a *f;
 	int i, n, nhost;
 	List **h, *l, *nl;
 	char *hostv[10];
+	void *r;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	r = *f->ret;
+	*f->ret = H;
+	destroy(r);
 	release();
 	qlock(&dbq);
 	if(waserror()){
@@ -45,14 +52,14 @@ DISAPI(Srv_iph2a)
 		memmove(ss->Sascii, hostv[i], n);
 		free(hostv[i]);
 
-		hpt = nheap(sizeof(List) + sizeof(String*));
+		hpt = nheap(sizeof(List) + IBY2WD);
 		hpt->t = &Tlist;
 		hpt->t->ref++;
 		nl = H2D(List*, hpt);
 		nl->t = &Tptr;
 		Tptr.ref++;
 		nl->tail = (List*)H;
-		nl->data.pstring = ss;
+		*(String**)nl->data = ss;
 
 		*h = nl;
 		h = &nl->tail;
@@ -60,15 +67,21 @@ DISAPI(Srv_iph2a)
 	*f->ret = l;
 }
 
-DISAPI(Srv_ipa2h)
+void
+Srv_ipa2h(void *fp)
 {
 	Heap *hpt;
 	String *ss;
+	F_Srv_ipa2h *f;
 	int i, n, naliases;
 	List **h, *l, *nl;
 	char *hostv[10];
+	void *r;
 
-	ASSIGN(*f->ret, H);
+	f = fp;
+	r = *f->ret;
+	*f->ret = H;
+	destroy(r);
 	release();
 	qlock(&dbq);
 	if(waserror()){
@@ -91,14 +104,14 @@ DISAPI(Srv_ipa2h)
 		memmove(ss->Sascii, hostv[i], n);
 		free(hostv[i]);
 
-		hpt = nheap(sizeof(List) + sizeof(String*));
+		hpt = nheap(sizeof(List) + IBY2WD);
 		hpt->t = &Tlist;
 		hpt->t->ref++;
 		nl = H2D(List*, hpt);
 		nl->t = &Tptr;
 		Tptr.ref++;
 		nl->tail = (List*)H;
-		nl->data.pstring = ss;
+		*(String**)nl->data = ss;
 
 		*h = nl;
 		h = &nl->tail;
@@ -106,12 +119,18 @@ DISAPI(Srv_ipa2h)
 	*f->ret = l;
 }
 
-DISAPI(Srv_ipn2p)
+void
+Srv_ipn2p(void *fp)
 {
 	int n;
 	char buf[16];
+	F_Srv_ipn2p *f;
+	void *r;
 
-	ASSIGN(*f->ret, (String*)H);
+	f = fp;
+	r = *f->ret;
+	*f->ret = H;
+	destroy(r);
 	release();
 	qlock(&dbq);
 	if(waserror()){

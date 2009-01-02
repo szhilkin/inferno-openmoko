@@ -1,13 +1,9 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "canvs.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <canvs.h>
-
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Image Options (+ means implemented)
 	+anchor
@@ -25,15 +21,15 @@ struct TkCimag
 static
 TkOption imgopts[] =
 {
-	{"anchor",	OPTstab,	offsetof(TkCimag, anchor),	{tkanchor}},
-	{"image",	OPTimag,	offsetof(TkCimag, tki)		},
+	{"anchor",	OPTstab,	O(TkCimag, anchor),	tkanchor},
+	{"image",	OPTimag,	O(TkCimag, tki),	nil},
 	{nil}
 };
 
 static
-TkOption itemopts_cimag[] =
+TkOption itemopts[] =
 {
-	{"tags",	OPTctag,	offsetof(TkCitem, tags)		},
+	{"tags",		OPTctag,	O(TkCitem, tags),	nil},
 	{nil}
 };
 
@@ -91,14 +87,14 @@ tkcvsimgcreat(Tk* tk, char *arg, char **val)
 	tko[0].ptr = t;
 	tko[0].optab = imgopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cimag;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 	e = tkparse(tk->env->top, arg, tko, nil);
 	if(e != nil) {
 		tkcvsfreeitem(i);
 		return e;
 	}
-
+	
 	e = tkcaddtag(tk, i, 1);
 	if(e != nil) {
 		tkcvsfreeitem(i);
@@ -128,7 +124,7 @@ tkcvsimgcget(TkCitem *i, char *arg, char **val)
 	tko[0].ptr = t;
 	tko[0].optab = imgopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cimag;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, i->env->top);
@@ -144,7 +140,7 @@ tkcvsimgconf(Tk *tk, TkCitem *i, char *arg)
 	tko[0].ptr = t;
 	tko[0].optab = imgopts;
 	tko[1].ptr = i;
-	tko[1].optab = itemopts_cimag;
+	tko[1].optab = itemopts;
 	tko[2].ptr = nil;
 
 	e = tkparse(tk->env->top, arg, tko, nil);

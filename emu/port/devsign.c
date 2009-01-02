@@ -1,12 +1,12 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <mp.h>
-#include <libsec.h>
-#include <keys.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	"interp.h"
+#include	<isa.h>
+#include	"runt.h"
+#include "mp.h"
+#include "libsec.h"
+#include "../../libkeyring/keys.h"
 
 /*
  * experimental version of signed modules
@@ -14,18 +14,18 @@
 
 enum
 {
-	Qsign_dir,
-	Qsign_key,
-	Qsign_ctl,
+	Qdir,
+	Qkey,
+	Qctl,
 
 	Maxkey = 2048
 };
 
 static Dirtab signdir[] =
 {
-	".",		{Qsign_dir, 0, QTDIR},	0,	DMDIR|0555,
-	"signerkey",	{Qsign_key},		0,	0644,
-	"signerctl",	{Qsign_ctl},		0,	0600,
+	".",		{Qdir, 0, QTDIR},	0,	DMDIR|0555,
+	"signerkey",	{Qkey},	0,			0644,
+	"signerctl",	{Qctl},	0,			0600,
 };
 
 typedef struct Get Get;
@@ -42,7 +42,7 @@ static Signerkey* findsignerkey(Skeyset*, char*, int, char*);
 extern vlong		osusectime(void);
 
 int
-verifysigner(const char *sign, int len, const char *data, ulong ndata)
+verifysigner(uchar *sign, int len, uchar *data, ulong ndata)
 {
 	Get sig;
 	int alg;
@@ -115,7 +115,7 @@ out:
 }
 
 int
-mustbesigned(const char *path, const char *code, ulong length, const Dir *dir)
+mustbesigned(char *path, uchar *code, ulong length, Dir *dir)
 {
 	USED(code); USED(length);
 if(0)print("load %s: %d %C\n", path, up->env->sigs!=nil, dir==nil?'?':dir->type);
@@ -303,7 +303,7 @@ signclose(Chan *c)
 }
 
 static long
-signread(Chan *c, char *va, long n, vlong offset)
+signread(Chan *c, void *va, long n, vlong offset)
 {
 	char *buf, *p;
 	SigAlgVec *sa;
@@ -349,7 +349,7 @@ signread(Chan *c, char *va, long n, vlong offset)
 }
 
 static long
-signwrite(Chan *c, const char *va, long n, vlong offset)
+signwrite(Chan *c, void *va, long n, vlong offset)
 {
 	char *buf;
 	Skeyset *sigs;

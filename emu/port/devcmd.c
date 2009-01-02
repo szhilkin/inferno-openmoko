@@ -1,28 +1,28 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 enum
 {
-	Qcmd_topdir,	/* top level directory */
-	Qcmd_cmd,
-	Qcmd_clonus,
-	Qcmd_convdir,
-	Qcmd_convbase,
-	Qcmd_data = Qcmd_convbase,
-	Qcmd_stderr,
-	Qcmd_ctl,
-	Qcmd_status,
-	Qcmd_wait,
+	Qtopdir,	/* top level directory */
+	Qcmd,
+	Qclonus,
+	Qconvdir,
+	Qconvbase,
+	Qdata = Qconvbase,
+	Qstderr,
+	Qctl,
+	Qstatus,
+	Qwait,
 
 	Debug=0	/* to help debug os.c */
 };
-#define DEVCMDTYPE(x) 	((ulong)(x).path & 0xf)
-#define DEVCMDCONV(x) 	(((ulong)(x).path >> 4)&0xfff)
-#define DEVCMDQID(c, y) 	(((c)<<4) | (y))
+#define TYPE(x) 	((ulong)(x).path & 0xf)
+#define CONV(x) 	(((ulong)(x).path >> 4)&0xfff)
+#define QID(c, y) 	(((c)<<4) | (y))
 
-typedef struct CmdConv CmdConv;
-struct CmdConv
+typedef struct Conv	Conv;
+struct Conv
 {
 	int	x;
 	int	inuse;
@@ -48,64 +48,64 @@ static struct
 	QLock	l;
 	int	nc;
 	int	maxconv;
-	CmdConv**	conv;
+	Conv**	conv;
 } cmd;
 
-static	CmdConv*	cmdclone(char*);
+static	Conv*	cmdclone(char*);
 static	void	cmdproc(void*);
 
 static int
 cmd3gen(Chan *c, int i, Dir *dp)
 {
 	Qid q;
-	CmdConv *cv;
+	Conv *cv;
 
-	cv = cmd.conv[DEVCMDCONV(c->qid)];
+	cv = cmd.conv[CONV(c->qid)];
 	switch(i){
 	default:
 		return -1;
-	case Qcmd_data:
-		mkqid(&q, DEVCMDQID(DEVCMDCONV(c->qid), Qcmd_data), 0, QTFILE);
+	case Qdata:
+		mkqid(&q, QID(CONV(c->qid), Qdata), 0, QTFILE);
 		devdir(c, q, "data", 0, cv->owner, cv->perm, dp);
 		return 1;
-	case Qcmd_stderr:
-		mkqid(&q, DEVCMDQID(DEVCMDCONV(c->qid), Qcmd_stderr), 0, QTFILE);
+	case Qstderr:
+		mkqid(&q, QID(CONV(c->qid), Qstderr), 0, QTFILE);
 		devdir(c, q, "stderr", 0, cv->owner, 0444, dp);
 		return 1;
-	case Qcmd_ctl:
-		mkqid(&q, DEVCMDQID(DEVCMDCONV(c->qid), Qcmd_ctl), 0, QTFILE);
+	case Qctl:
+		mkqid(&q, QID(CONV(c->qid), Qctl), 0, QTFILE);
 		devdir(c, q, "ctl", 0, cv->owner, cv->perm, dp);
 		return 1;
-	case Qcmd_status:
-		mkqid(&q, DEVCMDQID(DEVCMDCONV(c->qid), Qcmd_status), 0, QTFILE);
+	case Qstatus:
+		mkqid(&q, QID(CONV(c->qid), Qstatus), 0, QTFILE);
 		devdir(c, q, "status", 0, cv->owner, 0444, dp);
 		return 1;
-	case Qcmd_wait:
-		mkqid(&q, DEVCMDQID(DEVCMDCONV(c->qid), Qcmd_wait), 0, QTFILE);
+	case Qwait:
+		mkqid(&q, QID(CONV(c->qid), Qwait), 0, QTFILE);
 		devdir(c, q, "wait", 0, cv->owner, 0444, dp);
 		return 1;
 	}
 }
 
 static int
-cmdgen(Chan *c, const char *name, Dirtab *d, int nd, int s, Dir *dp)
+cmdgen(Chan *c, char *name, Dirtab *d, int nd, int s, Dir *dp)
 {
 	Qid q;
-	CmdConv *cv;
+	Conv *cv;
 
 	USED(name);
 	USED(nd);
 	USED(d);
 
 	if(s == DEVDOTDOT){
-		switch(DEVCMDTYPE(c->qid)){
-		case Qcmd_topdir:
-		case Qcmd_cmd:
-			mkqid(&q, DEVCMDQID(0, Qcmd_topdir), 0, QTDIR);
+		switch(TYPE(c->qid)){
+		case Qtopdir:
+		case Qcmd:
+			mkqid(&q, QID(0, Qtopdir), 0, QTDIR);
 			devdir(c, q, "#C", 0, eve, DMDIR|0555, dp);
 			break;
-		case Qcmd_convdir:
-			mkqid(&q, DEVCMDQID(0, Qcmd_cmd), 0, QTDIR);
+		case Qconvdir:
+			mkqid(&q, QID(0, Qcmd), 0, QTDIR);
 			devdir(c, q, "cmd", 0, eve, DMDIR|0555, dp);
 			break;
 		default:
@@ -114,43 +114,43 @@ cmdgen(Chan *c, const char *name, Dirtab *d, int nd, int s, Dir *dp)
 		return 1;
 	}
 
-	switch(DEVCMDTYPE(c->qid)) {
-	case Qcmd_topdir:
+	switch(TYPE(c->qid)) {
+	case Qtopdir:
 		if(s >= 1)
 			return -1;
-		mkqid(&q, DEVCMDQID(0, Qcmd_cmd), 0, QTDIR);
+		mkqid(&q, QID(0, Qcmd), 0, QTDIR);
 		devdir(c, q, "cmd", 0, "cmd", DMDIR|0555, dp);
 		return 1;
-	case Qcmd_cmd:
+	case Qcmd:
 		if(s < cmd.nc) {
 			cv = cmd.conv[s];
-			mkqid(&q, DEVCMDQID(s, Qcmd_convdir), 0, QTDIR);
+			mkqid(&q, QID(s, Qconvdir), 0, QTDIR);
 			sprint(up->genbuf, "%d", s);
 			devdir(c, q, up->genbuf, 0, cv->owner, DMDIR|0555, dp);
 			return 1;
 		}
 		s -= cmd.nc;
 		if(s == 0){
-			mkqid(&q, DEVCMDQID(0, Qcmd_clonus), 0, QTFILE);
+			mkqid(&q, QID(0, Qclonus), 0, QTFILE);
 			devdir(c, q, "clone", 0, "cmd", 0666, dp);
 			return 1;
 		}
 		return -1;
-	case Qcmd_clonus:
+	case Qclonus:
 		if(s == 0){
-			mkqid(&q, DEVCMDQID(0, Qcmd_clonus), 0, QTFILE);
+			mkqid(&q, QID(0, Qclonus), 0, QTFILE);
 			devdir(c, q, "clone", 0, "cmd", 0666, dp);
 			return 1;
 		}
 		return -1;
-	case Qcmd_convdir:
-		return cmd3gen(c, Qcmd_convbase+s, dp);
-	case Qcmd_data:
-	case Qcmd_stderr:
-	case Qcmd_ctl:
-	case Qcmd_status:
-	case Qcmd_wait:
-		return cmd3gen(c, DEVCMDTYPE(c->qid), dp);
+	case Qconvdir:
+		return cmd3gen(c, Qconvbase+s, dp);
+	case Qdata:
+	case Qstderr:
+	case Qctl:
+	case Qstatus:
+	case Qwait:
+		return cmd3gen(c, TYPE(c->qid), dp);
 	}
 	return -1;
 }
@@ -159,30 +159,30 @@ static void
 cmdinit(void)
 {
 	cmd.maxconv = 1000;
-	cmd.conv = (CmdConv**)mallocz(sizeof(CmdConv*)*(cmd.maxconv+1), 1);
+	cmd.conv = mallocz(sizeof(Conv*)*(cmd.maxconv+1), 1);
 	/* cmd.conv is checked by cmdattach, below */
 }
 
 static Chan *
-cmdattach(const char *spec)
+cmdattach(char *spec)
 {
 	Chan *c;
 
 	if(cmd.conv == nil)
 		error(Enomem);
 	c = devattach('C', spec);
-	mkqid(&c->qid, DEVCMDQID(0, Qcmd_topdir), 0, QTDIR);
+	mkqid(&c->qid, QID(0, Qtopdir), 0, QTDIR);
 	return c;
 }
 
 static Walkqid*
-cmdwalk(Chan *c, Chan *nc, const char **name, int nname)
+cmdwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	return devwalk(c, nc, name, nname, 0, 0, cmdgen);
 }
 
 static int
-cmdstat(Chan *c, char *db, int n)
+cmdstat(Chan *c, uchar *db, int n)
 {
 	return devstat(c, db, n, 0, 0, cmdgen);
 }
@@ -191,7 +191,7 @@ static Chan *
 cmdopen(Chan *c, int omode)
 {
 	int perm;
-	CmdConv *cv;
+	Conv *cv;
 	char *user;
 
 	perm = 0;
@@ -208,17 +208,17 @@ cmdopen(Chan *c, int omode)
 		break;
 	}
 
-	switch(DEVCMDTYPE(c->qid)) {
+	switch(TYPE(c->qid)) {
 	default:
 		break;
-	case Qcmd_topdir:
-	case Qcmd_cmd:
-	case Qcmd_convdir:
-	case Qcmd_status:
+	case Qtopdir:
+	case Qcmd:
+	case Qconvdir:
+	case Qstatus:
 		if(omode != OREAD)
 			error(Eperm);
 		break;
-	case Qcmd_clonus:
+	case Qclonus:
 		qlock(&cmd.l);
 		if(waserror()){
 			qunlock(&cmd.l);
@@ -229,14 +229,14 @@ cmdopen(Chan *c, int omode)
 		qunlock(&cmd.l);
 		if(cv == 0)
 			error(Enodev);
-		mkqid(&c->qid, DEVCMDQID(cv->x, Qcmd_ctl), 0, QTFILE);
+		mkqid(&c->qid, QID(cv->x, Qctl), 0, QTFILE);
 		break;
-	case Qcmd_data:
-	case Qcmd_stderr:
-	case Qcmd_ctl:
-	case Qcmd_wait:
+	case Qdata:
+	case Qstderr:
+	case Qctl:
+	case Qwait:
 		qlock(&cmd.l);
-		cv = cmd.conv[DEVCMDCONV(c->qid)];
+		cv = cmd.conv[CONV(c->qid)];
 		qlock(&cv->l);
 		if(waserror()){
 			qunlock(&cv->l);
@@ -249,19 +249,19 @@ cmdopen(Chan *c, int omode)
 		 	  (perm & cv->perm) != perm)
 				error(Eperm);
 		}
-		switch(DEVCMDTYPE(c->qid)){
-		case Qcmd_data:
+		switch(TYPE(c->qid)){
+		case Qdata:
 			if(omode == OWRITE || omode == ORDWR)
 				cv->count[0]++;
 			if(omode == OREAD || omode == ORDWR)
 				cv->count[1]++;
 			break;
-		case Qcmd_stderr:
+		case Qstderr:
 			if(omode != OREAD)
 				error(Eperm);
 			cv->count[2]++;
 			break;
-		case Qcmd_wait:
+		case Qwait:
 			if(cv->waitq == nil)
 				cv->waitq = qopen(1024, Qmsg, nil, 0);
 			break;
@@ -285,7 +285,7 @@ cmdopen(Chan *c, int omode)
 }
 
 static void
-closecmdconv(CmdConv *c)
+closeconv(Conv *c)
 {
 	kstrdup(&c->owner, "cmd");
 	kstrdup(&c->dir, rootdir);
@@ -305,7 +305,7 @@ closecmdconv(CmdConv *c)
 }
 
 static void
-cmdfdclose(CmdConv *c, int fd)
+cmdfdclose(Conv *c, int fd)
 {
 	if(--c->count[fd] == 0 && c->fd[fd] != -1){
 		close(c->fd[fd]);
@@ -316,36 +316,36 @@ cmdfdclose(CmdConv *c, int fd)
 static void
 cmdclose(Chan *c)
 {
-	CmdConv *cc;
+	Conv *cc;
 	int r;
 
 	if((c->flag & COPEN) == 0)
 		return;
 
-	switch(DEVCMDTYPE(c->qid)) {
-	case Qcmd_ctl:
-	case Qcmd_data:
-	case Qcmd_stderr:
-	case Qcmd_wait:
-		cc = cmd.conv[DEVCMDCONV(c->qid)];
+	switch(TYPE(c->qid)) {
+	case Qctl:
+	case Qdata:
+	case Qstderr:
+	case Qwait:
+		cc = cmd.conv[CONV(c->qid)];
 		qlock(&cc->l);
-		if(DEVCMDTYPE(c->qid) == Qcmd_data){
+		if(TYPE(c->qid) == Qdata){
 			if(c->mode == OWRITE || c->mode == ORDWR)
 				cmdfdclose(cc, 0);
 			if(c->mode == OREAD || c->mode == ORDWR)
 				cmdfdclose(cc, 1);
-		}else if(DEVCMDTYPE(c->qid) == Qcmd_stderr)
+		}else if(TYPE(c->qid) == Qstderr)
 			cmdfdclose(cc, 2);
 
 		r = --cc->inuse;
 		if(cc->child != nil){
 			if(!cc->killed)
-			if(r == 0 || (cc->killonclose && DEVCMDTYPE(c->qid) == Qcmd_ctl)){
+			if(r == 0 || (cc->killonclose && TYPE(c->qid) == Qctl)){
 				oscmdkill(cc->child);
 				cc->killed = 1;
 			}
 		}else if(r == 0)
-			closecmdconv(cc);
+			closeconv(cc);
 
 		qunlock(&cc->l);
 		break;
@@ -353,38 +353,39 @@ cmdclose(Chan *c)
 }
 
 static long
-cmdread(Chan *ch, char *a, long n, vlong offset)
+cmdread(Chan *ch, void *a, long n, vlong offset)
 {
-	CmdConv *c;
-	char *cmds;
+	Conv *c;
+	char *p, *cmds;
 	int fd;
 
 	USED(offset);
 
-	switch(DEVCMDTYPE(ch->qid)) {
+	p = a;
+	switch(TYPE(ch->qid)) {
 	default:
 		error(Eperm);
-	case Qcmd_cmd:
-	case Qcmd_topdir:
-	case Qcmd_convdir:
+	case Qcmd:
+	case Qtopdir:
+	case Qconvdir:
 		return devdirread(ch, a, n, 0, 0, cmdgen);
-	case Qcmd_ctl:
-		sprint(up->genbuf, "%ld", DEVCMDCONV(ch->qid));
-		return readstr(offset, a, n, up->genbuf);
-	case Qcmd_status:
-		c = cmd.conv[DEVCMDCONV(ch->qid)];
+	case Qctl:
+		sprint(up->genbuf, "%ld", CONV(ch->qid));
+		return readstr(offset, p, n, up->genbuf);
+	case Qstatus:
+		c = cmd.conv[CONV(ch->qid)];
 		cmds = "";
 		if(c->cmd != nil)
 			cmds = c->cmd->f[1];
 		snprint(up->genbuf, sizeof(up->genbuf), "cmd/%d %d %s %q %q\n",
 			c->x, c->inuse, c->state, c->dir, cmds);
-		return readstr(offset, a, n, up->genbuf);
-	case Qcmd_data:
-	case Qcmd_stderr:
+		return readstr(offset, p, n, up->genbuf);
+	case Qdata:
+	case Qstderr:
 		fd = 1;
-		if(DEVCMDTYPE(ch->qid) == Qcmd_stderr)
+		if(TYPE(ch->qid) == Qstderr)
 			fd = 2;
-		c = cmd.conv[DEVCMDCONV(ch->qid)];
+		c = cmd.conv[CONV(ch->qid)];
 		qlock(&c->l);
 		if(c->fd[fd] == -1){
 			qunlock(&c->l);
@@ -397,8 +398,8 @@ cmdread(Chan *ch, char *a, long n, vlong offset)
 		if(n < 0)
 			oserror();
 		return n;
-	case Qcmd_wait:
-		c = cmd.conv[DEVCMDCONV(ch->qid)];
+	case Qwait:
+		c = cmd.conv[CONV(ch->qid)];
 		return qread(c->waitq, a, n);
 	}
 }
@@ -406,45 +407,45 @@ cmdread(Chan *ch, char *a, long n, vlong offset)
 static int
 cmdstarted(void *a)
 {
-	CmdConv *c;
+	Conv *c;
 
-	c = (CmdConv *)a;
+	c = a;
 	return c->child != nil || c->error != nil || strcmp(c->state, "Execute") != 0;
 }
 
 enum
 {
-	CM_dir,
-	CM_exec,
-	CM_kill,
-	CM_nice,
-	CM_killonclose
+	CMdir,
+	CMexec,
+	CMkill,
+	CMnice,
+	CMkillonclose
 };
 
 static
 Cmdtab cmdtab[] = {
-	{CM_dir,		"dir",		2},
-	{CM_exec,	"exec",		0},
-	{CM_kill,	"kill",		1},
-	{CM_nice,	"nice",		0},
-	{CM_killonclose, "killonclose",	0},
+	{CMdir,	"dir",	2},
+	{CMexec,	"exec",	0},
+	{CMkill,	"kill",	1},
+	{CMnice,	"nice",	0},
+	{CMkillonclose, "killonclose", 0},
 };
 
 static long
-cmdwrite(Chan *ch, const char *a, long n, vlong offset)
+cmdwrite(Chan *ch, void *a, long n, vlong offset)
 {
 	int i, r;
-	CmdConv *c;
+	Conv *c;
 	Cmdbuf *cb;
 	Cmdtab *ct;
 
 	USED(offset);
 
-	switch(DEVCMDTYPE(ch->qid)) {
+	switch(TYPE(ch->qid)) {
 	default:
 		error(Eperm);
-	case Qcmd_ctl:
-		c = cmd.conv[DEVCMDCONV(ch->qid)];
+	case Qctl:
+		c = cmd.conv[CONV(ch->qid)];
 		cb = parsecmd(a, n);
 		if(waserror()){
 			free(cb);
@@ -452,10 +453,10 @@ cmdwrite(Chan *ch, const char *a, long n, vlong offset)
 		}
 		ct = lookupcmd(cb, cmdtab, nelem(cmdtab));
 		switch(ct->index){
-		case CM_dir:
+		case CMdir:
 			kstrdup(&c->dir, cb->f[1]);
 			break;
-		case CM_exec:
+		case CMexec:
 			poperror();	/* cb */
 			qlock(&c->l);
 			if(waserror()){
@@ -470,7 +471,7 @@ cmdwrite(Chan *ch, const char *a, long n, vlong offset)
 					error(Einuse);
 			if(cb->nf < 1)
 				error(Etoosmall);
-			kproc("cmdproc", cmdproc, c, 0);  /* BUG: check return value */	/* cmdproc held back until unlock below */
+			kproc("cmdproc", cmdproc, c, 0);	/* cmdproc held back until unlock below */
 			free(c->cmd);
 			c->cmd = cb;	/* don't free cb */
 			c->state = "Execute";
@@ -478,12 +479,12 @@ cmdwrite(Chan *ch, const char *a, long n, vlong offset)
 			qunlock(&c->l);
 			while(waserror())
 				;
-			sleep9(&c->startr, cmdstarted, c);
+			Sleep(&c->startr, cmdstarted, c);
 			poperror();
 			if(c->error)
 				error(c->error);
 			return n;	/* avoid free(cb) below */
-		case CM_kill:
+		case CMkill:
 			qlock(&c->l);
 			if(waserror()){
 				qunlock(&c->l);
@@ -496,18 +497,18 @@ cmdwrite(Chan *ch, const char *a, long n, vlong offset)
 			poperror();
 			qunlock(&c->l);
 			break;
-		case CM_nice:
+		case CMnice:
 			c->nice = cb->nf > 1? atoi(cb->f[1]): 1;
 			break;
-		case CM_killonclose:
+		case CMkillonclose:
 			c->killonclose = 1;
 			break;
 		}
 		poperror();
 		free(cb);
 		break;
-	case Qcmd_data:
-		c = cmd.conv[DEVCMDCONV(ch->qid)];
+	case Qdata:
+		c = cmd.conv[CONV(ch->qid)];
 		qlock(&c->l);
 		if(c->fd[0] == -1){
 			qunlock(&c->l);
@@ -529,18 +530,18 @@ cmdwrite(Chan *ch, const char *a, long n, vlong offset)
 }
 
 static int
-cmdwstat(Chan *c, char *dp, int n)
+cmdwstat(Chan *c, uchar *dp, int n)
 {
 	Dir *d;
-	CmdConv *cv;
+	Conv *cv;
 
-	switch(DEVCMDTYPE(c->qid)){
+	switch(TYPE(c->qid)){
 	default:
 		error(Eperm);
-	case Qcmd_ctl:
-	case Qcmd_data:
-	case Qcmd_stderr:
-		d = (Dir*)malloc(sizeof(*d)+n);
+	case Qctl:
+	case Qdata:
+	case Qstderr:
+		d = malloc(sizeof(*d)+n);
 		if(d == nil)
 			error(Enomem);
 		if(waserror()){
@@ -550,7 +551,7 @@ cmdwstat(Chan *c, char *dp, int n)
 		n = convM2D(dp, n, d, (char*)&d[1]);
 		if(n == 0)
 			error(Eshortstat);
-		cv = cmd.conv[DEVCMDCONV(c->qid)];
+		cv = cmd.conv[CONV(c->qid)];
 		if(!iseve() && strcmp(up->env->user, cv->owner) != 0)
 			error(Eperm);
 		if(!emptystr(d->uid))
@@ -564,10 +565,10 @@ cmdwstat(Chan *c, char *dp, int n)
 	return n;
 }
 
-static CmdConv*
+static Conv*
 cmdclone(char *user)
 {
-	CmdConv *c, **pp, **ep;
+	Conv *c, **pp, **ep;
 	int i;
 
 	c = nil;
@@ -575,7 +576,7 @@ cmdclone(char *user)
 	for(pp = cmd.conv; pp < ep; pp++) {
 		c = *pp;
 		if(c == nil) {
-			c = (CmdConv*)malloc(sizeof(CmdConv));
+			c = malloc(sizeof(Conv));
 			if(c == nil)
 				error(Enomem);
 			qlock(&c->l);
@@ -609,11 +610,12 @@ cmdclone(char *user)
 static void
 cmdproc(void *a)
 {
-	CmdConv *c = (CmdConv *)a;
+	Conv *c;
 	int n;
 	char status[ERRMAX];
 	void *t;
 
+	c = a;
 	qlock(&c->l);
 	if(Debug)
 		print("f[0]=%q f[1]=%q\n", c->cmd->f[0], c->cmd->f[1]);
@@ -623,7 +625,7 @@ cmdproc(void *a)
 		kstrdup(&c->error, up->env->errstr);
 		c->state = "Done";
 		qunlock(&c->l);
-		wakeup9(&c->startr);
+		Wakeup(&c->startr);
 		pexit("cmdproc", 0);
 	}
 	t = oscmd(c->cmd->f+1, c->nice, c->dir, c->fd);
@@ -632,7 +634,7 @@ cmdproc(void *a)
 	c->child = t;	/* to allow oscmdkill */
 	poperror();
 	qunlock(&c->l);
-	wakeup9(&c->startr);
+	Wakeup(&c->startr);
 	if(Debug)
 		print("started\n");
 	while(waserror())
@@ -656,7 +658,7 @@ cmdproc(void *a)
 		if(c->waitq != nil)
 			qproduce(c->waitq, status, n);
 	}else
-		closecmdconv(c);
+		closeconv(c);
 	qunlock(&c->l);
 	pexit("", 0);
 }

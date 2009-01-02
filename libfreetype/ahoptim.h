@@ -23,13 +23,11 @@
 #define __AHOPTIM_H__
 
 
-
+#include <ft2build.h>
 #include "ahtypes.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /* the maximal number of stem configurations to record */
@@ -131,9 +129,7 @@ extern "C" {
   AH_Optimizer_Done( AH_Optimizer*  optimizer );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __AHOPTIM_H__ */
 

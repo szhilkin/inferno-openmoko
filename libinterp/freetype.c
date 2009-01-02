@@ -1,11 +1,11 @@
 #include <lib9.h>
 #include <kernel.h>
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <raise.h>
-#include <freetypemod.h>
-#include <freetype.h>
+#include "interp.h"
+#include "isa.h"
+#include "runt.h"
+#include "raise.h"
+#include "freetypemod.h"
+#include "freetype.h"
 
 
 typedef struct Face Face;
@@ -19,10 +19,10 @@ Type*	TVector;
 Type*	TFace;
 Type*	TGlyph;
 
-static char	Matrixmap[] = Freetype_Matrix_map;
-static char	Vectormap[] = Freetype_Vector_map;
-static char	Facemap[] = Freetype_Face_map;
-static char	Glyphmap[] = Freetype_Glyph_map;
+static uchar	Matrixmap[] = Freetype_Matrix_map;
+static uchar	Vectormap[] = Freetype_Vector_map;
+static uchar	Facemap[] = Freetype_Face_map;
+static uchar	Glyphmap[] = Freetype_Glyph_map;
 
 static void		freeface(Heap*, int);
 static Face*	ckface(Freetype_Face*);
@@ -31,14 +31,16 @@ void
 freetypemodinit(void)
 {
 	builtinmod("$Freetype", Freetypemodtab, Freetypemodlen);
-	TMatrix = dtype(freeheap, sizeof(Freetype_Matrix), Matrixmap, sizeof(Matrixmap), "Freetype->Matrix" );
-	TVector = dtype(freeheap, sizeof(Freetype_Vector), Vectormap, sizeof(Vectormap), "Freetype->Vector" );
-	TFace = dtype(freeface, sizeof(Face), Facemap, sizeof(Facemap), "Freetype->Face" );
-	TGlyph = dtype(freeheap, sizeof(Freetype_Glyph), Glyphmap, sizeof(Glyphmap), "Freetype->Glyph" );
+	TMatrix = dtype(freeheap, sizeof(Freetype_Matrix), Matrixmap, sizeof(Matrixmap));
+	TVector = dtype(freeheap, sizeof(Freetype_Vector), Vectormap, sizeof(Vectormap));
+	TFace = dtype(freeface, sizeof(Face), Facemap, sizeof(Facemap));
+	TGlyph = dtype(freeheap, sizeof(Freetype_Glyph), Glyphmap, sizeof(Glyphmap));
 }
 
-DISAPI(Face_haschar)
+void
+Face_haschar(void *fp)
 {
+	F_Face_haschar *f = fp;
 	Face *face;
 
 	*f->ret = 0;
@@ -48,8 +50,10 @@ DISAPI(Face_haschar)
 	acquire();
 }
 
-DISAPI(Face_loadglyph)
+void
+Face_loadglyph(void *fp)
 {
+	F_Face_loadglyph *f = fp;
 	Heap *h;
 	Face *face;
 	Freetype_Glyph *g;
@@ -59,7 +63,8 @@ DISAPI(Face_loadglyph)
 
 	face = ckface(f->face);
 
-	ASSIGN(*f->ret, (Freetype_Glyph *)H);
+	destroy(*f->ret);
+	*f->ret = H;
 
 	release();
 	err = ftloadglyph(face->ftface, f->c, &ftg);
@@ -78,7 +83,7 @@ DISAPI(Face_loadglyph)
 	n = ftg.width*ftg.height;
 	h = heaparray(&Tbyte, n);
 	if (h == H) {
-		ASSIGN(g, H);
+		destroy(g);
 		kwerrstr(exNomem);
 		return;
 	}
@@ -97,8 +102,10 @@ DISAPI(Face_loadglyph)
 	*f->ret = g;
 }
 
-DISAPI(Freetype_newface)
+void
+Freetype_newface(void *fp)
 {
+	F_Freetype_newface *f = fp;
 	Heap *h;
 	Face *face;
 	Freetype_Face *limboface;
@@ -106,7 +113,8 @@ DISAPI(Freetype_newface)
 	char *path;
 	char *err;
 
-	//ASSIGN(*f->ret, (Freetype_Face *)H);
+	destroy(*f->ret);
+	*f->ret = H;
 
 	h = heapz(TFace);
 	if (h == H) {
@@ -115,16 +123,16 @@ DISAPI(Freetype_newface)
 	}
 
 	face = H2D(Face*, h);
-	limboface = &face->freetypeface;
-
+	limboface = (Freetype_Face*)face;
+	*f->ret = limboface;
 	path = strdup(string2c(f->path));	/* string2c() can call error() */
 	release();
 	err = ftnewface(path, f->index, &face->ftface, &finfo);
 	acquire();
 	free(path);
 	if (err != nil) {
-		ASSIGN(*f->ret, H);
-		ASSIGN(face, H);
+		*f->ret = H;
+		destroy(face);
 		kwerrstr(err);
 		return;
 	}
@@ -135,18 +143,24 @@ DISAPI(Freetype_newface)
 	limboface->ascent = finfo.ascent;
 	limboface->familyname = c2string(finfo.familyname, strlen(finfo.familyname));
 	limboface->stylename = c2string(finfo.stylename, strlen(finfo.stylename));
-	ASSIGN(*f->ret, limboface);
+	*f->ret = limboface;
 }
 
-DISAPI(Freetype_newmemface)
+void
+Freetype_newmemface(void *fp)
 {
-	ASSIGN(*f->ret, H);
+	F_Freetype_newmemface *f = fp;
+
+	destroy(*f->ret);
+	*f->ret = H;
 
 	kwerrstr("not implemented");
 }
 
-DISAPI(Face_setcharsize)
+void
+Face_setcharsize(void *fp)
 {
+	F_Face_setcharsize *f = fp;
 	Face *face;
 	Freetype_Face *limboface;
 	FTfaceinfo finfo;
@@ -164,8 +178,10 @@ DISAPI(Face_setcharsize)
 	retstr(err, f->ret);
 }
 
-DISAPI(Face_settransform)
+void
+Face_settransform(void *fp)
 {
+	F_Face_settransform *f = fp;
 	FTmatrix *m = nil;
 	FTvector *v = nil;
 	Face *face;
@@ -176,7 +192,8 @@ DISAPI(Face_settransform)
 	 * ftsettransform() has no error return
 	 * we have one for consistency - but always nil for now
 	 */
-	ASSIGN(*f->ret, (String*)H);
+	destroy(*f->ret);
+	*f->ret = H;
 
 	if (f->m != H)
 		m = (FTmatrix*)(f->m);
@@ -193,8 +210,8 @@ freeface(Heap *h, int swept)
 	Face *face = H2D(Face*, h);
 
 	if (!swept) {
-		ASSIGN(face->freetypeface.familyname, H);
-		ASSIGN(face->freetypeface.stylename, H);
+		destroy(face->freetypeface.familyname);
+		destroy(face->freetypeface.stylename);
 	}
 	release();
 	ftdoneface(face->ftface);
@@ -211,3 +228,4 @@ ckface(Freetype_Face *face)
 		error(exType);
 	return (Face*)face;
 }
+

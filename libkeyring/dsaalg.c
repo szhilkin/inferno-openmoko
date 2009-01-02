@@ -1,21 +1,21 @@
 #include <lib9.h>
 #include <kernel.h>
 #include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <mp.h>
-#include <libsec.h>
-#include <keys.h>
+#include "interp.h"
+#include "../libinterp/runt.h"
+#include "mp.h"
+#include "libsec.h"
+#include "keys.h"
 
-static char*	dsa_pkattr[] = { "p", "q", "alpha", "key", nil };
-static char*	dsa_skattr[] = { "p", "q", "alpha", "key", "!secret", nil };
-static char*	dsa_sigattr[] = { "r", "s", nil };
+static char*	pkattr[] = { "p", "q", "alpha", "key", nil };
+static char*	skattr[] = { "p", "q", "alpha", "key", "!secret", nil };
+static char*	sigattr[] = { "r", "s", nil };
 
 static void*
-dsa_str2sk(const char *str, const char **strp)
+dsa_str2sk(char *str, char **strp)
 {
 	DSApriv *dsa;
-	const char *p;
+	char *p;
 
 	dsa = dsaprivalloc();
 	dsa->pub.p = base64tobig(str, &p);
@@ -29,10 +29,10 @@ dsa_str2sk(const char *str, const char **strp)
 }
 
 static void*
-dsa_str2pk(const char *str, const char **strp)
+dsa_str2pk(char *str, char **strp)
 {
 	DSApub *dsa;
-	const char *p;
+	char *p;
 
 	dsa = dsapuballoc();
 	dsa->p = base64tobig(str, &p);
@@ -45,10 +45,10 @@ dsa_str2pk(const char *str, const char **strp)
 }
 
 static void*
-dsa_str2sig(const char *str, const char **strp)
+dsa_str2sig(char *str, char **strp)
 {
 	DSAsig *dsa;
-	const char *p;
+	char *p;
 
 	dsa = dsasigalloc();
 	dsa->r = base64tobig(str, &p);
@@ -176,9 +176,9 @@ dsainit(void)
 
 	vec->name = "dsa";
 
-	vec->pkattr = dsa_pkattr;
-	vec->skattr = dsa_skattr;
-	vec->sigattr = dsa_sigattr;
+	vec->pkattr = pkattr;
+	vec->skattr = skattr;
+	vec->sigattr = sigattr;
 
 	vec->str2sk = dsa_str2sk;
 	vec->str2pk = dsa_str2pk;

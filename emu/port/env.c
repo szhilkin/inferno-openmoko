@@ -1,13 +1,13 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 Egrp*
 newegrp(void)
 {
 	Egrp	*e;
 
-	e = (Egrp*)smalloc(sizeof(Egrp));
+	e = smalloc(sizeof(Egrp));
 	if (e == nil)
 		error(Enomem);
 	e->r.ref = 1;
@@ -39,11 +39,11 @@ egrpcpy(Egrp *to, Egrp *from)
 	last = &to->entries;
 	qlock(&from->l);
 	for (e = from->entries; e != nil; e = e->next) {
-		ne = (Evalue*)smalloc(sizeof(Evalue));
-		ne->var = (char*)smalloc(strlen(e->var)+1); /*TODO: strdup*/
+		ne = smalloc(sizeof(Evalue));
+		ne->var = smalloc(strlen(e->var)+1);
 		strcpy(ne->var, e->var);
 		if (e->val) {
-			ne->val = (char*)smalloc(e->len);
+			ne->val = smalloc(e->len);
 			memmove(ne->val, e->val, e->len);
 			ne->len = e->len;
 		}
@@ -55,7 +55,7 @@ egrpcpy(Egrp *to, Egrp *from)
 }
 
 void
-ksetenv(const char *var, const char *val, int conf)
+ksetenv(char *var, char *val, int conf)
 {
 	Chan *c;
 	char buf[2*KNAMELEN];

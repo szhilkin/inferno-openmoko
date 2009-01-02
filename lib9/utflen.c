@@ -1,7 +1,7 @@
-#include <lib9.h>
+#include "lib9.h"
 
 int
-utflen(const char *s)
+utflen(char *s)
 {
 	int c;
 	long n;

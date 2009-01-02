@@ -1,7 +1,7 @@
-#include <lib9.h>
+#include "lib9.h"
 
 Rune*
-runeseprint(Rune *buf, Rune *e, const char *fmt, ...)
+runeseprint(Rune *buf, Rune *e, char *fmt, ...)
 {
 	Rune *p;
 	va_list args;

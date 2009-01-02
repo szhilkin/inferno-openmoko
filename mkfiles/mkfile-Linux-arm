@@ -8,17 +8,17 @@ OS=		o
 AR=		ar
 ARFLAGS=	ruvs
 
-AS=		cc -mcpu=arm920t -c 
+AS=		arm-gcc -c 
 ASFLAGS=
 
-CC=		cc -mcpu=arm920t -c 
+CC=		arm-gcc -c 
 CFLAGS=		-O\
 		-I$ROOT/Linux/arm/include\
 		-I$ROOT/include\
 		-DLINUX_ARM
 
 ANSICPP=
-LD=		cc -mcpu=arm920t
+LD=		arm-gcc 
 LDFLAGS=	
 
 SYSLIBS=

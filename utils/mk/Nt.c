@@ -25,7 +25,7 @@ static Child child[Nchild];
 
 extern char **environ;
 
-static DWORD WINAPI writecmd(LPVOID a);
+DWORD WINAPI writecmd(LPVOID a);
 
 void
 readenv(void)
@@ -45,13 +45,6 @@ readenv(void)
 		s = strdup(*p);
 		setvar(s, (void *)w);
 		symlook(s, S_EXPORTED, (void *)"")->value = "";
-#if defined(CASE_INSENSITIVE_ENVIRONMENT)
-		{
-		char *sup = strdup(s);
-		strlwr(sup);
-		symlook(sup, S_LOWCASED, s);
-		}
-#endif
 	}
 }
 
@@ -86,8 +79,7 @@ exportenv(Envy *e)
 int
 waitfor(char *msg)
 {
-	int pid, n, i, r;
-	DWORD code;
+	int pid, n, i, r, code;
 	HANDLE tab[Nchild];
 
 	for(i=0,n=0; i<Nchild; i++)
@@ -234,8 +226,7 @@ spinoff(HANDLE in, HANDLE out, char *args, char *cmd, Envy *e)
 int
 execsh(char *args, char *cmd, Bufblock *buf, Envy *e)
 {
-	int tot, pid;
-	DWORD tid, n;
+	int tot, n, tid, pid;
 	HANDLE outin, outout, inout, inin;
 	struct { char *cmd; HANDLE handle; } *arg;
 
@@ -290,7 +281,7 @@ writecmd(LPVOID a)
 {
 	struct {char *cmd; HANDLE handle;} *arg;
 	char *cmd, *p;
-	DWORD n;
+	int n;
 
 	arg = a;
 	cmd = arg->cmd;
@@ -348,7 +339,7 @@ catchnotes()
 char*
 maketmp(void)
 {
-	static char temp[] = "mkargXXXXXX";
+	static char temp[] = "mkargXXX.XXX";
 
 	mktemp(temp);
 	return temp;
@@ -357,7 +348,7 @@ maketmp(void)
 Dir*
 mkdirstat(char *name)
 {
-	int c, n;
+	int c, n, ret;
 	Dir *buf;
 
 	n = strlen(name)-1;

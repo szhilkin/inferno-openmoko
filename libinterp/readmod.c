@@ -1,15 +1,15 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <kernel.h>
-#include <dynld.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "kernel.h"
+#include "dynld.h"
 
 Module*
-readmod(const char *path, Module *m /*=lookmod(path)*/, int sync)
+readmod(char *path, Module *m, int sync)
 {
 	Dir *d;
 	int fd, n, dynld;
-	char *code;
+	uchar *code;
 	Module *ans;
 	ulong length;
 
@@ -35,14 +35,13 @@ readmod(const char *path, Module *m /*=lookmod(path)*/, int sync)
 	if((d = kdirfstat(fd)) == nil)
 		goto done;
 
-	/* module exists and is not need to be reloaded */
 	if(m != nil) {
 		if(d->dev == m->dev && d->type == m->dtype &&
-		d->mtime == m->mtime &&
+		   d->mtime == m->mtime &&
 		   d->qid.type == m->qid.type && d->qid.path == m->qid.path && d->qid.vers == m->qid.vers) {
-		ans = m;
-		goto done;
-	}
+			ans = m;
+			goto done;
+		}
 	}
 
 	if(d->length < 0 || d->length >= 8*1024*1024){
@@ -54,7 +53,7 @@ readmod(const char *path, Module *m /*=lookmod(path)*/, int sync)
 		goto done1;
 	}
 	length = d->length;
-	code = (char*)mallocz(length, 0);
+	code = mallocz(length, 0);
 	if(code == nil)
 		goto done;
 

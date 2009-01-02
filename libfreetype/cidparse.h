@@ -20,15 +20,13 @@
 #define __CIDPARSE_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_TYPE1_TYPES_H
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_POSTSCRIPT_AUX_H
 
-#include <freetype/internal/t1types.h>
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/psaux.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -110,9 +108,7 @@ extern "C" {
           (p)->root.funcs.load_field_table( &(p)->root, f, o, 0, 0 )
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __CIDPARSE_H__ */
 

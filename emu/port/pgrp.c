@@ -1,6 +1,6 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 static Ref	pgrpid;
 static Ref	mountid;
@@ -10,7 +10,7 @@ newpgrp(void)
 {
 	Pgrp *p;
 
-	p = (Pgrp *)mallocz(sizeof(Pgrp), 1);
+	p = malloc(sizeof(Pgrp));
 	if(p == nil)
 		error(Enomem);
 	p->r.ref = 1;
@@ -87,7 +87,7 @@ pgrpcpy(Pgrp *to, Pgrp *from)
 		l = tom++;
 		for(f = from->mnthash[i]; f; f = f->hash) {
 			rlock(&f->lock);
-			mh = (Mhead*)malloc(sizeof(Mhead));
+			mh = malloc(sizeof(Mhead));
 			if(mh == nil) {
 				runlock(&f->lock);
 				wunlock(&from->ns);
@@ -109,7 +109,7 @@ pgrpcpy(Pgrp *to, Pgrp *from)
 				m->copy = n;
 				pgrpinsert(&order, m);
 				*link = n;
-				link = &n->next;
+				link = &n->next;	
 			}
 			runlock(&f->lock);
 		}
@@ -136,7 +136,7 @@ newfgrp(Fgrp *old)
 	Fgrp *new;
 	int n;
 
-	new = (Fgrp*)malloc(sizeof(Fgrp));
+	new = malloc(sizeof(Fgrp));
 	if(new == nil)
 		error(Enomem);
 	new->r.ref = 1;
@@ -149,7 +149,7 @@ newfgrp(Fgrp *old)
 		unlock(&old->l);
 	}
 	new->nfd = n;
-	new->fd = (Chan**)malloc(n*sizeof(Chan*));
+	new->fd = malloc(n*sizeof(Chan*));
 	if(new->fd == nil){
 		free(new);
 		error(Enomem);
@@ -165,7 +165,7 @@ dupfgrp(Fgrp *f)
 	Fgrp *new;
 	int n;
 
-	new = (Fgrp *)malloc(sizeof(Fgrp));
+	new = malloc(sizeof(Fgrp));
 	if(new == nil)
 		error(Enomem);
 	new->r.ref = 1;
@@ -174,7 +174,7 @@ dupfgrp(Fgrp *f)
 	if(f->maxfd >= n)
 		n = (f->maxfd+1 + DELTAFD-1)/DELTAFD * DELTAFD;
 	new->nfd = n;
-	new->fd = (Chan**)malloc(n*sizeof(Chan*));
+	new->fd = malloc(n*sizeof(Chan*));
 	if(new->fd == nil){
 		unlock(&f->l);
 		free(new);
@@ -213,7 +213,7 @@ newmount(Mhead *mh, Chan *to, int flag, char *spec)
 {
 	Mount *m;
 
-	m = (Mount*)malloc(sizeof(Mount));
+	m = malloc(sizeof(Mount));
 	if(m == nil)
 		error(Enomem);
 	m->to = to;

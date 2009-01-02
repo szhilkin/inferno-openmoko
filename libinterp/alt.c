@@ -1,11 +1,16 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
 
+#define OP(fn)	void fn(void)
+#define W(p)	*((WORD*)(p))
 
 #define CANGET(c)	((c)->size > 0)
 #define CANPUT(c)	((c)->buf != H && (c)->size < (c)->buf->len)
+
+extern	OP(isend);
+extern	OP(irecv);
 
 /*
  * Count the number of ready channels in an array of channels
@@ -39,7 +44,7 @@ altmark(Channel *c, Prog *p)
  * Remove alt references to an array of channels
  */
 static void
-altunmark(Channel *c, DISINT *ptr, Prog *p, int sr, Channel **sel, int dn)
+altunmark(Channel *c, WORD *ptr, Prog *p, int sr, Channel **sel, int dn)
 {
 	int n;
 	Array *a;
@@ -54,7 +59,7 @@ altunmark(Channel *c, DISINT *ptr, Prog *p, int sr, Channel **sel, int dn)
 		if(c != H && c->recv->prog)
 			cqdelp(&c->recv, p);
 		if(sr == 1 && *sel == c) {
-			*p->iii = dn;
+			W(p->R.d) = dn;
 			p->ptr = ptr + 1;
 			ptr[0] = n;
 			*sel = nil;
@@ -147,7 +152,7 @@ altdone(Alt *a, Prog *p, Channel *sel, int sr)
 				cqdelp(&c->send, p);
 			if(sr == 0 && c == sel) {
 				p->ptr = ac->ptr;
-				*p->iii = n;
+				W(p->R.d) = n;
 				sel = nil;
 			}
 		}
@@ -167,8 +172,7 @@ altdone(Alt *a, Prog *p, Channel *sel, int sr)
 					cqdelp(&c->recv, p);
 				if(sr == 1 && c == sel) {
 					p->ptr = ac->ptr;
-					/*p->R.d->disint = n;*/
-					*p->iii = n;
+					W(p->R.d) = n;
 					sel = nil;
 				}
 			}
@@ -178,17 +182,16 @@ altdone(Alt *a, Prog *p, Channel *sel, int sr)
 	}
 }
 
-
 /*
  * ALT Pass 2 - Perform the communication on the chosen channel
  */
-static int
-altcomm(Alt *a, int which, DISINT* ret)
+static void
+altcomm(Alt *a, int which)
 {
 	Type *t;
 	Array *r;
 	int n, an;
-	DISINT *ptr;
+	WORD *ptr;
 	Altc *ac, *eac;
 	Channel *c, **ca, **ec;
 
@@ -198,8 +201,11 @@ altcomm(Alt *a, int which, DISINT* ret)
 	while(ac < eac) {
 		c = ac->c;
 		if((c->recv->prog != nil || CANPUT(c)) && which-- == 0) {
-			*ret = n;
-			return _isend(c, ac->ptr);
+			W(R.d) = n;
+			R.s = ac->ptr;
+			R.d = &c;
+			isend();
+			return;
 		}
 		ac++;
 		n++;
@@ -217,10 +223,13 @@ altcomm(Alt *a, int which, DISINT* ret)
 			while(ca < ec) {
 				c = *ca;
 				if(c != H && (c->send->prog != nil || CANGET(c)) && which-- == 0) {
-					*ret  = n;
+					W(R.d) = n;
+					R.s = &c;
 					ptr = ac->ptr;
+					R.d = ptr + 1;
 					ptr[0] = an;
-					return _irecv(c, ptr+1);
+					irecv();
+					return;
 				}
 				ca++;
 				an++;
@@ -228,13 +237,16 @@ altcomm(Alt *a, int which, DISINT* ret)
 		}
 		else
 		if((c->send->prog != nil || CANGET(c)) && which-- == 0) {
-			*ret  = n;
-			return _irecv(c, ac->ptr);
+			W(R.d) = n;
+			R.s = &c;
+			R.d = ac->ptr;
+			irecv();
+			return;	
 		}
 		ac++;
 		n++;
 	}
-	return 0;
+	return;
 }
 
 void
@@ -243,39 +255,40 @@ altgone(Prog *p)
 	Alt *a;
 
 	if (p->state == Palt) {
-		a = p->aaa;
+		a = p->R.s;
 		altdone(a, p, nil, -1);
 		p->kill = "alt channel hungup";
 		addrun(p);
 	}
 }
 
-
-int
-xecalt(int block, Alt *a, DISINT* ret)
+void
+xecalt(int block)
 {
+	Alt *a;
 	Prog *p;
 	int nrdy;
 	static ulong xrand = 0x20342;
-	int ic1;
 
 	p = currun();
 
+	a = R.s;
 	nrdy = altrdy(a, p);
 	if(nrdy == 0) {
 		if(block) {
 			delrun(Palt);
-			p->aaa = a;
-			p->iii = ret;
-			return 1;
+			p->R.s = R.s;
+			p->R.d = R.d;
+			R.IC = 1;
+			R.t = 1;
+			return;
 		}
-		*ret = a->nsend + a->nrecv;
+		W(R.d) = a->nsend + a->nrecv;
 		altdone(a, p, nil, -1);
-		return 0;
+		return;
 	}
 
 	xrand = xrand*1103515245 + 12345;
-	ic1 = altcomm(a, (xrand>>8)%nrdy, ret);
+	altcomm(a, (xrand>>8)%nrdy);
 	altdone(a, p, nil, -1);
-	return ic1;
 }

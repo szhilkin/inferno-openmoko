@@ -20,14 +20,12 @@
 #define __CFF_PARSE_H__
 
 
+#include <ft2build.h>
+#include FT_INTERNAL_CFF_TYPES_H
+#include FT_INTERNAL_OBJECTS_H
 
-#include <freetype/internal/cfftypes.h>
-#include <freetype/internal/ftobjs.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 #define CFF_MAX_STACK_DEPTH  96
@@ -62,9 +60,7 @@ extern "C" {
                   FT_Byte*    limit );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 
 #endif /* __CFF_PARSE_H__ */

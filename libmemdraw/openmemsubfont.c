@@ -1,7 +1,7 @@
 #include "lib9.h"
 #include "draw.h"
 #include "memdraw.h"
-#if 0
+
 Memsubfont*
 openmemsubfont(char *name)
 {
@@ -12,7 +12,7 @@ openmemsubfont(char *name)
 	char hdr[3*12+4+1];
 	uchar *p = nil;
 
-	fd = open(name, OREAD); /* Win32: will not work */
+	fd = open(name, OREAD);
 	if(fd < 0)
 		return nil;
 	i = readmemimage(fd);
@@ -49,4 +49,3 @@ Err:
 		free(p);
 	return nil;
 }
-#endif

@@ -1,13 +1,10 @@
 #include <lib9.h>
-#include <draw.h>
 #include <kernel.h>
+#include "draw.h"
+#include "tk.h"
+#include "label.h"
 
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <label.h>
+#define	O(t, e)		((long)(&((t*)0)->e))
 
 /* Layout constants */
 enum {
@@ -16,13 +13,13 @@ enum {
 
 TkOption tklabelopts[] =
 {
-	{"text",	OPTtext,	offsetof(TkLabel, text)		},
-	{"label",	OPTtext,	offsetof(TkLabel, text)		},
-	{"underline",	OPTdist,	offsetof(TkLabel, ul)		},
-	{"justify",	OPTflag,	offsetof(TkLabel, justify),	{tkjustify}},
-	{"anchor",	OPTflag,	offsetof(TkLabel, anchor),	{tkanchor}},
-	{"bitmap",	OPTbmap,	offsetof(TkLabel, bitmap)	},
-	{"image",	OPTimag,	offsetof(TkLabel, img)		},
+	{"text",		OPTtext,	O(TkLabel, text),	nil},
+	{"label",	OPTtext,	O(TkLabel, text),	nil},
+	{"underline",	OPTdist,	O(TkLabel, ul),		nil},
+	{"justify",	OPTflag,	O(TkLabel, justify),	tkjustify},
+	{"anchor",	OPTflag,	O(TkLabel, anchor),	tkanchor},
+	{"bitmap",	OPTbmap,	O(TkLabel, bitmap),	nil},
+	{"image",	OPTimag,	O(TkLabel, img),	nil},
 	{nil}
 };
 
@@ -120,9 +117,9 @@ tksizelabel(Tk *tk)
 	Point p;
 	int w, h;
 	TkLabel *tkl;
-
+	
 	tkl = TKobj(TkLabel, tk);
-	if(tkl->anchor == 0)
+	if(tkl->anchor == 0)	
 		tkl->anchor = Tkcenter;
 
 	w = 0;
@@ -137,7 +134,7 @@ tksizelabel(Tk *tk)
 		w = Dx(tkl->bitmap->r) + 2*Bitpadx;
 		h = Dy(tkl->bitmap->r) + 2*Bitpady;
 	}
-	else
+	else 
 	if(tkl->text != nil) {
 		p = tkstringsize(tk, tkl->text);
 		w = p.x + 2*Textpadx;
@@ -224,7 +221,7 @@ tkfreelabel(Tk *tk)
 
 static void
 tktriangle(Point u, Image *i, TkEnv *e)
-{
+{	
 	int j;
 	Point p[3];
 
@@ -238,7 +235,7 @@ tktriangle(Point u, Image *i, TkEnv *e)
 	fillpoly(i, p, 3, ~0, tkgc(e, TkCbackgnddark), p[0]);
 	for(j = 0; j < 3; j++)
 		p[j].y -= 2;
-
+	
 	fillpoly(i, p, 3, ~0, tkgc(e, TkCbackgndlght), p[0]);
 }
 
@@ -340,7 +337,7 @@ tkdrawlabel(Tk *tk, Point orig)
 		}
 		u.x = p.x + ButtonBorder;
 		u.y = p.y + ButtonBorder + (h - CheckSpace) / 2;
-		pp = (Point*)mallocz(4*sizeof(Point), 0);
+		pp = mallocz(4*sizeof(Point), 0);
 		if(pp == nil)
 			return TkNomem;
 		pp[0].x = u.x + CheckButton/2;
@@ -406,7 +403,7 @@ tkdrawlabel(Tk *tk, Point orig)
 		u.x += Textpadx;
 		u.y += Textpady;
 		ct = tkgc(e, fgnd);
-
+		
 		p.y += (h - tkl->textheight) / 2;
 		o = tkdrawstring(tk, i, addpt(u, p), tkl->text, tkl->ul, ct, tkl->justify);
 		if(o != nil)
@@ -431,7 +428,7 @@ tksetvar(TkTop *top, char *c, char *newval)
 	TkVar *v;
 	TkWin *tkw;
 	Tk *f, *m;
-	void (*vc)(Tk*, const char*, const char*);
+	void (*vc)(Tk*, char*, char*);
 
 	if (c == nil || c[0] == '\0')
 		return nil;
@@ -445,14 +442,14 @@ tksetvar(TkTop *top, char *c, char *newval)
 	if(newval == nil)
 		newval = "";
 
-	if(v->value.pchar != nil) {
-		if (strcmp(v->value.pchar, newval) == 0)
+	if(v->value != nil) {
+		if (strcmp(v->value, newval) == 0)
 			return nil;
-		free(v->value.pchar);
+		free(v->value);
 	}
 
-	v->value.pchar = strdup(newval);
-	if(v->value.pchar == nil)
+	v->value = strdup(newval);
+	if(v->value == nil)
 		return TkNomem;
 
 	for(f = top->root; f; f = f->siblings) {
@@ -477,7 +474,7 @@ tkvariable(TkTop *t, char *arg, char **ret)
 	int l;
 
 	l = strlen(arg) + 2;
-	buf = (char*)malloc(l);
+	buf = malloc(l);
 	if(buf == nil)
 		return TkNomem;
 	ebuf = buf+l;
@@ -498,11 +495,11 @@ tkvariable(TkTop *t, char *arg, char **ret)
 		}
 		v = tkmkvar(t, buf, 0);
 		free(buf);
-		if(v == nil || v->value.pchar == nil)
+		if(v == nil || v->value == nil)
 			return nil;
 		if(v->type != TkVstring)
 			return TkNotvt;
-		return tkvalue(ret, "%s", v->value.pchar);
+		return tkvalue(ret, "%s", v->value);
 	}
 	val = buf+strlen(buf)+1;
 	tkword(t, arg, val, ebuf, nil);
@@ -527,7 +524,7 @@ tklabelgetimgs(Tk *tk, Image **image, Image **mask)
 static
 TkCmdtab tklabelcmd[] =
 {
-	{"cget",		tklabelcget},
+	{"cget",			tklabelcget},
 	{"configure",		tklabelconf},
 	{nil}
 };

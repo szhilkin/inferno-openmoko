@@ -1,4 +1,4 @@
-#include <os.h>
+#include "os.h"
 #include <libsec.h>
 
 /*
@@ -7,7 +7,7 @@
  */
 
 void
-setupDESstate(DESstate *s, const uchar key[8], uchar *ivec)
+setupDESstate(DESstate *s, uchar key[8], uchar *ivec)
 {
 	memset(s, 0, sizeof(*s));
 	memmove(s->key, key, sizeof(s->key));
@@ -18,7 +18,7 @@ setupDESstate(DESstate *s, const uchar key[8], uchar *ivec)
 }
 
 void
-setupDES3state(DES3state *s, const uchar key[3][8], uchar *ivec)
+setupDES3state(DES3state *s, uchar key[3][8], uchar *ivec)
 {
 	memset(s, 0, sizeof(*s));
 	memmove(s->key, key, sizeof(s->key));

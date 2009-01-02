@@ -23,13 +23,11 @@
 #define __AHHINT_H__
 
 
-
+#include <ft2build.h>
 #include "ahglobal.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 #define AH_HINT_DEFAULT        0
@@ -69,9 +67,7 @@ extern "C" {
                                void*      global_hints );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __AHHINT_H__ */
 

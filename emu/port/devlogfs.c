@@ -3,13 +3,22 @@
 #include "../port/lib.h"
 #include "../port/error.h"
 #else
-#include <error.h>
+#include	"error.h"
 #endif
-#include <dat.h>
-#include <fns.h>
-#include <kernel.h>
-#include <logfs.h>
-#include <nandfs.h>
+#include	<dat.h>
+#include	<fns.h>
+#include	<kernel.h>
+#include	<logfs.h>
+#include	<nandfs.h>
+
+#ifndef EMU
+#define Sleep sleep
+#define Wakeup wakeup
+#endif
+
+#ifndef offsetof
+#define offsetof(T,X) ((ulong)&(((T*)0)->X))
+#endif
 
 typedef struct Devlogfs Devlogfs;
 typedef struct DevlogfsSession DevlogfsSession;
@@ -23,13 +32,13 @@ enum {
 };
 
 enum {
-	Qlogfs_dir,
-	Qlogfs_ctl,
-	Qlogfs_users,
-	Qlogfs_dump,
-	Qlogfs_fs,
-	Qlogfs_fsboot,
-	Qlogfs_end,
+	Qdir,
+	Qctl,
+	Qusers,
+	Qdump,
+	Qfs,
+	Qfsboot,
+	Qend,
 };
 
 typedef enum DevlogfsServerState { Closed, BootOpen, NeedVersion, NeedAttach, Attached, Hungup } DevlogfsServerState;
@@ -535,10 +544,6 @@ logfsrealloc(void *p, ulong size)
 }
 
 #ifdef LEAKHUNT
-
-#if defined(_MSC_VER)
-#pragma optimize("y", off) // for getcallerpc()
-#endif
 void *
 logfsrealloc(void *p, ulong size)
 {
@@ -550,10 +555,6 @@ nandfsrealloc(void *p, ulong size)
 {
 	return _realloc(p, size, getcallerpc(&p));
 }
-#if defined(_MSC_VER)
-#pragma optimize("y", on)
-#endif
-
 #else
 void *
 nandfsrealloc(void *p, ulong size)
@@ -562,9 +563,6 @@ nandfsrealloc(void *p, ulong size)
 }
 #endif
 
-#if defined(_MSC_VER)
-#pragma optimize("y", off) // for getcallerpc()
-#endif
 void
 logfsfreemem(void *p)
 {
@@ -582,9 +580,6 @@ nandfsfreemem(void *p)
 #endif
 	free(p);
 }
-#if defined(_MSC_VER)
-#pragma optimize("y", on)
-#endif
 
 static Devlogfs *
 devlogfsconfig(char *name, char *device)
@@ -970,7 +965,7 @@ devlogfsserverread(Devlogfs *d, void *buf, long n)
 {
 	if (d->state == Hungup)
 		error(Ehungup);
-	sleep9(&d->readrendez, readok, d);
+	Sleep(&d->readrendez, readok, d);
 	if (n > d->readcount)
 		n = d->readcount;
 	memmove(buf, d->readp, n);
@@ -978,7 +973,7 @@ devlogfsserverread(Devlogfs *d, void *buf, long n)
 	d->readcount -= n;
 	if (d->readcount == 0) {
 		d->reading = 0;
-		wakeup9(&d->writerendez);
+		Wakeup(&d->writerendez);
 	}
 	return n;
 }
@@ -992,7 +987,7 @@ reply(Devlogfs *d)
 	if (d->readcount == 0)
 		panic("logfs: reply: did not fit\n");
 	d->reading = 1;
-	wakeup9(&d->readrendez);
+	Wakeup(&d->readrendez);
 }
 
 static void
@@ -1137,7 +1132,7 @@ devlogfsserverwrite(Devlogfs *d, void *buf, long n)
 	int locked = 0;
 	if (d->state == Hungup)
 		error(Ehungup);
-	sleep9(&d->writerendez, writeok, d);
+	Sleep(&d->writerendez, writeok, d);
 	if (convM2S(buf, n, &d->in) != n) {
 		/*
 		 * someone is writing drivel; have nothing to do with them anymore
@@ -1250,7 +1245,7 @@ devlogfsserverwrite(Devlogfs *d, void *buf, long n)
 }
 
 static long
-devlogfsread(Chan *c, char *buf, long n, vlong off)
+devlogfsread(Chan *c, void *buf, long n, vlong off)
 {
 	int instance, qid, qt;
 
@@ -1303,7 +1298,7 @@ devlogfsread(Chan *c, char *buf, long n, vlong off)
 }
 
 static long
-devlogfswrite(Chan *c, const char *buf, long n, vlong off)
+devlogfswrite(Chan *c, void *buf, long n, vlong off)
 {
 	char cmd[64], *realfields[6];
 	int i;

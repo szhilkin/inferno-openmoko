@@ -1,4 +1,4 @@
-#include <lib9.h>
+#include	"lib9.h"
 
 enum
 {
@@ -25,7 +25,7 @@ enum
 };
 
 int
-chartorune(Rune *rune, const char *str)
+chartorune(Rune *rune, char *str)
 {
 	int c, c1, c2;
 	long l;
@@ -81,7 +81,7 @@ bad:
 }
 
 int
-runetochar(char *str, const Rune *rune)
+runetochar(char *str, Rune *rune)
 {
 	long c;
 
@@ -126,7 +126,7 @@ runelen(long c)
 }
 
 int
-runenlen(const Rune *r, int l)
+runenlen(Rune *r, int l)
 {
 	int n;
 	long c;
@@ -146,7 +146,7 @@ runenlen(const Rune *r, int l)
 }
 
 int
-fullrune(const char *str, int n)
+fullrune(char *str, int n)
 {
 	int c;
 

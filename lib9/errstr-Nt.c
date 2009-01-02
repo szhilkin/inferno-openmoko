@@ -1,4 +1,4 @@
-#include <lib9.h>
+#include "lib9.h"
 #include <Windows.h>
 
 static char	errstring[ERRMAX];
@@ -11,7 +11,7 @@ enum
 static void
 winerror(int e, char *buf, uint nerr)
 {
-	int r;
+	DWORD r;
 	char buf2[ERRMAX], *p, *q;
 
 	r = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM,
@@ -35,7 +35,7 @@ winerror(int e, char *buf, uint nerr)
 }
 
 void
-werrstr(const char *fmt, ...)
+werrstr(char *fmt, ...)
 {
 	va_list arg;
 

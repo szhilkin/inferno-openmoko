@@ -11,8 +11,8 @@
  * REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
  */
-#include <lib9.h>
-#include <fmtdef.h>
+#include "lib9.h"
+#include "fmtdef.h"
 
 /*
  * generic routine for flushing a formatting buffer
@@ -31,10 +31,10 @@ _fmtFdFlush(Fmt *f)
 }
 
 int
-vfprint(int fd, const char *fmt, va_list args)
+vfprint(int fd, char *fmt, va_list args)
 {
 	Fmt f;
-	char buf[256]; /* TODO */
+	char buf[256];
 	int n;
 
 	fmtfdinit(&f, fd, buf, sizeof(buf));

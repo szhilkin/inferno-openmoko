@@ -114,7 +114,7 @@ tramp(LPVOID p)
 		push eax
 		mov fs:[0],esp
 	}
-
+		
 	up = p;
 	up->func(up->arg);
 	pexit("", 0);
@@ -140,7 +140,7 @@ kproc(char *name, void (*func)(void*), void *arg, int flags)
 		print("out of kernel processes\n");
 		return -1;
 	}
-
+		
 	if(flags & KPDUPPG) {
 		pg = up->env->pgrp;
 		incref(&pg->r);
@@ -177,7 +177,7 @@ kproc(char *name, void (*func)(void*), void *arg, int flags)
 	unlock(&procs.l);
 
 	p->pid = (int)CreateThread(0, 16384, tramp, p, 0, &h);
-	if(p->pid == 0){
+	if(p->pid <= 0){
 		pfree(p);
 		print("ran out of  kernel processes\n");
 		return -1;
@@ -437,7 +437,7 @@ erendezvous(void *tag, ulong value)
 			unlock(&hlock);
 			if(SetEvent(t->pid) == FALSE)
 				panic("Release failed\n");
-			return rval;
+			return rval;		
 		}
 	}
 
@@ -566,13 +566,20 @@ oslopri(void)
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 }
 
+/* Resolve system header name conflict */
+#undef Sleep
+void
+sleep(int secs)
+{
+	Sleep(secs*1000);
+}
 
 void*
 sbrk(int size)
 {
 	void *brk;
 
-	brk = VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	brk = VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE); 	
 	if(brk == 0)
 		return (void*)-1;
 
@@ -611,7 +618,7 @@ getpc(void *arg, ulong *narg)
 	return pc;
 }
 */
-
+	
 /*
  * Return an abitrary millisecond clock time
  */
@@ -734,15 +741,15 @@ limbosleep(ulong milsec)
 
 void
 osyield(void)
-{
-	Sleep(0);
+{	
+	sleep(0);
 }
 
 void
 ospause(void)
 {
       for(;;)
-              Sleep(1000000);
+              sleep(1000000);
 }
 
 /*

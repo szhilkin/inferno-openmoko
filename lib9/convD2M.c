@@ -1,10 +1,10 @@
-#include <lib9.h>
+#include	"lib9.h"
 #include	"fcall.h"
 
-size_t
-sizeD2M(const Dir *d)
+uint
+sizeD2M(Dir *d)
 {
-	const char *sv[4];
+	char *sv[4];
 	int i, ns;
 
 	sv[0] = d->name;
@@ -20,11 +20,11 @@ sizeD2M(const Dir *d)
 	return STATFIXLEN + ns;
 }
 
-size_t
-convD2M(const Dir *d, char *buf, size_t nbuf)
+uint
+convD2M(Dir *d, uchar *buf, uint nbuf)
 {
-	char *p, *ebuf;
-	const char *sv[4];
+	uchar *p, *ebuf;
+	char *sv[4];
 	int i, ns, nsv[4], ss;
 
 	if(nbuf < BIT16SZ)

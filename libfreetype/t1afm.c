@@ -16,10 +16,10 @@
 /***************************************************************************/
 
 
-
+#include <ft2build.h>
 #include "t1afm.h"
-#include <freetype/internal/ftstream.h>
-#include <freetype/internal/t1types.h>
+#include FT_INTERNAL_STREAM_H
+#include FT_INTERNAL_TYPE1_TYPES_H
 
 
   /*************************************************************************/
@@ -137,7 +137,7 @@
 
 
   /* compare two kerning pairs */
-  FT_CALLBACK_DEF( int )  __cdecl
+  FT_CALLBACK_DEF( int )
   compare_kern_pairs( const void*  a,
                       const void*  b )
   {

@@ -1,7 +1,7 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <kernel.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	"kernel.h"
 
 typedef	struct Fid	Fid;
 typedef	struct Export	Export;
@@ -61,7 +61,7 @@ struct Exq
 	Export*	export;
 	Proc*	slave;
 	Fcall	in, out;
-	char*	buf;
+	uchar*	buf;
 	int	bsize;
 };
 
@@ -127,7 +127,7 @@ export(int fd, char *dir, int async)
 	dc = namec(dir, Atodir, 0, 0);
 	poperror();
 
-	fs = (Export*)malloc(sizeof(Export));
+	fs = malloc(sizeof(Export));
 	if(fs == nil){
 		cclose(c);
 		cclose(dc);
@@ -155,7 +155,7 @@ export(int fd, char *dir, int async)
 	if(async){
 		if(waserror())
 			return -1;
-		kproc("exportfs", exportproc, fs, 0);  /* BUG: check return value */
+		kproc("exportfs", exportproc, fs, 0);
 		poperror();
 	}else
 		exportproc(fs);
@@ -210,10 +210,12 @@ exreadn(Chan *c, void *buf, int n)
 }
 
 static int
-exreadmsg(Chan *c, char *buf, uint n)
+exreadmsg(Chan *c, void *a, uint n)
 {
 	int m, len;
+	uchar *buf;
 
+	buf = a;
 	m = exreadn(c, buf, BIT32SZ);
 	if(m < BIT32SZ){
 		if(m < 0)
@@ -241,7 +243,7 @@ exportproc(void *a)
 	Exq *q;
 	int async, msize;
 	int n, type;
-	Export *fs = (Export *)a;
+	Export *fs = a;
 
 	exportinit();
 
@@ -251,12 +253,12 @@ exportproc(void *a)
 		if(msize == 0)
 			msize = MAXRPCDEF;
 		for(n=0;; n++){	/* we don't use smalloc, to avoid memset */
-			q = (Exq *)mallocz(sizeof(*q)+msize, 0);
+			q = mallocz(sizeof(*q)+msize, 0);
 			if(q != nil || n > 6000)
 				break;
 			if(n%600 == 0)
 				print("exportproc %ld: waiting for memory (%d) for request\n", up->pid, msize);
-			osenter(); /* BUG WTF */
+			osenter();
 			osmillisleep(100);
 			osleave();
 		}
@@ -266,7 +268,7 @@ exportproc(void *a)
 			break;
 		}
 		memset(q, 0, sizeof(*q));
-		q->buf = (char*)q + sizeof(*q);
+		q->buf = (uchar*)q + sizeof(*q);
 		q->bsize = msize;
 
 		n = exreadmsg(fs->io, q->buf, msize);	/* TO DO: avoid copy */
@@ -331,8 +333,8 @@ exportproc(void *a)
 		exq.tail = q;
 		unlock(&exq.l);
 		if(exq.qwait.head == nil)
-			kproc("exslave", exslave, nil, 0);  /* BUG: check return value */
-		wakeup9(&exq.rwait);
+			kproc("exslave", exslave, nil, 0);
+		Wakeup(&exq.rwait);
 	}
 
 	if(exdebug){
@@ -504,7 +506,7 @@ exslave(void *a)
 			qunlock(&exq.qwait);
 			continue;
 		}
-		sleep9(&exq.rwait, exwork, nil);
+		Sleep(&exq.rwait, exwork, nil);
 		poperror();
 
 		lock(&exq.l);
@@ -656,7 +658,7 @@ Exmkfid(Export *fs, ulong fid)
 	ulong h;
 	Fid *f, *nf;
 
-	nf = (Fid *)malloc(sizeof(Fid));
+	nf = malloc(sizeof(Fid));
 	if(nf == nil)
 		return nil;
 	lock(&fs->fidlock);
@@ -827,7 +829,7 @@ Exclunk(Export *fs, Fcall *t, Fcall *r)
 }
 
 static int
-safewalk(Chan **cp, const char **names, int nnames, int nomount, int *nerror)
+safewalk(Chan **cp, char **names, int nnames, int nomount, int *nerror)
 {
 	int r;
 
@@ -844,7 +846,7 @@ Exwalk(Export *fs, Fcall *t, Fcall *r)
 {
 	Fid *f, *nf;
 	Chan *c;
-	const char *name;
+	char *name;
 	Uqid *qid;
 	int i;
 

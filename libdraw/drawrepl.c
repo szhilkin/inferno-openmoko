@@ -1,5 +1,5 @@
-#include <lib9.h>
-#include <draw.h>
+#include "lib9.h"
+#include "draw.h"
 
 int
 drawreplxy(int min, int max, int x)
@@ -19,3 +19,4 @@ drawrepl(Rectangle r, Point p)
 	p.y = drawreplxy(r.min.y, r.max.y, p.y);
 	return p;
 }
+

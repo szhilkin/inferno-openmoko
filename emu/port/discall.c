@@ -1,23 +1,22 @@
-#include <dat.h>
-#include <fns.h>
-#include <isa.h>
+#include "dat.h"
+#include "fns.h"
 #include <interp.h>
 
 #define	QP(l)	(Prog**)((char*)(l)+sizeof(QLock))
 
 void*
-libqlowner(QLock *q)
+libqlowner(void *l)
 {
-	return *QP(q);
+	return *QP(l);
 }
 
 void
-libqlock(QLock *q)
+libqlock(void *l)
 {
 	Prog *p;
-	//QLock *q;
+	QLock *q;
 
-	//q = l;
+	q = l;
 	p = currun();
 	if(p == nil)
 		abort();
@@ -27,39 +26,39 @@ libqlock(QLock *q)
 		qlock(q);
 		acquire();
 	}
-	*QP(q) = p;
+	*QP(l) = p;
 }
 
 void
-libqunlock(QLock *q)
+libqunlock(void *l)
 {
 	Prog *p;
-	//QLock *q;
+	QLock *q;
 
-	//q = l;
+	q = l;
 	p = currun();
 	if(p == nil)
 		abort();
-	if(*QP(q) != p)
+	if(*QP(l) != p)
 		abort();
 
-	*QP(q) = nil;
+	*QP(l) = nil;
 	qunlock(q);
 }
 
-QLock*
+void*
 libqlalloc(void)
 {
 	QLock *q;
 
-	q = (QLock *)mallocz(sizeof(QLock)+sizeof(Prog*), 1);
+	q = mallocz(sizeof(QLock)+sizeof(Prog*), 1);
 	return q;
 }
 
 void
-libqlfree(QLock *q)
+libqlfree(void *l)
 {
-	free(q);
+	free(l);
 }
 
 vlong
@@ -72,7 +71,7 @@ libseek(int fd, vlong off, int whence)
 }
 
 int
-libread(int fd, char *buf, int n)
+libread(int fd, void *buf, int n)
 {
 	release();
 	n = kread(fd, buf, n);
@@ -81,12 +80,12 @@ libread(int fd, char *buf, int n)
 }
 
 int
-libreadn(int fd, char *a, long n)
+libreadn(int fd, void *av, long n)
 {
-	//char *a;
+	char *a;
 	long m, t;
 
-	//a = av;
+	a = av;
 	t = 0;
 	release();
 	while(t < n){
@@ -114,7 +113,7 @@ libwrite(int fd, void *buf, int n)
 }
 
 int
-libopen(const char *name, int omode)
+libopen(char *name, int omode)
 {
 	int fd;
 
@@ -156,7 +155,7 @@ libbind(char *s, char *t, int f)
 }
 
 void
-libchanclose(Chan *chan)
+libchanclose(void *chan)
 {
 	release();
 	cclose(chan);

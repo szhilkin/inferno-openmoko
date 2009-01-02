@@ -25,17 +25,14 @@
 #ifndef __T1ERRORS_H__
 #define __T1ERRORS_H__
 
-#include <freetype/ftmoderr.h>
+#include FT_MODULE_ERRORS_H
 
 #undef __FTERRORS_H__
 
 #define FT_ERR_PREFIX  T1_Err_
 #define FT_ERR_BASE    FT_Mod_Err_Type1
 
-#include <freetype/fterrors.h>
-
-#undef FT_ERR_PREFIX
-#undef FT_ERR_BASE
+#include FT_ERRORS_H
 
 #endif /* __T1ERRORS_H__ */
 

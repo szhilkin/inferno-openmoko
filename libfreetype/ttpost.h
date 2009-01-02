@@ -21,14 +21,12 @@
 #define __TTPOST_H__
 
 
+#include <ft2build.h>
+#include FT_CONFIG_CONFIG_H
+#include FT_INTERNAL_TRUETYPE_TYPES_H
 
-#include <freetype/config/ftconfig.h>
-#include <freetype/internal/tttypes.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   FT_LOCAL( FT_Error )
@@ -40,9 +38,7 @@ extern "C" {
   tt_face_free_ps_names( TT_Face  face );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __TTPOST_H__ */
 

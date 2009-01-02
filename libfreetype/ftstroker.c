@@ -1,8 +1,8 @@
-
-#include <freetype/ftstroker.h>
-#include <freetype/fttrigon.h>
-#include <freetype/internal/ftmemory.h>
-#include <freetype/internal/ftdebug.h>
+#include <ft2build.h>
+#include FT_STROKER_H
+#include FT_TRIGONOMETRY_H
+#include FT_INTERNAL_MEMORY_H
+#include FT_INTERNAL_DEBUG_H
 
  /***************************************************************************/
  /***************************************************************************/

@@ -19,12 +19,10 @@
 #ifndef __PFRTYPES_H__
 #define __PFRTYPES_H__
 
+#include <ft2build.h>
+#include FT_INTERNAL_OBJECTS_H
 
-#include <freetype/internal/ftobjs.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
   /************************************************************************/
 
@@ -348,9 +346,7 @@ extern "C" {
   } PFR_GlyphRec, *PFR_Glyph;
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __PFRTYPES_H__ */
 

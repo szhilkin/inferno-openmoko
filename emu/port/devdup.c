@@ -1,13 +1,12 @@
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-#include <isa.h>
-#include <interp.h>
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	"interp.h"
 
 /* Qid is (2*fd + (file is ctl))+1 */
 
 static int
-dupgen(Chan *c, const char *name, Dirtab *tab, int ntab, int s, Dir *dp)
+dupgen(Chan *c, char *name, Dirtab *tab, int ntab, int s, Dir *dp)
 {
 	Fgrp *fgrp = up->env->fgrp;
 	Chan *f;
@@ -40,19 +39,19 @@ dupgen(Chan *c, const char *name, Dirtab *tab, int ntab, int s, Dir *dp)
 }
 
 static Chan*
-dupattach(const char *spec)
+dupattach(char *spec)
 {
 	return devattach('d', spec);
 }
 
 static Walkqid*
-dupwalk(Chan *c, Chan *nc, const char **name, int nname)
+dupwalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	return devwalk(c, nc, name, nname, nil, 0, dupgen);
 }
 
 static int
-dupstat(Chan *c, char *db, int n)
+dupstat(Chan *c, uchar *db, int n)
 {
 	return devstat(c, db, n, nil, 0, dupgen);
 }
@@ -98,13 +97,14 @@ dupclose(Chan *c)
 }
 
 static long
-dupread(Chan *c, char *va, long n, vlong offset)
+dupread(Chan *c, void *va, long n, vlong offset)
 {
+	char *a = va;
 	char buf[256];
 	int fd, twicefd;
 
 	if(c->qid.type == QTDIR)
-		return devdirread(c, va, n, nil, 0, dupgen);
+		return devdirread(c, a, n, nil, 0, dupgen);
 	twicefd = c->qid.path - 1;
 	fd = twicefd/2;
 	if(twicefd & 1){
@@ -123,7 +123,7 @@ dupread(Chan *c, char *va, long n, vlong offset)
 }
 
 static long
-dupwrite(Chan *c, const char *a, long n, vlong o)
+dupwrite(Chan *c, void *a, long n, vlong o)
 {
 	USED(c); USED(a); USED(n); USED(o);
 	panic("dupwrite");

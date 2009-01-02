@@ -1,6 +1,6 @@
-#include <lib9.h>
-#include <a.out.h>
-#include <dynld.h>
+#include	"lib9.h"
+#include	<a.out.h>
+#include	<dynld.h>
 
 static ulong
 get2(uchar *b)
@@ -59,7 +59,7 @@ dynimport(Dynobj *o, char *name, ulong sig)
 	t = dynfindsym(name, o->export, o->nexport);
 	if(t == nil || sig != 0 && t->sig != 0 && t->sig != sig)
 		return nil;
-	return (void*)t->addr;  /* XXX */
+	return (void*)t->addr;
 }
 
 int

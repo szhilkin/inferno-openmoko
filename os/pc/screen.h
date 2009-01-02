@@ -76,16 +76,15 @@ typedef struct VGAscr VGAscr;
 struct VGAdev {
 	char*	name;
 
-	int	(*enable)(VGAscr*);
+	void	(*enable)(VGAscr*);
 	void	(*disable)(VGAscr*);
 	void	(*page)(VGAscr*, int);
-	ulong	(*linear)(VGAscr*, int*, int*); /* to be removed */
+	ulong	(*linear)(VGAscr*, int*, int*);
 	void	(*drawinit)(VGAscr*);
 	int	(*fill)(VGAscr*, Rectangle, ulong);
 	void	(*ovlctl)(VGAscr*, Chan*, void*, int);
 	int	(*ovlwrite)(VGAscr*, void*, int, vlong);
-	void	(*flush)(VGAscr*, Rectangle);
-	int	(*setmode)(VGAscr*, int, int, int, ulong);
+	void (*flush)(VGAscr*, Rectangle);
 };
 
 struct VGAcur {

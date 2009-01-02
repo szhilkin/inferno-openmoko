@@ -21,9 +21,7 @@
 
 #include "cffobjs.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -42,14 +40,14 @@ extern "C" {
     FT_CMapRec  cmap;
     FT_UInt     count;
     FT_UShort*  gids;   /* up to 256 elements */
-
+    
   } CFF_CMapStdRec;
 
 
   FT_CALLBACK_TABLE const FT_CMap_ClassRec
   cff_cmap_encoding_class_rec;
 
-
+  
   /*************************************************************************/
   /*************************************************************************/
   /*****                                                               *****/
@@ -65,7 +63,7 @@ extern "C" {
   {
     FT_UInt32  unicode;
     FT_UInt    gindex;
-
+  
   } CFF_CMapUniPairRec, *CFF_CMapUniPair;
 
 
@@ -82,9 +80,7 @@ extern "C" {
   cff_cmap_unicode_class_rec;
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __CFFCMAP_H__ */
 

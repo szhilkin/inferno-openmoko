@@ -1,4 +1,4 @@
-#include <lib9.h>
+#include "lib9.h"
 #include <a.out.h>
 #include <dynld.h>
 
@@ -16,12 +16,12 @@ dynreloc(uchar *b, ulong p, int m, Dynsym **tab, int ntab)
 	int i;
 	ulong v, *pp;
 
-	p += (ulong)b; /* XXX */
-	pp = (ulong*)p; /* XXX */
+	p += (ulong)b;
+	pp = (ulong*)p;
 	v = *pp;
 	switch(m){
 	case 0:
-		v += (ulong)b; /* XXX */
+		v += (ulong)b;
 		break;
 	case 1:
 		i = v>>22;

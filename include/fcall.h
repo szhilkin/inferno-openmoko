@@ -17,7 +17,7 @@ struct	Fcall
 			char	*version;	/* Tversion, Rversion */
 		/* }; */
 		/* struct { */
-			u16int	oldtag;		/* Tflush */
+			ushort	oldtag;		/* Tflush */
 		/* }; */
 		/* struct { */
 			char	*ename;		/* Rerror */
@@ -35,17 +35,17 @@ struct	Fcall
 			char	*aname;		/* Tauth, Tattach */
 		/* }; */
 		/* struct { */
-			u32int	perm;		/* Tcreate */
-			/*const*/ char	*name;		/* Tcreate */
+			u32int	perm;		/* Tcreate */ 
+			char	*name;		/* Tcreate */
 			uchar	mode;		/* Tcreate, Topen */
 		/* }; */
 		/* struct { */
 			u32int	newfid;		/* Twalk */
-			u16int	nwname;		/* Twalk */
+			ushort	nwname;		/* Twalk */
 			char	*wname[MAXWELEM];	/* Twalk */
 		/* }; */
 		/* struct { */
-			u16int	nwqid;		/* Rwalk */
+			ushort	nwqid;		/* Rwalk */
 			Qid	wqid[MAXWELEM];		/* Rwalk */
 		/* }; */
 		/* struct { */
@@ -54,12 +54,24 @@ struct	Fcall
 			char	*data;		/* Twrite, Rread */
 		/* }; */
 		/* struct { */
-			u16int	nstat;		/* Twstat, Rstat */
-			char	*stat;		/* Twstat, Rstat */
+			ushort	nstat;		/* Twstat, Rstat */
+			uchar	*stat;		/* Twstat, Rstat */
 		/* }; */
 	/* }; */
 } Fcall;
 
+
+#define	GBIT8(p)	((p)[0])
+#define	GBIT16(p)	((p)[0]|((p)[1]<<8))
+#define	GBIT32(p)	((u32int)((p)[0]|((p)[1]<<8)|((p)[2]<<16)|((p)[3]<<24)))
+#define	GBIT64(p)	((u32int)((p)[0]|((p)[1]<<8)|((p)[2]<<16)|((p)[3]<<24)) |\
+				((vlong)((p)[4]|((p)[5]<<8)|((p)[6]<<16)|((p)[7]<<24)) << 32))
+
+#define	PBIT8(p,v)	(p)[0]=(v)
+#define	PBIT16(p,v)	(p)[0]=(v);(p)[1]=(v)>>8
+#define	PBIT32(p,v)	(p)[0]=(v);(p)[1]=(v)>>8;(p)[2]=(v)>>16;(p)[3]=(v)>>24
+#define	PBIT64(p,v)	(p)[0]=(v);(p)[1]=(v)>>8;(p)[2]=(v)>>16;(p)[3]=(v)>>24;\
+			(p)[4]=(v)>>32;(p)[5]=(v)>>40;(p)[6]=(v)>>48;(p)[7]=(v)>>56
 
 #define	BIT8SZ		1
 #define	BIT16SZ		2
@@ -108,14 +120,14 @@ enum
 	Tmax,
 };
 
-size_t	convM2S(char*, size_t, Fcall*);
-size_t	convS2M(const Fcall*, char*, size_t);
-size_t	sizeS2M(const Fcall*);
+uint	convM2S(uchar*, uint, Fcall*);
+uint	convS2M(Fcall*, uchar*, uint);
+uint	sizeS2M(Fcall*);
 
-int	statcheck(const char *abuf, size_t nbuf);
-size_t	convM2D(const char*, size_t, Dir*, char*);
-size_t	convD2M(const Dir*, char*, size_t);
-size_t	sizeD2M(const Dir*);
+int	statcheck(uchar *abuf, uint nbuf);
+uint	convM2D(uchar*, uint, Dir*, char*);
+uint	convD2M(Dir*, uchar*, uint);
+uint	sizeD2M(Dir*);
 
 int	fcallfmt(Fmt*);
 int	dirfmt(Fmt*);

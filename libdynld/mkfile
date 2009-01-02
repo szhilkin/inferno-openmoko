@@ -1,6 +1,6 @@
 <../mkconfig
 
-LIBNAME=libdynld.a
+LIB=libdynld.a
 
 OFILES=\
 	dynld-$OBJTYPE.$O\

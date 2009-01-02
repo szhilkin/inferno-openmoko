@@ -20,13 +20,11 @@
 #define __CIDGLOAD_H__
 
 
-
+#include <ft2build.h>
 #include "cidobjs.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 #if 0
@@ -45,9 +43,7 @@ extern "C" {
                        FT_Int32       load_flags );
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __CIDGLOAD_H__ */
 

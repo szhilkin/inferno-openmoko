@@ -1,21 +1,22 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <raise.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "raise.h"
 #include <kernel.h>
 
 static void
-newlink(Link *l, const char *fn, int sig, Type *t)
+newlink(Link *l, char *fn, int sig, Type *t)
 {
-	l->name = strdup(fn);
+	l->name = malloc(strlen(fn)+1);
 	if(l->name == nil)
 		error(exNomem);
+	strcpy(l->name, fn);
 	l->sig = sig;
 	l->frame = t;
 }
 
 void
-runtime(Module *m, Link *l, const char *fn, int sig, void (*runt)(void*), Type *t)
+runtime(Module *m, Link *l, char *fn, int sig, void (*runt)(void*), Type *t)
 {
 	USED(m);
 	newlink(l, fn, sig, t);
@@ -23,9 +24,9 @@ runtime(Module *m, Link *l, const char *fn, int sig, void (*runt)(void*), Type *
 }
 
 void
-mlink(Module *m, Link* l, const char *fn, int sig, int pc, Type *t)
+mlink(Module *m, Link* l, uchar *fn, int sig, int pc, Type *t)
 {
-	newlink(l, fn, sig, t);
+	newlink(l, (char*)fn, sig, t);
 	l->u.pc = m->prog+pc;
 }
 
@@ -60,10 +61,6 @@ bad:
 	return -1;
 }
 
-/**
- * Modlink constructor
- * n - num of links
- */
 Modlink*
 mklinkmod(Module *m, int n)
 {
@@ -79,14 +76,14 @@ mklinkmod(Module *m, int n)
 	ml->prog = m->prog;
 	ml->type = m->type;
 	ml->compiled = m->compiled;
-	ml->MP = (char*)H;
+	ml->MP = H;
 	ml->data = nil;
 
 	return ml;
 }
 
 Modlink*
-linkmod(Module *m, Import *ldt, int mkmp/*=0*/)
+linkmod(Module *m, Import *ldt, int mkmp)
 {
 	Type *t;
 	Heap *h;
@@ -95,7 +92,7 @@ linkmod(Module *m, Import *ldt, int mkmp/*=0*/)
 	Import *l;
 
 	if(m == nil)
-		return (Modlink*)H;
+		return H;
 
 	for(i = 0, l = ldt; l->name != nil; i++, l++)
 		;
@@ -109,15 +106,15 @@ linkmod(Module *m, Import *ldt, int mkmp/*=0*/)
 			h = nheap(t->size);
 			h->t = t;
 			t->ref++;
-			ml->MP = H2D(char*, h);
+			ml->MP = H2D(uchar*, h);
 			newmp(ml->MP, m->origmp, t);
 		}
 	}
 
 	for(i = 0, l = ldt; l->name != nil; i++, l++) {
 		if(linkm(m, ml, i, l) < 0){
-			ASSIGN(ml, H);
-			return (Modlink*)H;
+			destroy(ml);
+			return H;
 		}
 	}
 

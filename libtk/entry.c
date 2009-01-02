@@ -1,12 +1,8 @@
 #include <lib9.h>
-#include <draw.h>
 #include <kernel.h>
-#include <keyboard.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
+#include "draw.h"
+#include "keyboard.h"
+#include "tk.h"
 
 /* Widget Commands (+ means implemented)
 	+bbox
@@ -22,7 +18,10 @@
 	+see
 */
 
+#define	O(t, e)		((long)(&((t*)0)->e))
+
 #define CNTL(c) ((c)&0x1f)
+#define DEL 0x7f
 
 /* Layout constants */
 enum {
@@ -48,28 +47,28 @@ static TkStab tkjust[] =
 };
 
 static
-TkEbind b_entry[] =
+TkEbind b[] = 
 {
 	{TkKey,			"%W delete sel.first sel.last; %W insert insert {%A};%W see insert"},
 	{TkKey|CNTL('a'),	"%W icursor 0;%W see insert;%W selection clear"},
 	{TkKey|Home,		"%W icursor 0;%W see insert;%W selection clear"},
 	{TkKey|CNTL('d'),	"%W delete insert; %W see insert"},
-	{TkKey|CNTL('e'),    	"%W icursor end; %W see insert;%W selection clear"},
-	{TkKey|End,	     	"%W icursor end; %W see insert;%W selection clear"},
+	{TkKey|CNTL('e'),    "%W icursor end; %W see insert;%W selection clear"},
+	{TkKey|End,	     "%W icursor end; %W see insert;%W selection clear"},
 	{TkKey|CNTL('h'),	"%W tkEntryBS;%W see insert"},
 	{TkKey|CNTL('k'),	"%W delete insert end;%W see insert"},
 	{TkKey|CNTL('u'),	"%W delete 0 end;%W see insert"},
 	{TkKey|CNTL('w'),	"%W delete sel.first sel.last; %W tkEntryBW;%W see insert"},
-	{TkKey|Del,		"%W tkEntryBS 1;%W see insert"},
+	{TkKey|DEL,		"%W tkEntryBS 1;%W see insert"},
 	{TkKey|CNTL('\\'),	"%W selection clear"},
 	{TkKey|CNTL('/'),	"%W selection range 0 end"},
-	{TkKey|Left,		"%W icursor insert-1;%W selection clear;%W selection from insert;%W see insert"},
-	{TkKey|Right,		"%W icursor insert+1;%W selection clear;%W selection from insert;%W see insert"},
+	{TkKey|Left,	"%W icursor insert-1;%W selection clear;%W selection from insert;%W see insert"},
+	{TkKey|Right,	"%W icursor insert+1;%W selection clear;%W selection from insert;%W see insert"},
 	{TkButton1P,		"focus %W; %W tkEntryB1P %X"},
 	{TkButton1P|TkMotion, 	"%W tkEntryB1M %X"},
 	{TkButton1R,		"%W tkEntryB1R"},
 	{TkButton1P|TkDouble,	"%W tkEntryB1P %X;%W selection word @%x"},
-	{TkButton2P,		"%W tkEntryB2P %x"},
+	{TkButton2P,			"%W tkEntryB2P %x"},
 	{TkButton2P|TkMotion,	"%W xview scroll %x scr"},
 	{TkFocusin,		"%W tkEntryFocus in"},
 	{TkFocusout,		"%W tkEntryFocus out"},
@@ -105,14 +104,14 @@ struct TkEntry
 	int		xicursor;		/* position of insertion cursor */
 };
 
-static void blinkreset_entry(Tk*);
+static void blinkreset(Tk*);
 
 static
-TkOption opts_entry[] =
+TkOption opts[] =
 {
-	{"xscrollcommand",	OPTtext,	offsetof(TkEntry, xscroll)	},
-	{"justify",		OPTstab,	offsetof(TkEntry, flag),	{tkjust}},
-	{"show",		OPTtext,	offsetof(TkEntry, show)		},
+	{"xscrollcommand",	OPTtext,	O(TkEntry, xscroll),	nil},
+	{"justify",		OPTstab,	O(TkEntry, flag),	tkjust},
+	{"show",			OPTtext,	O(TkEntry, show),	nil},
 	{nil}
 };
 
@@ -255,7 +254,7 @@ tkentry(TkTop *t, char *arg, char **ret)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tke;
-	tko[1].optab = opts_entry;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	names = nil;
@@ -266,7 +265,7 @@ tkentry(TkTop *t, char *arg, char **ret)
 	}
 	tksettransparent(tk, tkhasalpha(tk->env, TkCbackgnd));
 	tksizeentry(tk);
-	e = tkbindings(t, tk, b_entry, nelem(b_entry));
+	e = tkbindings(t, tk, b, nelem(b));
 
 	if(e != nil) {
 		tkfreeobj(tk);
@@ -294,7 +293,7 @@ tkentrycget(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tke;
-	tko[1].optab = opts_entry;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	return tkgencget(tko, arg, val, tk->env->top);
@@ -322,7 +321,7 @@ tkentrytext(Image *i, Rectangle s, Tk *tk, TkEnv *env)
 	dp = Pt(s.min.x - (tke->x0 - tke->xv0), s.min.y);
 	if (tke->show) {
 		chartorune(&showr, tke->show);
-		text = (Rune *)mallocz(sizeof(Rune) * (tke->textlen+1), 0);
+		text = mallocz(sizeof(Rune) * (tke->textlen+1), 0);
 		if (text == nil)
 			return;
 		for (j = 0; j < tke->textlen; j++)
@@ -358,7 +357,7 @@ tkentrytext(Image *i, Rectangle s, Tk *tk, TkEnv *env)
 
 	if((tke->flag&Ecursoron) && tke->icursor >= tke->v0 && tke->icursor <= tke->v1) {
 		r = Rect(
-			tke->xicursor - tke->x0, 0,
+			tke->xicursor - tke->x0, 0, 
 			tke->xicursor - tke->x0 + Inswidth, env->font->height
 		);
 		draw(i, rectaddpt(r, s.min), tkgc(env, TkCforegnd), nil, ZP);
@@ -406,7 +405,7 @@ tkdrawentry(Tk *tk, Point orig)
 
 	return nil;
 }
-
+	
 char*
 tkentrysh(Tk *tk)
 {
@@ -429,13 +428,13 @@ tkentrysh(Tk *tk)
 		}
 	}
 
-	val = (char*)mallocz(Tkminitem, 0);
+	val = mallocz(Tkminitem, 0);
 	if(val == nil)
 		return TkNomem;
 	v = tkfprint(val, bot);
 	*v++ = ' ';
 	tkfprint(v, top);
-	cmd = (char*)mallocz(Tkminitem, 0);
+	cmd = mallocz(Tkminitem, 0);
 	if(cmd == nil) {
 		free(val);
 		return TkNomem;
@@ -470,7 +469,7 @@ tkentryconf(Tk *tk, char *arg, char **val)
 	tko[0].ptr = tk;
 	tko[0].optab = tkgeneric;
 	tko[1].ptr = tke;
-	tko[1].optab = opts_entry;
+	tko[1].optab = opts;
 	tko[2].ptr = nil;
 
 	if(*arg == '\0')
@@ -620,7 +619,7 @@ tkentryseecmd(Tk *tk, char *arg, char **val)
 
 	USED(val);
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	tkword(tk->env->top, arg, buf, buf+Tkmaxitem, nil);
@@ -631,7 +630,7 @@ tkentryseecmd(Tk *tk, char *arg, char **val)
 
 	tkentrysee(tk, index, 1);
 	recalcentry(tk);
-
+	
 	return nil;
 }
 
@@ -643,7 +642,7 @@ tkentrybboxcmd(Tk *tk, char *arg, char **val)
 	int index;
 	Rectangle bbox;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	tkword(tk->env->top, arg, buf, buf+Tkmaxitem, nil);
@@ -661,7 +660,7 @@ tkentryindex(Tk *tk, char *arg, char **val)
 	int index;
 	char *r, *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	tkword(tk->env->top, arg, buf, buf+Tkmaxitem, nil);
@@ -680,7 +679,7 @@ tkentryicursor(Tk *tk, char *arg, char **val)
 	char *r, *buf;
 
 	USED(val);
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	tkword(tk->env->top, arg, buf, buf+Tkmaxitem, nil);
@@ -694,7 +693,7 @@ tkentryicursor(Tk *tk, char *arg, char **val)
 	if (locked)
 		unlockdisplay(tk->env->top->display);
 
-	blinkreset_entry(tk);
+	blinkreset(tk);
 	tk->dirty = tkrect(tk, 1);
 	return nil;
 }
@@ -725,7 +724,7 @@ tkentryget(Tk *tk, char *arg, char **val)
 	int first, last;
 	char *e, *buf;
 
-	tke = TKobj(TkEntry, tk);
+	tke = TKobj(TkEntry, tk);	
 	if(tke->text == nil)
 		return nil;
 
@@ -734,7 +733,7 @@ tkentryget(Tk *tk, char *arg, char **val)
 		return tkvalue(val, "%.*S", tke->textlen, tke->text);
 
 	top = tk->env->top;
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	arg = tkword(top, arg, buf, buf+Tkmaxitem, nil);
@@ -771,7 +770,7 @@ tkentryinsert(Tk *tk, char *arg, char **val)
 	tke = TKobj(TkEntry, tk);
 
 	top = tk->env->top;
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	arg = tkword(top, arg, buf, buf+Tkmaxitem, nil);
@@ -786,13 +785,13 @@ tkentryinsert(Tk *tk, char *arg, char **val)
 	n = strlen(arg) + 1;
 	if(n < Tkmaxitem)
 		n = Tkmaxitem;
-	text = (char*)malloc(n);
+	text = malloc(n);
 	if(text == nil)
 		return TkNomem;
 
 	tkword(top, arg, text, text+n, nil);
 	n = utflen(text);
-	etext = (Rune*)realloc(tke->text, (tke->textlen+n+1)*sizeof(Rune));
+	etext = realloc(tke->text, (tke->textlen+n+1)*sizeof(Rune));
 	if(etext == nil) {
 		free(text);
 		return TkNomem;
@@ -820,7 +819,7 @@ tkentryinsert(Tk *tk, char *arg, char **val)
 	recalcentry(tk);
 
 	e = tkentrysh(tk);
-	blinkreset_entry(tk);
+	blinkreset(tk);
 	tk->dirty = tkrect(tk, 1);
 
 	return e;
@@ -840,7 +839,7 @@ tkentrydelete(Tk *tk, char *arg, char **val)
 	tke = TKobj(TkEntry, tk);
 
 	top = tk->env->top;
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	arg = tkword(top, arg, buf, buf+Tkmaxitem, nil);
@@ -866,7 +865,7 @@ tkentrydelete(Tk *tk, char *arg, char **val)
 	memmove(tke->text+d0, tke->text+d1, (tke->textlen-d1)*sizeof(Rune));
 	tke->textlen -= d1 - d0;
 
-	text = (Rune*)realloc(tke->text, (tke->textlen+1) * sizeof(Rune));
+	text = realloc(tke->text, (tke->textlen+1) * sizeof(Rune));
 	if (text != nil)
 		tke->text = text;
 	tke->sel0 = adjustfordel(d0, d1, tke->sel0);
@@ -884,7 +883,7 @@ tkentrydelete(Tk *tk, char *arg, char **val)
 	recalcentry(tk);
 
 	e = tkentrysh(tk);
-	blinkreset_entry(tk);
+	blinkreset(tk);
 	tk->dirty = tkrect(tk, 1);
 
 	return e;
@@ -910,7 +909,7 @@ tkentrybs(Tk *tk, char *arg, char **val)
 	if(tke->sel0 < tke->sel1)
 		return tkentrydelete(tk, "sel.first sel.last", nil);
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 	tkword(tk->env->top, arg, buf, buf+Tkmaxitem, nil);
@@ -975,7 +974,7 @@ tkentryselect(Tk *tk, char *arg, char **val)
 	TkEntry *tke;
 	char *e, *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -1003,7 +1002,7 @@ tkentryselect(Tk *tk, char *arg, char **val)
 			free(buf);
 			return e;
 		}
-
+		
 		if(to < tke->anchor) {
 			if(tke->flag & Ewordsel)
 				while(to > 0 && tkiswordchar(tke->text[to-1]))
@@ -1126,7 +1125,7 @@ tkentryb2p(Tk *tk, char *arg, char **val)
 	USED(val);
 
 	tke = TKobj(TkEntry, tk);
-	buf = (char*)malloc(Tkmaxitem);
+	buf = malloc(Tkmaxitem);
 	if (buf == nil)
 		return TkNomem;
 
@@ -1149,7 +1148,7 @@ tkentryxview(Tk *tk, char *arg, char **val)
 	env = tk->env;
 	dx = tk->act.width - 2*xinset(tk);
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -1211,13 +1210,13 @@ tkentryxview(Tk *tk, char *arg, char **val)
 		tke->x0 = 0;
 	recalcentry(tk);
 	e = tkentrysh(tk);
-	blinkreset_entry(tk);
+	blinkreset(tk);
 	tk->dirty = tkrect(tk, 1);
 	return e;
 }
 
 static void
-autoselect_entry(Tk *tk, const char *v, int cancelled)
+autoselect(Tk *tk, void *v, int cancelled)
 {
 	TkEntry *tke = TKobj(TkEntry, tk);
 	Rectangle hitr;
@@ -1269,8 +1268,8 @@ tkentryb1p(Tk *tk, char* arg, char **ret)
 		unlockdisplay(tk->env->top->display);
 
 	tke->oldx = x;
-	blinkreset_entry(tk);
-	tkrepeat(tk, autoselect_entry, nil, TkRptpause, TkRptinterval);
+	blinkreset(tk);
+	tkrepeat(tk, autoselect, nil, TkRptpause, TkRptinterval);
 	tk->dirty = tkrect(tk, 0);
 	return nil;
 }
@@ -1306,7 +1305,7 @@ tkentryb1r(Tk *tk, char* arg, char **ret)
 }
 
 static void
-blinkreset_entry(Tk *tk)
+blinkreset(Tk *tk)
 {
 	TkEntry *e = TKobj(TkEntry, tk);
 	if (!tkhaskeyfocus(tk) || tk->flag&Tkdisabled)
@@ -1316,7 +1315,7 @@ blinkreset_entry(Tk *tk)
 }
 
 static void
-showcaret_entry(Tk *tk, int on)
+showcaret(Tk *tk, int on)
 {
 	TkEntry *e = TKobj(TkEntry, tk);
 
@@ -1337,13 +1336,13 @@ tkentryfocus(Tk *tk, char* arg, char **ret)
 		return nil;
 
 	if(strcmp(arg, " in") == 0) {
-		tkblink(tk, showcaret_entry);
+		tkblink(tk, showcaret);
 		on = 1;
 	}
 	else
 		tkblink(nil, nil);
 
-	showcaret_entry(tk, on);
+	showcaret(tk, on);
 	return nil;
 }
 

@@ -1,4 +1,4 @@
-#include <lib9.h>
+#include "lib9.h"
 #include <windows.h>
 
 
@@ -10,7 +10,7 @@ getwd(char *buf, int size)
 
 	buf[0] = 0;
 
-	n = GetCurrentDirectoryA(size, buf); // TODO: unicode
+	n = GetCurrentDirectoryA(size, buf);
 	if(n == 0) {
 		/*winerror();*/
 		return 0;

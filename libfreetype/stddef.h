@@ -17,17 +17,17 @@
 #define NULL 0
 #endif
 
-#if !defined(_PTRDIFF_T) && !defined(_PTRDIFF_T_DEFINED)
+#ifndef _PTRDIFF_T
 #define	_PTRDIFF_T
 typedef long ptrdiff_t;
 #endif
 #undef _BSD_PTRDIFF_T
-#if !defined(_SIZE_T) && !defined(_SIZE_T_DEFINED)
+#ifndef _SIZE_T
 #define _SIZE_T
 typedef unsigned long size_t;
 #endif
 #undef _BSD_SIZE_T
-#if !defined(_WCHAR_T) && !defined(_WCHAR_T_DEFINED)
+#ifndef _WCHAR_T
 #define _WCHAR_T
 typedef unsigned short wchar_t;
 #endif

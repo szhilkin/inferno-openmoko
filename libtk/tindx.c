@@ -1,12 +1,7 @@
-#include <lib9.h>
-#include <draw.h>
-
-#include <isa.h>
-#include <interp.h>
-#include <runt.h>
-#include <tk.h>
-
-#include <textw.h>
+#include "lib9.h"
+#include "draw.h"
+#include "tk.h"
+#include "textw.h"
 
 #define istring u.string
 #define iwin u.win
@@ -29,7 +24,7 @@ tktindparse(Tk *tk, char **pspec, TkTindex *ans)
 	TkText *tkt;
 	char *buf;
 
-	buf = (char*)mallocz(Tkmaxitem, 0);
+	buf = mallocz(Tkmaxitem, 0);
 	if(buf == nil)
 		return TkNomem;
 
@@ -612,3 +607,4 @@ tktxyind(Tk *tk, int x, int y, TkTindex *ans)
 	tktadjustind(tkt, TkTbycharstart, ans);
 	return secondhalf;
 }
+

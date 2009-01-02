@@ -1,16 +1,18 @@
-#include <windows.h>
+#define UNICODE
+#define Unknown win_Unknown
+#include	<windows.h>
+#include	<winbase.h>
+#undef Unknown
+#undef	Sleep
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
+#include	<lm.h>
 
-#include <lm.h>
-
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
-
+/* TODO: try using / in place of \ in path names */
 #ifndef SID_MAX_SUB_AUTHORITIES
 #define SID_MAX_SUB_AUTHORITIES 15
 #endif
-
-/* TODO: try using / in place of \ in path names */
 
 enum
 {
@@ -20,9 +22,11 @@ enum
 	MAXCOMP		= 128,
 };
 
+typedef struct	User	User;
 typedef struct  Gmem	Gmem;
 typedef	struct	Stat	Stat;
-typedef	WIN32_FIND_DATAW	Fsdir;
+typedef	struct Fsinfo	Fsinfo;
+typedef	WIN32_FIND_DATA	Fsdir;
 
 #ifndef INVALID_SET_FILE_POINTER
 #define	INVALID_SET_FILE_POINTER	((DWORD)-1)
@@ -43,7 +47,7 @@ struct Fsinfo
 	ushort	checksec;
 	Fsdir*	de;	/* non-nil for saved entry from last dirread at offset */
 };
-#define	FS(c)	((c)->aux.fsinfo)
+#define	FS(c)	((Fsinfo*)(c)->aux)
 
 /*
  * info about a user or group
@@ -55,11 +59,10 @@ struct Fsinfo
  * the user information never gets thrown away,
  * but the group information gets refreshed with each setid.
  */
-//typedef struct User User;
 struct User
 {
 	QLock	lk;		/* locks the gotgroup and group fields */
-	PSID	sid;
+	SID	*sid;
 	Rune	*name;
 	Rune	*dom;
 	int	type;		/* the type of sid, ie SidTypeUser, SidTypeAlias, ... */
@@ -87,11 +90,11 @@ struct Stat
 /*
  * some "well-known" sids
  */
-static	PSID	creatorowner;
-static	PSID	creatorgroup;
-static	PSID	everyone;
-static	PSID	ntignore;
-static	PSID	ntroot;	/* user who is supposed to run emu as a server */
+static	SID	*creatorowner;
+static	SID	*creatorgroup;
+static	SID	*everyone;
+static	SID	*ntignore;
+static	SID	*ntroot;	/* user who is supposed to run emu as a server */
 
 /*
  * all users we ever see end up in this table
@@ -130,10 +133,6 @@ modetomask[] =
 	RMODE|WMODE|XMODE,
 };
 
-extern Rune	*widen(const char *s);
-extern char* narrowen(const Rune *ws);
-
-
 extern	DWORD	PlatformId;
 	char    rootdir[MAXROOT] = "\\inferno";
 	Rune	rootname[] = L"inferno-server";
@@ -149,8 +148,9 @@ static	uchar	isntfrog[256];
 
 static	void		fsremove(Chan*);
 
-	char		*narrowen(const wchar_t *ws);
-	int		widebytes(const wchar_t *ws);
+	wchar_t	*widen(char *s);
+	char		*narrowen(wchar_t *ws);
+	int		widebytes(wchar_t *ws);
 
 static char Etoolong[] = "file name too long";
 
@@ -158,7 +158,8 @@ static char Etoolong[] = "file name too long";
  * these lan manager functions are not supplied
  * on windows95, so we have to load the dll by hand
  */
-typedef NET_API_STATUS (NET_API_FUNCTION *TUserGetLocalGroups)(
+static struct {
+	NET_API_STATUS (NET_API_FUNCTION *UserGetLocalGroups)(
 		LPWSTR servername,
 		LPWSTR username,
 		DWORD level,
@@ -167,7 +168,7 @@ typedef NET_API_STATUS (NET_API_FUNCTION *TUserGetLocalGroups)(
 		DWORD prefmaxlen,
 		LPDWORD entriesread,
 		LPDWORD totalentries);
-typedef NET_API_STATUS (NET_API_FUNCTION *TUserGetGroups)(
+	NET_API_STATUS (NET_API_FUNCTION *UserGetGroups)(
 		LPWSTR servername,
 		LPWSTR username,
 		DWORD level,
@@ -175,32 +176,27 @@ typedef NET_API_STATUS (NET_API_FUNCTION *TUserGetGroups)(
 		DWORD prefmaxlen,
 		LPDWORD entriesread,
 		LPDWORD totalentries);
-typedef NET_API_STATUS (NET_API_FUNCTION *TGetAnyDCName)(
+	NET_API_STATUS (NET_API_FUNCTION *GetAnyDCName)(
 		LPCWSTR ServerName,
 		LPCWSTR DomainName,
 		LPBYTE *Buffer);
-typedef NET_API_STATUS (NET_API_FUNCTION *TApiBufferFree)(LPVOID Buffer);
-static struct {
-	TUserGetLocalGroups	UserGetLocalGroups;
-	TUserGetGroups		UserGetGroups;
-	TGetAnyDCName		GetAnyDCName;
-	TApiBufferFree		ApiBufferFree;
+	NET_API_STATUS (NET_API_FUNCTION *ApiBufferFree)(LPVOID Buffer);
 } net;
 
 extern	int		nth2fd(HANDLE);
 extern	HANDLE		ntfd2h(int);
 static	int		cnisroot(Cname*);
 static	int		fsisroot(Chan*);
-static	int		okelem(const char*, int);
+static	int		okelem(char*, int);
 static	int		fsexist(char*, Qid*);
-static	char*		fspath(Cname*, const char*, char*, const char*);
-static	Cname*		fswalkpath(Cname*, const char*, int);
+static	char*	fspath(Cname*, char*, char*, char*);
+static	Cname*	fswalkpath(Cname*, char*, int);
 static	char*	fslastelem(Cname*);
-static	long		fsdirread(Chan*, char*, int, vlong);
-static	ulong		fsqidpath(const char*);
+static	long		fsdirread(Chan*, uchar*, int, vlong);
+static	ulong		fsqidpath(char*);
 static	int		fsomode(int);
-static	int		fsdirset(char*, int, WIN32_FIND_DATAW*, char*, Chan*, int isdir);
-static 	int		fsdirsize(WIN32_FIND_DATAW*, char*, Chan*);
+static	int		fsdirset(char*, int, WIN32_FIND_DATA*, char*, Chan*, int isdir);
+static 	int		fsdirsize(WIN32_FIND_DATA*, char*, Chan*);
 static	void		fssettime(char*, long, long);
 static	long		unixtime(FILETIME);
 static	FILETIME	wintime(ulong);
@@ -213,29 +209,29 @@ static	SECURITY_DESCRIPTOR* secsd(char*, char[SD_ROCK]);
 static	int		secsdhasperm(SECURITY_DESCRIPTOR*, ulong, Rune*);
 static	int		secsdstat(SECURITY_DESCRIPTOR*, Stat*, Rune*);
 static	SECURITY_DESCRIPTOR* secmksd(char[SD_ROCK], Stat*, ACL*, int);
-static	PSID		dupsid(PSID);
-static	int		ismembersid(Rune*, User*, PSID);
+static	SID		*dupsid(SID*);
+static	int		ismembersid(Rune*, User*, SID*);
 static	int		ismember(User*, User*);
-static	User		*sidtouser(Rune*, PSID);
+static	User		*sidtouser(Rune*, SID*);
 static	User		*domnametouser(Rune*, Rune*, Rune*);
 static	User		*nametouser(Rune*, Rune*);
-static	User		*unametouser(Rune*, const char*);
+static	User		*unametouser(Rune*, char*);
 static	void		addgroups(User*, int);
-static	User		*mkuser(PSID, int, Rune*, Rune*);
+static	User		*mkuser(SID*, int, Rune*, Rune*);
 static	Rune		*domsrv(Rune *, Rune[MAX_PATH]);
-static	Rune		*filesrv(const char*);
-static	int		fsacls(const char*);
+static	Rune		*filesrv(char*);
+static	int		fsacls(char*);
 static	User		*secuser(void);
 
-	int		runeslen(const Rune*);
-	Rune*		runesdup(const Rune*);
-	Rune*		utftorunes(Rune*, const char*, int);
-	char*		runestoutf(char*, const Rune*, int);
-	int		runescmp(const Rune*, const Rune*);
+	int		runeslen(Rune*);
+	Rune*		runesdup(Rune*);
+	Rune*		utftorunes(Rune*, char*, int);
+	char*		runestoutf(char*, Rune*, int);
+	int		runescmp(Rune*, Rune*);
 
 
 int
-winfilematch(char *path, WIN32_FIND_DATAW *data)
+winfilematch(char *path, WIN32_FIND_DATA *data)
 {
 	char *p;
 	wchar_t *wpath;
@@ -255,11 +251,11 @@ int
 winfileclash(char *path)
 {
 	HANDLE h;
-	WIN32_FIND_DATAW data;
+	WIN32_FIND_DATA data;
 	wchar_t *wpath;
 
 	wpath = widen(path);
-	h = FindFirstFileW(wpath, &data);
+	h = FindFirstFile(wpath, &data);
 	free(wpath);
 	if (h != INVALID_HANDLE_VALUE) {
 		FindClose(h);
@@ -349,8 +345,8 @@ fsinit(void)
 		if(*wp < 32 || (*wp < 256 && isntfrog[*wp] && *wp != '\\' && *wp != ':'))
 			panic("illegal root path");
 	}
-	n = GetFullPathNameW(wpath, MAXROOT, wrootdir, &last);
-	free(wpath);
+	n = GetFullPathName(wpath, MAXROOT, wrootdir, &last);
+	free(wpath);	
 	runestoutf(rootdir, wrootdir, MAXROOT);
 	if(n >= MAXROOT || n == 0)
 		panic("illegal root path");
@@ -375,7 +371,7 @@ fsinit(void)
 
 	if(strchr(rootdir, '\\') == nil)
 		strcat(rootdir, "\\.");
-	attr = GetFileAttributesW(wrootdir);
+	attr = GetFileAttributes(wrootdir);
 	if(attr == 0xFFFFFFFF)
 		panic("root path '%s' does not exist", narrowen(wrootdir));
 	rootqid.path = fsqidpath(rootdir);
@@ -400,13 +396,14 @@ fsinit(void)
 }
 
 Chan*
-fsattach(const char *spec)
+fsattach(char *spec)
 {
 	Chan *c;
 	static int devno;
 	static Lock l;
+	char *drive = (char *)spec;
 
-	if (!emptystr(spec) && !(spec[1] == ':' && spec[2] == '\0'))
+	if (!emptystr(drive) && (drive[1] != ':' || drive[2] != '\0'))
 		error(Ebadspec);
 
 	c = devattach('U', spec);
@@ -414,10 +411,10 @@ fsattach(const char *spec)
 	c->dev = devno++;
 	unlock(&l);
 	c->qid = rootqid;
-	c->aux.fsinfo = (Fsinfo*)smalloc(sizeof(Fsinfo));
+	c->aux = smalloc(sizeof(Fsinfo));
 	FS(c)->srv = ntsrv;
 	if(!emptystr(spec)) {
-		char *s = (char*)smalloc(strlen(spec)+1);
+		char *s = smalloc(strlen(spec)+1);
 		strcpy(s, spec);
 		FS(c)->spec = s;
 		FS(c)->srv = filesrv(spec);
@@ -436,7 +433,7 @@ fsattach(const char *spec)
 }
 
 Walkqid*
-fswalk(Chan *c, Chan *nc, const char **name, int nname)
+fswalk(Chan *c, Chan *nc, char **name, int nname)
 {
 	int j, alloc;
 	Walkqid *wq;
@@ -449,7 +446,7 @@ fswalk(Chan *c, Chan *nc, const char **name, int nname)
 
 	alloc = 0;
 	current = nil;
-	wq = (Walkqid*)smalloc(sizeof(Walkqid)+(nname-1)*sizeof(Qid));
+	wq = smalloc(sizeof(Walkqid)+(nname-1)*sizeof(Qid));
 	if(waserror()){
 		if(alloc && wq->clone != nil)
 			cclose(wq->clone);
@@ -533,7 +530,7 @@ fswalk(Chan *c, Chan *nc, const char **name, int nname)
 			cclose(wq->clone);
 		wq->clone = nil;
 	}else if(wq->clone){
-		nc->aux.fsinfo = (Fsinfo*)smalloc(sizeof(Fsinfo));
+		nc->aux = smalloc(sizeof(Fsinfo));
 		nc->type = c->type;
 		FS(nc)->spec = FS(c)->spec;
 		FS(nc)->srv = FS(c)->srv;
@@ -593,7 +590,7 @@ fsopen(Chan *c, int mode)
 		if (winfileclash(path))
 			error(Eexist);
 		wpath = widen(path);
-		h = CreateFileW(wpath, m, FILE_SHARE_READ|FILE_SHARE_WRITE|file_share_delete, 0, cflag, aflag, 0);
+		h = CreateFile(wpath, m, FILE_SHARE_READ|FILE_SHARE_WRITE|file_share_delete, 0, cflag, aflag, 0);
 		free(wpath);
 		if(h == INVALID_HANDLE_VALUE)
 			oserror();
@@ -607,7 +604,7 @@ fsopen(Chan *c, int mode)
 }
 
 void
-fscreate(Chan *c, const char *name, int mode, ulong perm)
+fscreate(Chan *c, char *name, int mode, ulong perm)
 {
 	Stat st;
 	HANDLE h;
@@ -666,7 +663,7 @@ fscreate(Chan *c, const char *name, int mode, ulong perm)
 			error(Eisdir);
 		}
 		wpath = widen(path);
-		if(!CreateDirectoryW(wpath, &sa) || !fsexist(path, &c->qid)) {
+		if(!CreateDirectory(wpath, &sa) || !fsexist(path, &c->qid)) {
 			free(wpath);
 			free(acl);
 			oserror();
@@ -681,7 +678,7 @@ fscreate(Chan *c, const char *name, int mode, ulong perm)
 		if (winfileclash(path))
 			error(Eexist);
 		wpath = widen(path);
-		h = CreateFileW(wpath, m, FILE_SHARE_READ|FILE_SHARE_WRITE|file_share_delete, &sa, CREATE_ALWAYS, aflag, 0);
+		h = CreateFile(wpath, m, FILE_SHARE_READ|FILE_SHARE_WRITE|file_share_delete, &sa, CREATE_ALWAYS, aflag, 0);
 		free(wpath);
 		if(h == INVALID_HANDLE_VALUE) {
 			free(acl);
@@ -748,7 +745,7 @@ fslseek(HANDLE h, vlong offset)
 }
 
 long
-fsread(Chan *c, char *va, long n, vlong offset)
+fsread(Chan *c, void *va, long n, vlong offset)
 {
 	DWORD n2;
 	HANDLE h;
@@ -777,7 +774,7 @@ fsread(Chan *c, char *va, long n, vlong offset)
 }
 
 long
-fswrite(Chan *c, const char *va, long n, vlong offset)
+fswrite(Chan *c, void *va, long n, vlong offset)
 {
 	DWORD n2;
 	HANDLE h;
@@ -801,9 +798,9 @@ fswrite(Chan *c, const char *va, long n, vlong offset)
 }
 
 int
-fsstat(Chan *c, char *buf, int n)
+fsstat(Chan *c, uchar *buf, int n)
 {
-	WIN32_FIND_DATAW data;
+	WIN32_FIND_DATA data;
 	char path[MAX_PATH];
 	wchar_t *wpath;
 
@@ -816,7 +813,7 @@ fsstat(Chan *c, char *buf, int n)
 		if(strchr(path, '\\') == nil)
 			strcat(path, "\\.");
 		wpath = widen(path);
-		data.dwFileAttributes = GetFileAttributesW(wpath);
+		data.dwFileAttributes = GetFileAttributes(wpath);
 		free(wpath);
 		if(data.dwFileAttributes == 0xffffffff)
 			oserror();
@@ -847,7 +844,7 @@ fsstat(Chan *c, char *buf, int n)
 			data.nFileSizeLow = fi.nFileSizeLow;
 		} else {
 			wpath = widen(path);
-			h = FindFirstFileW(wpath, &data);
+			h = FindFirstFile(wpath, &data);
 			free(wpath);
 			if(h == INVALID_HANDLE_VALUE)
 				oserror();
@@ -864,7 +861,7 @@ fsstat(Chan *c, char *buf, int n)
 }
 
 int
-fswstat(Chan *c, char *buf, int n)
+fswstat(Chan *c, uchar *buf, int n)
 {
 	int wsd;
 	Dir dir;
@@ -873,7 +870,7 @@ fswstat(Chan *c, char *buf, int n)
 	HANDLE h;
 	ulong attr;
 	User *ou, *gu;
-	WIN32_FIND_DATAW data;
+	WIN32_FIND_DATA data;
 	SECURITY_DESCRIPTOR *sd;
 	char *last, sdrock[SD_ROCK], path[MAX_PATH], newpath[MAX_PATH], strs[4*256];
 	wchar_t wspath[MAX_PATH], wsnewpath[MAX_PATH];
@@ -894,7 +891,7 @@ fswstat(Chan *c, char *buf, int n)
 			data.ftLastWriteTime = wintime(dir.mtime);
 		utftorunes(data.cFileName, ".", MAX_PATH);
 	}else{
-		h = FindFirstFileW(wspath, &data);
+		h = FindFirstFile(wspath, &data);
 		if(h == INVALID_HANDLE_VALUE)
 			oserror();
 		if (!winfilematch(path, &data)) {
@@ -990,7 +987,7 @@ fswstat(Chan *c, char *buf, int n)
 		ph = fswalkpath(ph, dir.name, 0);
 		fspath(ph, 0, newpath, FS(c)->spec);
 		utftorunes(wsnewpath, newpath, MAX_PATH);
-		if(GetFileAttributesW(wpath) != 0xffffffff && !winfileclash(newpath))
+		if(GetFileAttributes(wpath) != 0xffffffff && !winfileclash(newpath))
 			error("file already exists");
 		if(fsisroot(c))
 			error(Eperm);
@@ -1015,7 +1012,7 @@ fswstat(Chan *c, char *buf, int n)
 	if(!fsisroot(c)
 	&& attr != data.dwFileAttributes
 	&& (attr & FILE_ATTRIBUTE_READONLY))
-		SetFileAttributesW(wspath, attr);
+		SetFileAttributes(wspath, attr);
 	if(FS(c)->usesec && wsd){
 		ACL *acl = (ACL *) smalloc(ACL_ROCK);
 		st.owner = ou;
@@ -1023,7 +1020,7 @@ fswstat(Chan *c, char *buf, int n)
 		if(dir.mode != ~0)
 			st.mode = dir.mode;
 		sd = secmksd(sdrock, &st, acl, data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
-		if(sd == nil || !SetFileSecurityW(wspath, DACL_SECURITY_INFORMATION, sd)){
+		if(sd == nil || !SetFileSecurity(wspath, DACL_SECURITY_INFORMATION, sd)){
 			free(acl);
 			oserror();
 		}
@@ -1033,7 +1030,7 @@ fswstat(Chan *c, char *buf, int n)
 	if(!fsisroot(c)
 	&& attr != data.dwFileAttributes
 	&& !(attr & FILE_ATTRIBUTE_READONLY))
-		SetFileAttributesW(wspath, attr);
+		SetFileAttributes(wspath, attr);
 
 	/* do last so path is valid throughout */
 	wpath = widen(dir.name);
@@ -1057,19 +1054,19 @@ fswstat(Chan *c, char *buf, int n)
 				CloseHandle(h);	/* woe betide it if ORCLOSE */
 			FS(c)->fd = nth2fd(INVALID_HANDLE_VALUE);
 		}
-		if(!MoveFileW(wspath, wsnewpath)) {
+		if(!MoveFile(wspath, wsnewpath)) {
 			oserror();
 		} else if(!file_share_delete && c->flag & COPEN) {
 			int	aflag;
 			SECURITY_ATTRIBUTES sa;
-
+			
 			/* The move succeeded, so open new file to maintain handle */
 			sa.nLength = sizeof(sa);
 			sa.lpSecurityDescriptor = sd;
 			sa.bInheritHandle = 0;
 			if(c->flag & CRCLOSE)
 				aflag = FILE_FLAG_DELETE_ON_CLOSE;
-			h = CreateFileW(wsnewpath, fsomode(c->mode & 0x3), FILE_SHARE_READ|FILE_SHARE_WRITE|file_share_delete, &sa, OPEN_EXISTING, aflag, 0);
+			h = CreateFile(wsnewpath, fsomode(c->mode & 0x3), FILE_SHARE_READ|FILE_SHARE_WRITE|file_share_delete, &sa, OPEN_EXISTING, aflag, 0);
 			if(h == INVALID_HANDLE_VALUE)
 				oserror();
 			FS(c)->fd = nth2fd(h);
@@ -1102,16 +1099,16 @@ fsremove(Chan *c)
 		*p = '\\';
 	}
 	if(c->qid.type & QTDIR)
-		n = RemoveDirectoryW(wspath);
+		n = RemoveDirectory(wspath);
 	else
-		n = DeleteFileW(wspath);
+		n = DeleteFile(wspath);
 	if (!n) {
 		ulong attr, mode;
 		SECURITY_DESCRIPTOR *sd = nil;
 		char sdrock[SD_ROCK];
 		Stat st;
 		int secok;
-		attr = GetFileAttributesW(wspath);
+		attr = GetFileAttributes(wspath);
 		if(attr != 0xFFFFFFFF) {
 			if (FS(c)->usesec) {
 				sd = secsd(path, sdrock);
@@ -1122,7 +1119,7 @@ fsremove(Chan *c)
 					st.mode |= 0660;
 					sd = secmksd(sdrock, &st, acl, attr & FILE_ATTRIBUTE_DIRECTORY);
 					if(sd != nil) {
-						SetFileSecurityW(wspath, DACL_SECURITY_INFORMATION, sd);
+						SetFileSecurity(wspath, DACL_SECURITY_INFORMATION, sd);
 					}
 					free(acl);
 					if(sd != nil && sd != (void*)sdrock)
@@ -1130,22 +1127,22 @@ fsremove(Chan *c)
 					sd = nil;
 				}
 			}
-			SetFileAttributesW(wspath, FILE_ATTRIBUTE_NORMAL);
+			SetFileAttributes(wspath, FILE_ATTRIBUTE_NORMAL);
 			if(c->qid.type & QTDIR)
-				n = RemoveDirectoryW(wspath);
+				n = RemoveDirectory(wspath);
 			else
-				n = DeleteFileW(wspath);
+				n = DeleteFile(wspath);
 			if (!n) {
 				if (FS(c)->usesec && secok) {
 					ACL *acl = (ACL *) smalloc(ACL_ROCK);
 					st.mode =  mode;
 					sd = secmksd(sdrock, &st, acl, attr & FILE_ATTRIBUTE_DIRECTORY);
 					if(sd != nil) {
-						SetFileSecurityW(wspath, DACL_SECURITY_INFORMATION, sd);
+						SetFileSecurity(wspath, DACL_SECURITY_INFORMATION, sd);
 					}
 					free(acl);
 				}
-				SetFileAttributesW(wspath, attr);
+				SetFileAttributes(wspath, attr);
 				if(sd != nil && sd != (void*)sdrock)
 					free(sd);
 			}
@@ -1164,7 +1161,7 @@ fsremove(Chan *c)
  * are not prepared to handle
  */
 static int
-okelem(const char *elem, int nodots)
+okelem(char *elem, int nodots)
 {
 	int c, dots;
 
@@ -1196,10 +1193,9 @@ fsisroot(Chan *c)
 }
 
 static char*
-fspath(Cname *c, const char *ext, char *path, const char *spec)
+fspath(Cname *c, char *ext, char *path, char *spec)
 {
-	char *p, *last;
-	const char *rootd;
+	char *p, *last, *rootd;
 	int extlen = 0;
 
 	rootd = spec != nil ? spec : rootdir;
@@ -1240,7 +1236,7 @@ fspath(Cname *c, const char *ext, char *path, const char *spec)
 extern void cleancname(Cname*);
 
 static Cname *
-fswalkpath(Cname *c, const char *name, int dup)
+fswalkpath(Cname *c, char *name, int dup)
 {
 	if(dup)
 		c = newcname(c->s);
@@ -1262,7 +1258,7 @@ fslastelem(Cname *c)
 }
 
 static int
-fsdirbadentry(WIN32_FIND_DATAW *data)
+fsdirbadentry(WIN32_FIND_DATA *data)
 {
 	wchar_t *s;
 
@@ -1283,12 +1279,12 @@ fsdirent(Chan *c, char *path, Fsdir *data)
 
 	h = ntfd2h(FS(c)->fd);
 	if(data == nil)
-		data = (Fsdir*)smalloc(sizeof(Fsdir));
+		data = smalloc(sizeof(*data));
 	if(FS(c)->offset == 0){
 		if(h != INVALID_HANDLE_VALUE)
 			FindClose(h);
 		wpath = widen(path);
-		h = FindFirstFileW(wpath, data);
+		h = FindFirstFile(wpath, data);
 		free(wpath);
 		FS(c)->fd = nth2fd(h);
 		if(h == INVALID_HANDLE_VALUE){
@@ -1299,7 +1295,7 @@ fsdirent(Chan *c, char *path, Fsdir *data)
 			return data;
 	}
 	do{
-		if(!FindNextFileW(h, data)){
+		if(!FindNextFile(h, data)){
 			free(data);
 			return nil;
 		}
@@ -1308,7 +1304,7 @@ fsdirent(Chan *c, char *path, Fsdir *data)
 }
 
 static long
-fsdirread(Chan *c, char *va, int count, vlong offset)
+fsdirread(Chan *c, uchar *va, int count, vlong offset)
 {
 	int i, r;
 	char path[MAX_PATH], *p;
@@ -1363,7 +1359,7 @@ fsdirread(Chan *c, char *va, int count, vlong offset)
 }
 
 static ulong
-fsqidpath(const char *p)
+fsqidpath(char *p)
 {
 	ulong h;
 	int c;
@@ -1412,13 +1408,13 @@ static int
 fsexist(char *p, Qid *q)
 {
 	HANDLE h;
-	WIN32_FIND_DATAW data;
+	WIN32_FIND_DATA data;
 	wchar_t *wpath;
 
 	if(devfile(p))
 		return 0;
 	wpath = widen(p);
-	h = FindFirstFileW(wpath, &data);
+	h = FindFirstFile(wpath, &data);
 	free(wpath);
 	if(h == INVALID_HANDLE_VALUE)
 		return 0;
@@ -1440,7 +1436,7 @@ fsexist(char *p, Qid *q)
 }
 
 static int
-fsdirset(char *edir, int n, WIN32_FIND_DATAW *data, char *path, Chan *c, int isdir)
+fsdirset(char *edir, int n, WIN32_FIND_DATA *data, char *path, Chan *c, int isdir)
 {
 	Dir dir;
 	static char neveryone[] = "Everyone";
@@ -1476,18 +1472,18 @@ fsdirset(char *edir, int n, WIN32_FIND_DATAW *data, char *path, Chan *c, int isd
 
 	if(isdir && sizeD2M(&dir) > n)
 		n = -1;
-	else
+	else 
 		n = convD2M(&dir, edir, n);
 	if(dir.uid != neveryone)
-		free(dir.uid); /* XXX: unconst */
+		free(dir.uid);
 	if(dir.gid != neveryone)
-		free(dir.gid); /* XXX: unconst */
-	free(dir.name); /* XXX: unconst */
+		free(dir.gid);
+	free(dir.name);
 	return n;
 }
 
 static int
-fsdirsize(WIN32_FIND_DATAW *data, char *path, Chan *c)
+fsdirsize(WIN32_FIND_DATA *data, char *path, Chan *c)
 {
 	int i, n;
 
@@ -1511,7 +1507,7 @@ fssettime(char *path, long at, long mt)
 	wchar_t *wpath;
 
 	wpath = widen(path);
-	h = CreateFileW(wpath, GENERIC_WRITE,
+	h = CreateFile(wpath, GENERIC_WRITE,
 		0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	free(wpath);
 	if(h == INVALID_HANDLE_VALUE)
@@ -1604,16 +1600,16 @@ secinit(void)
 		return;
 	}
 
-	net.UserGetGroups = (TUserGetGroups)GetProcAddress(lib, "NetUserGetGroups");
+	net.UserGetGroups = (void*)GetProcAddress(lib, "NetUserGetGroups");
 	if(net.UserGetGroups == 0)
 		panic("bad netapi32 library");
-	net.UserGetLocalGroups = (TUserGetLocalGroups)GetProcAddress(lib, "NetUserGetLocalGroups");
+	net.UserGetLocalGroups = (void*)GetProcAddress(lib, "NetUserGetLocalGroups");
 	if(net.UserGetLocalGroups == 0)
 		panic("bad netapi32 library");
-	net.GetAnyDCName = (TGetAnyDCName)GetProcAddress(lib, "NetGetAnyDCName");
+	net.GetAnyDCName = (void*)GetProcAddress(lib, "NetGetAnyDCName");
 	if(net.GetAnyDCName == 0)
 		panic("bad netapi32 library");
-	net.ApiBufferFree = (TApiBufferFree)GetProcAddress(lib, "NetApiBufferFree");
+	net.ApiBufferFree = (void*)GetProcAddress(lib, "NetApiBufferFree");
 	if(net.ApiBufferFree == 0)
 		panic("bad netapi32 library");
 
@@ -1658,7 +1654,7 @@ secinit(void)
 		priv = (TOKEN_PRIVILEGES*)privrock;
 		priv->PrivilegeCount = 1;
 		priv->Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-		if(LookupPrivilegeValue(NULL, /*SE_RESTORE_NAME*/L"SeRestorePrivilege", &priv->Privileges[0].Luid)
+		if(LookupPrivilegeValue(NULL, /*SE_RESTORE_NAME*/ L"SeRestorePrivilege", &priv->Privileges[0].Luid)
 		&& AdjustTokenPrivileges(token, 0, priv, 0, NULL, NULL))
 			isserver = 1;
 		CloseHandle(token);
@@ -1717,10 +1713,10 @@ secstat(Dir *dir, char *file, Rune *srv)
 	if(ok){
 		dir->mode = st.mode;
 		n = runenlen(st.owner->name, runeslen(st.owner->name));
-		dir->uid = (char*)smalloc(n+1);
+		dir->uid = smalloc(n+1);
 		runestoutf(dir->uid, st.owner->name, n+1);
 		n = runenlen(st.group->name, runeslen(st.group->name));
-		dir->gid = (char*)smalloc(n+1);
+		dir->gid = smalloc(n+1);
 		runestoutf(dir->gid, st.group->name, n+1);
 	}
 	return ok;
@@ -1795,7 +1791,7 @@ secsd(char *file, char sdrock[SD_ROCK])
 	sd = (SECURITY_DESCRIPTOR*)sdrock;
 	need = 0;
 	wpath = widen(path);
-	if(GetFileSecurityW(wpath, OWNER_SECURITY_INFORMATION|DACL_SECURITY_INFORMATION, sd, SD_ROCK, &need)) {
+	if(GetFileSecurity(wpath, OWNER_SECURITY_INFORMATION|DACL_SECURITY_INFORMATION, sd, SD_ROCK, &need)) {
 		free(wpath);
 		return sd;
 	}
@@ -1803,12 +1799,12 @@ secsd(char *file, char sdrock[SD_ROCK])
 		free(wpath);
 		return nil;
 	}
-	sd = (SECURITY_DESCRIPTOR*)malloc(need);
+	sd = malloc(need);
 	if(sd == nil) {
 		free(wpath);
 		error(Enomem);
 	}
-	if(GetFileSecurityW(wpath, OWNER_SECURITY_INFORMATION|DACL_SECURITY_INFORMATION, sd, need, &need)) {
+	if(GetFileSecurity(wpath, OWNER_SECURITY_INFORMATION|DACL_SECURITY_INFORMATION, sd, need, &need)) {
 		free(wpath);
 		return sd;
 	}
@@ -1822,9 +1818,9 @@ secsdstat(SECURITY_DESCRIPTOR *sd, Stat *st, Rune *srv)
 {
 	ACL *acl;
 	BOOL hasacl, b;
-	/*LPVOID aceh;*/
+	ACE_HEADER *aceh;
 	User *owner, *group;
-	PSID sid, osid, gsid;
+	SID *sid, *osid, *gsid;
 	ACCESS_ALLOWED_ACE *ace;
 	int i, allow, deny, *p, m;
 	ACL_SIZE_INFORMATION size;
@@ -1846,18 +1842,17 @@ secsdstat(SECURITY_DESCRIPTOR *sd, Stat *st, Rune *srv)
 	 * first pass through acl finds group
 	 */
 	for(i = 0; i < size.AceCount; i++){
-		if(!GetAce(acl, i, (LPVOID*)&ace))
+		if(!GetAce(acl, i, &aceh))
 			continue;
-		/*ace = (ACCESS_ALLOWED_ACE*)aceh;*/
-
-		if(ace->Header.AceFlags & INHERIT_ONLY_ACE)
+		if(aceh->AceFlags & INHERIT_ONLY_ACE)
 			continue;
 
-		if(ace->Header.AceType != ACCESS_ALLOWED_ACE_TYPE
-		&& ace->Header.AceType != ACCESS_DENIED_ACE_TYPE)
+		if(aceh->AceType != ACCESS_ALLOWED_ACE_TYPE
+		&& aceh->AceType != ACCESS_DENIED_ACE_TYPE)
 			continue;
 
-		sid = (PSID)&ace->SidStart;
+		ace = (ACCESS_ALLOWED_ACE*)aceh;
+		sid = (SID*)&ace->SidStart;
 		if(EqualSid(sid, creatorowner) || EqualSid(sid, creatorgroup))
 			continue;
 
@@ -1888,20 +1883,20 @@ secsdstat(SECURITY_DESCRIPTOR *sd, Stat *st, Rune *srv)
 		allow = 0777;
 	deny = 0;
 	for(i = 0; i < size.AceCount; i++){
-		if(!GetAce(acl, i, (LPVOID*)&ace))
+		if(!GetAce(acl, i, &aceh))
 			continue;
-		/*ace = (ACCESS_ALLOWED_ACE*)aceh;*/
-		if(ace->Header.AceFlags & INHERIT_ONLY_ACE)
+		if(aceh->AceFlags & INHERIT_ONLY_ACE)
 			continue;
 
-		if(ace->Header.AceType == ACCESS_ALLOWED_ACE_TYPE)
+		if(aceh->AceType == ACCESS_ALLOWED_ACE_TYPE)
 			p = &allow;
-		else if(ace->Header.AceType == ACCESS_DENIED_ACE_TYPE)
+		else if(aceh->AceType == ACCESS_DENIED_ACE_TYPE)
 			p = &deny;
 		else
 			continue;
 
-		sid = (PSID)&ace->SidStart;
+		ace = (ACCESS_ALLOWED_ACE*)aceh;
+		sid = (SID*)&ace->SidStart;
 		if(EqualSid(sid, creatorowner) || EqualSid(sid, creatorgroup))
 			continue;
 
@@ -1933,8 +1928,8 @@ secsdhasperm(SECURITY_DESCRIPTOR *sd, ulong access, Rune *srv)
 	User *u;
 	ACL *acl;
 	BOOL hasacl, b;
-	/*LPVOID aceh;*/
-	PSID sid, osid, gsid;
+	ACE_HEADER *aceh;
+	SID *sid, *osid, *gsid;
 	int i, allow, deny, *p, m;
 	ACCESS_ALLOWED_ACE *ace;
 	ACL_SIZE_INFORMATION size;
@@ -1953,20 +1948,20 @@ secsdhasperm(SECURITY_DESCRIPTOR *sd, ulong access, Rune *srv)
 	if(!GetAclInformation(acl, &size, sizeof(size), AclSizeInformation))
 		return 0;
 	for(i = 0; i < size.AceCount; i++){
-		if(!GetAce(acl, i, (LPVOID*)&ace))
+		if(!GetAce(acl, i, &aceh))
 			continue;
-		/*ace = (ACCESS_ALLOWED_ACE*)aceh;*/
-		if(ace->Header.AceFlags & INHERIT_ONLY_ACE)
+		if(aceh->AceFlags & INHERIT_ONLY_ACE)
 			continue;
 
-		if(ace->Header.AceType == ACCESS_ALLOWED_ACE_TYPE)
+		if(aceh->AceType == ACCESS_ALLOWED_ACE_TYPE)
 			p = &allow;
-		else if(ace->Header.AceType == ACCESS_DENIED_ACE_TYPE)
+		else if(aceh->AceType == ACCESS_DENIED_ACE_TYPE)
 			p = &deny;
 		else
 			continue;
 
-		sid = (PSID)&ace->SidStart;
+		ace = (ACCESS_ALLOWED_ACE*)aceh;
+		sid = (SID*)&ace->SidStart;
 		if(EqualSid(sid, creatorowner) || EqualSid(sid, creatorgroup))
 			continue;
 
@@ -2018,13 +2013,13 @@ secmksd(char *sdrock, Stat *st, ACL *dacl, int isdir)
 
 	if(isdir){
 		/* hack to add inherit flags */
-		if(!GetAce(dacl, 1, (LPVOID*)&aceh))
+		if(!GetAce(dacl, 1, &aceh))
 			return nil;
 		aceh->AceFlags |= OBJECT_INHERIT_ACE|CONTAINER_INHERIT_ACE;
-		if(!GetAce(dacl, 2, (LPVOID*)&aceh))
+		if(!GetAce(dacl, 2, &aceh))
 			return nil;
 		aceh->AceFlags |= OBJECT_INHERIT_ACE|CONTAINER_INHERIT_ACE;
-		if(!GetAce(dacl, 3, (LPVOID*)&aceh))
+		if(!GetAce(dacl, 3, &aceh))
 			return nil;
 		aceh->AceFlags |= OBJECT_INHERIT_ACE|CONTAINER_INHERIT_ACE;
 	}
@@ -2036,7 +2031,7 @@ secmksd(char *sdrock, Stat *st, ACL *dacl, int isdir)
 		if(!AddAccessAllowedAce(dacl, ACL_REVISION, RMODE|WMODE|XMODE, fsuser->sid))
 			return nil;
 		if(isdir){
-			if(!GetAce(dacl, 4, (LPVOID*)&aceh))
+			if(!GetAce(dacl, 4, &aceh))
 				return nil;
 			aceh->AceFlags |= OBJECT_INHERIT_ACE|CONTAINER_INHERIT_ACE;
 		}
@@ -2056,7 +2051,7 @@ secmksd(char *sdrock, Stat *st, ACL *dacl, int isdir)
  * just make it easier to deal with user identities
  */
 static User*
-sidtouser(Rune *srv, PSID s)
+sidtouser(Rune *srv, SID *s)
 {
 	SID_NAME_USE type;
 	Rune aname[100], dname[100];
@@ -2099,12 +2094,12 @@ static User*
 nametouser(Rune *srv, Rune *name)
 {
 	char sidrock[MAX_SID];
-	PSID sid;
+	SID *sid;
 	SID_NAME_USE type;
 	Rune dom[MAX_PATH];
 	DWORD nsid, ndom;
 
-	sid = (PSID)sidrock;
+	sid = (SID*)sidrock;
 	nsid = sizeof(sidrock);
 	ndom = sizeof(dom);
 	if(!LookupAccountNameW(srv, name, sid, &nsid, dom, &ndom, &type))
@@ -2117,7 +2112,7 @@ nametouser(Rune *srv, Rune *name)
  * this mapping could be cached
  */
 static User*
-unametouser(Rune *srv, const char *name)
+unametouser(Rune *srv, char *name)
 {
 	Rune rname[MAX_PATH];
 
@@ -2129,7 +2124,7 @@ unametouser(Rune *srv, const char *name)
  * make a user structure and add it to the global cache.
  */
 static User*
-mkuser(PSID sid, int type, Rune *name, Rune *dom)
+mkuser(SID *sid, int type, Rune *name, Rune *dom)
 {
 	User *u;
 
@@ -2155,7 +2150,7 @@ mkuser(PSID sid, int type, Rune *name, Rune *dom)
 		break;
 	}
 
-	u = (User*)malloc(sizeof(User));
+	u = malloc(sizeof(User));
 	if(u == nil){
 		qunlock(&users.lk);
 		return 0;
@@ -2183,7 +2178,7 @@ mkuser(PSID sid, int type, Rune *name, Rune *dom)
  * which might be a group.
  */
 static int
-ismembersid(Rune *srv, User *u, PSID gsid)
+ismembersid(Rune *srv, User *u, SID *gsid)
 {
 	User *g;
 
@@ -2262,7 +2257,7 @@ addgroups(User *u, int force)
 			gu = domnametouser(srv, grp[i].grui0_name, u->dom);
 			if(gu == 0)
 				continue;
-			g = (Gmem*)malloc(sizeof(Gmem));
+			g = malloc(sizeof(Gmem));
 			if(g == nil)
 				error(Enomem);
 			g->user = gu;
@@ -2280,7 +2275,7 @@ addgroups(User *u, int force)
 			gu = domnametouser(srv, loc[i].lgrui0_name, u->dom);
 			if(gu == NULL)
 				continue;
-			g = (Gmem*)malloc(sizeof(Gmem));
+			g = malloc(sizeof(Gmem));
 			if(g == nil)
 				error(Enomem);
 			g->user = gu;
@@ -2291,10 +2286,10 @@ addgroups(User *u, int force)
 	}
 }
 
-static PSID
-dupsid(PSID sid)
+static SID*
+dupsid(SID *sid)
 {
-	PSID nsid;
+	SID *nsid;
 	int n;
 
 	n = GetLengthSid(sid);
@@ -2308,12 +2303,11 @@ dupsid(PSID sid)
  * return the name of the server machine for file
  */
 static Rune*
-filesrv(const char *file)
+filesrv(char *file)
 {
-	DWORD n;
+	int n;
 	Rune *srv;
-	const char *p;
-	char uni[MAX_PATH], mfile[MAX_PATH];
+	char *p, uni[MAX_PATH], mfile[MAX_PATH];
 	wchar_t vol[3];
 
 	strcpy(mfile, file);
@@ -2322,12 +2316,12 @@ filesrv(const char *file)
 		vol[0] = file[0];
 		vol[1] = file[1];
 		vol[2] = 0;
-		if(GetDriveTypeW(vol) != DRIVE_REMOTE)
+		if(GetDriveType(vol) != DRIVE_REMOTE)
 			return 0;
 		n = sizeof(uni);
 		if(WNetGetUniversalNameW(vol, UNIVERSAL_NAME_INFO_LEVEL, uni, &n) != NO_ERROR)
 			return nil;
-		runestoutf(mfile, ((UNIVERSAL_NAME_INFOW*)uni)->lpUniversalName, MAX_PATH);
+		runestoutf(mfile, ((UNIVERSAL_NAME_INFO*)uni)->lpUniversalName, MAX_PATH);
 		file = mfile;
 	}
 	file += 2;
@@ -2342,7 +2336,7 @@ filesrv(const char *file)
 	memmove(uni, file, n);
 	uni[n] = '\0';
 
-	srv = (Rune*)malloc((n + 1) * sizeof(Rune));
+	srv = malloc((n + 1) * sizeof(Rune));
 	if(srv == nil)
 		panic("filesrv: no memory");
 	utftorunes(srv, uni, n+1);
@@ -2353,7 +2347,7 @@ filesrv(const char *file)
  * does the file system support acls?
  */
 static int
-fsacls(const char *file)
+fsacls(char *file)
 {
 	char *p;
 	DWORD flags;
@@ -2378,7 +2372,7 @@ fsacls(const char *file)
 			p[1] = 0;
 	}
 	utftorunes(wpath, path, MAX_PATH);
-	if(!GetVolumeInformationW(wpath, NULL, 0, NULL, NULL, &flags, NULL, 0))
+	if(!GetVolumeInformation(wpath, NULL, 0, NULL, NULL, &flags, NULL, 0))
 		return 0;
 
 	return flags & FS_PERSISTENT_ACLS;
@@ -2415,13 +2409,13 @@ domsrv(Rune *dom, Rune srv[MAX_PATH])
 }
 
 Rune*
-runesdup(const Rune *r)
+runesdup(Rune *r)
 {
 	int n;
 	Rune *s;
 
 	n = runeslen(r) + 1;
-	s = (Rune *)malloc(n * sizeof(Rune));
+	s = malloc(n * sizeof(Rune));
 	if(s == nil)
 		error(Enomem);
 	memmove(s, r, n * sizeof(Rune));
@@ -2429,7 +2423,7 @@ runesdup(const Rune *r)
 }
 
 int
-runeslen(const Rune *r)
+runeslen(Rune *r)
 {
 	int n;
 
@@ -2440,7 +2434,7 @@ runeslen(const Rune *r)
 }
 
 char*
-runestoutf(char *p, const Rune *r, int nc)
+runestoutf(char *p, Rune *r, int nc)
 {
 	char *op, *ep;
 	int n, c;
@@ -2463,7 +2457,7 @@ runestoutf(char *p, const Rune *r, int nc)
 }
 
 Rune*
-utftorunes(Rune *r, const char *p, int nc)
+utftorunes(Rune *r, char *p, int nc)
 {
 	Rune *or, *er;
 
@@ -2476,7 +2470,7 @@ utftorunes(Rune *r, const char *p, int nc)
 }
 
 int
-runescmp(const Rune *s1, const Rune *s2)
+runescmp(Rune *s1, Rune *s2)
 {
 	Rune r1, r2;
 

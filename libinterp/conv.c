@@ -1,7 +1,7 @@
-#include <lib9.h>
-#include <isa.h>
-#include <interp.h>
-#include <mathi.h>
+#include "lib9.h"
+#include "isa.h"
+#include "interp.h"
+#include "mathi.h"
 
 enum
 {
@@ -12,8 +12,7 @@ enum
 	TOKSB,
 	TOKFP
 };
-#include <tab.h>
-
+#include "tab.h"
 
 typedef struct Addr	Addr;
 struct Addr
@@ -108,3 +107,4 @@ Dconv(Fmt *f)
 
 	return fmtstrcpy(f, buf);
 }
+

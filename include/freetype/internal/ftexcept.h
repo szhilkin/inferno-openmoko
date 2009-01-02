@@ -1,12 +1,10 @@
 #ifndef __FT_EXCEPT_H__
 #define __FT_EXCEPT_H__
 
+#include <ft2build.h>
+#include FT_INTERNAL_OBJECTS_H
 
-#include <freetype/internal/ftobjs.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 
@@ -33,7 +31,7 @@ extern "C" {
   } FT_CleanupItemRec;
 
   typedef struct FT_CleanupChunkRec_*   FT_CleanupChunk;
-
+  
   typedef struct FT_CleanupChunkRec_
   {
     FT_CleanupChunk    link;
@@ -68,7 +66,7 @@ extern "C" {
 
   FT_BASE( void )
   ft_xhandler_enter( FT_XHandler  xhandler,
-                     FT_Memory    memory );
+                     FT_Memory    memory );                         
 
   FT_BASE( void )
   ft_xhandler_exit( FT_XHandler  xhandler );
@@ -79,8 +77,6 @@ extern "C" {
                     FT_Error         error );
 
 >>>>>>> 1.2
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FT_EXCEPT_H__ */

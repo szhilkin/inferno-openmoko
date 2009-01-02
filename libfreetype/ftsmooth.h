@@ -20,13 +20,11 @@
 #define __FTSMOOTH_H__
 
 
+#include <ft2build.h>
+#include FT_RENDER_H
 
-#include <freetype/ftrender.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
 #ifndef FT_CONFIG_OPTION_NO_STD_RASTER
@@ -43,9 +41,7 @@ extern "C" {
 
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __FTSMOOTH_H__ */
 

@@ -1,12 +1,15 @@
-#include <windows.h>
-#include <winsock.h>
-
-#include <dat.h>
-#include <fns.h>
-#include <error.h>
+#define Unknown win_Unknown
+#define UNICODE
+#include	<windows.h>
+#include <winbase.h>
+#include	<winsock.h>
+#undef Unknown
+#include	"dat.h"
+#include	"fns.h"
+#include	"error.h"
 
 extern int	nth2fd(HANDLE);
-extern wchar_t	*widen(const char*);
+extern wchar_t	*widen(char*);
 
 /*
  * thanks to rcsh for these.
@@ -70,8 +73,8 @@ ntquotedcmd(char **argv)
 	for(i=0,n=0; argv[i]; i++)
 		n += 2*strlen(argv[i]);
 	n++;
-
-	cmd = (char*)malloc(n);
+	
+	cmd = malloc(n);
 	if(cmd == nil)
 		return nil;
 	for(i=0,p=cmd; argv[i]; i++) {
@@ -209,7 +212,7 @@ Error:
 int
 oscmdwait(void *v, char *buf, int n)
 {
-	DWORD status;
+	int status;
 	HANDLE proc = (HANDLE)v;
 
 	/* need not worry about being interrupted */

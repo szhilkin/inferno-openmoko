@@ -21,15 +21,13 @@
 #define __T1TYPES_H__
 
 
+#include <ft2build.h>
+#include FT_TYPE1_TABLES_H
+#include FT_INTERNAL_POSTSCRIPT_NAMES_H
+#include FT_INTERNAL_POSTSCRIPT_HINTS_H
 
-#include <freetype/t1tables.h>
-#include <freetype/internal/psnames.h>
-#include <freetype/internal/pshints.h>
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+FT_BEGIN_HEADER
 
 
   /*************************************************************************/
@@ -171,7 +169,7 @@ extern "C" {
 
     /* support for Multiple Masters fonts */
     PS_Blend       blend;
-
+    
     /* since FT 2.1 - interface to PostScript hinter */
     const void*    pshinter;
 
@@ -186,16 +184,14 @@ extern "C" {
     CID_FaceInfoRec  cid;
     void*            afm_data;
     CID_Subrs        subrs;
-
+    
     /* since FT 2.1 - interface to PostScript hinter */
     void*            pshinter;
 
   } CID_FaceRec;
 
 
-#ifdef __cplusplus
-}
-#endif
+FT_END_HEADER
 
 #endif /* __T1TYPES_H__ */
 

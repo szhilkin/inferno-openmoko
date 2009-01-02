@@ -1,6 +1,6 @@
 <../mkconfig
 
-LIBNAME=libmemdraw.a
+LIB=libmemdraw.a
 
 COMMONFILES=\
 	arc.$O\
